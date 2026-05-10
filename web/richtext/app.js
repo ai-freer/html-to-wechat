@@ -133,9 +133,19 @@ function process(rawHtml) {
 
 function renderPreview(html) {
   // 用 srcdoc 让 iframe 自己当 document，sandbox 已禁 script
+  // 外层留浅灰，内层卡片模拟公众号阅读视宽（移动端 ~414px，留点呼吸宽到 480）
+  const wrapStyle = `
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#fafaf9}
+    body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#1c1917;padding:32px 16px}
+    .preview-card{background:#fff;max-width:480px;margin:0 auto;padding:32px 24px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 0 0 1px rgba(0,0,0,0.04);font-size:15px;line-height:1.75}
+    .preview-card img{max-width:100%;height:auto}
+    .preview-card>:first-child{margin-top:0}
+    .preview-card>:last-child{margin-bottom:0}
+  `.replace(/\s+/g, ' ');
   preview.srcdoc = html
-    ? `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.7;color:#222;max-width:680px;margin:0 auto;}img{max-width:100%;height:auto;}</style></head><body>${html}</body></html>`
-    : `<!doctype html><html><body style="margin:0;padding:32px;font-family:sans-serif;color:#999;font-size:13px;">在左侧输入 HTML 后预览出现在这里。</body></html>`;
+    ? `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>${wrapStyle}</style></head><body><div class="preview-card">${html}</div></body></html>`
+    : `<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#fafaf9}body{display:flex;align-items:center;justify-content:center;font-family:-apple-system,sans-serif;color:#a8a29e;font-size:13px}</style></head><body>在左侧输入 HTML 后预览出现在这里</body></html>`;
 }
 
 function renderWarnings(warns) {

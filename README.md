@@ -47,11 +47,11 @@ html-to-wechat/
 │   ├── 02-html-to-images.md
 │   └── 03-html-to-script.md
 ├── web/                            # GitHub Pages 静态前端
-│   ├── index.html                  # 模式 1 工具（即根页面，顶栏切换三模式）
-│   ├── styles.css                  # 共享样式
-│   ├── app.js                      # 模式 1 逻辑
-│   ├── images/                     # 模式 2 页面
-│   └── script/                     # 模式 3 页面
+│   ├── index.html                  # Landing：项目门面 + 三模式入口卡
+│   ├── landing.css                 # Landing 样式
+│   ├── richtext/                   # 模式 1 工具页（juice + DOM + 剪贴板）
+│   ├── images/                     # 模式 2 页面（规划中）
+│   └── script/                     # 模式 3 页面（规划中）
 └── skill/                          # Skill 包，可独立安装
     ├── SKILL.md
     └── modes/
