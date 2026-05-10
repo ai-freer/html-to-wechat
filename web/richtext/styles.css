@@ -1,0 +1,21 @@
+/* placeholder, will be filled by v0.1 */
+:root {
+  --bg: #fafaf9;
+  --fg: #1c1917;
+  --muted: #78716c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+}
+.empty {
+  max-width: 720px;
+  margin: 80px auto;
+  padding: 0 24px;
+}
+.muted { color: var(--muted); }
+a { color: #d97706; }
