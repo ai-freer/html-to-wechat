@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HTML → 公众号富文本 · HTML-to-WeChat</title>
   <meta name="description" content="CSS 内联、清理后复制为富文本，粘贴到公众号后台即可保留样式。" />
-  <link rel="stylesheet" href="./styles.css?v=5" />
+  <link rel="stylesheet" href="./styles.css?v=6" />
 </head>
 <body data-step="1">
   <header class="topbar">
@@ -48,6 +48,10 @@
       <div class="pane-head">
         <span class="pane-title"><span class="pane-num">1</span>输入 HTML</span>
         <div class="pane-options">
+          <div class="seg" role="tablist" aria-label="编辑视图">
+            <button id="view-source" type="button" class="seg-btn is-active" role="tab" aria-selected="true">源码</button>
+            <button id="view-render" type="button" class="seg-btn" role="tab" aria-selected="false">渲染</button>
+          </div>
           <label class="toggle" title="自动提取 <article>/<main>，剥离导航 / 页脚 / 侧边栏">
             <input type="checkbox" id="opt-extract-main" checked />
             <span>仅保留正文</span>
@@ -56,6 +60,7 @@
         </div>
       </div>
       <textarea id="editor" spellcheck="false" placeholder="在此粘贴完整的 HTML 文档，或上传 .html 文件。&#10;&#10;包含 <style>、<script>、SVG 内联都可以——会自动 CSS 内联、删除 script、清理公众号不支持的属性。&#10;&#10;不知道从哪开始？点击右上角「载入示例」。"></textarea>
+      <iframe id="raw-preview" sandbox="allow-same-origin" title="原始 HTML 渲染" hidden></iframe>
     </section>
 
     <section class="pane preview-pane">
@@ -78,7 +83,7 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script type="module" src="./app.js?v=5"></script>
+  <script type="module" src="./app.js?v=6"></script>
 
 </body>
 </html>
