@@ -1,4 +1,6 @@
-# html-to-wechat
+# HTML-to-WeChat
+
+> 仓库名 / URL 路径保持小写 `html-to-wechat`；展示标题用 `HTML-to-WeChat`。
 
 把 **agent 生成的 HTML artifact 文章**投递到微信公众号、小红书、AI 视频生成软件的工具集。
 
