@@ -19,6 +19,7 @@ const btnUrl = $('btn-url');
 const urlPopover = $('url-popover');
 const urlInput = $('url-input');
 const btnUrlFetch = $('btn-url-fetch');
+const optExtractMain = $('opt-extract-main');
 
 let processedHtml = '';
 let processedText = '';
@@ -29,7 +30,7 @@ let debounceTimer = null;
 /**
  * 主管线：HTML 字符串 → 公众号兼容 HTML + 元数据
  */
-function process(rawHtml) {
+function process(rawHtml, options = {}) {
   if (!rawHtml.trim()) {
     return { html: '', text: '', stats: null, warnings: [] };
   }
@@ -60,6 +61,8 @@ function process(rawHtml) {
     images: 0,
     svgImages: 0,
     metas: 0,
+    chromeStripped: 0,
+    extractedFrom: null, // 'article' | 'main' | null
   };
 
   // 1. 删除完全不允许的标签
@@ -80,13 +83,61 @@ function process(rawHtml) {
   // 2. 删除残留 <style>（juice removeStyleTags 已处理大部分）
   doc.querySelectorAll('style').forEach(el => el.remove());
 
-  // 3. 删除所有元素的 id 属性（公众号会强制剥离）
+  // 3. 提取正文 / 剥离页面骨架（导航、页脚、侧边栏等）
+  if (options.extractMain !== false && doc.body) {
+    // 3a. 优先抓 <article>（多个则取文本最长的）
+    let extracted = null;
+    const articles = [...doc.querySelectorAll('article')];
+    if (articles.length) {
+      const best = articles.reduce((a, b) =>
+        (b.textContent.length > a.textContent.length ? b : a)
+      );
+      if (best.textContent.trim().length > 200) extracted = best;
+    }
+    // 3b. 否则用 <main> / [role="main"]
+    if (!extracted) {
+      const m = doc.querySelector('main, [role="main"]');
+      if (m && m.textContent.trim().length > 200) extracted = m;
+    }
+    if (extracted) {
+      const wrap = doc.createElement('body');
+      wrap.appendChild(extracted.cloneNode(true));
+      doc.body.replaceWith(wrap);
+      counters.extractedFrom = extracted.tagName.toLowerCase();
+    }
+
+    // 3c. 不论是否抽出来，都删掉骨架元素 + ARIA chrome
+    const chromeSelectors = [
+      'nav', 'aside',
+      '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
+      '[role="complementary"]', '[role="search"]',
+    ];
+    chromeSelectors.forEach(sel => {
+      doc.querySelectorAll(sel).forEach(el => {
+        el.remove();
+        counters.chromeStripped++;
+      });
+    });
+
+    // 3d. 没抽出来时，再删 body 的直接子级 <header>/<footer>（页面级，非 article 内的）
+    if (!counters.extractedFrom && doc.body) {
+      [...doc.body.children].forEach(el => {
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'header' || tag === 'footer') {
+          el.remove();
+          counters.chromeStripped++;
+        }
+      });
+    }
+  }
+
+  // 4. 删除所有元素的 id 属性（公众号会强制剥离）
   doc.querySelectorAll('[id]').forEach(el => {
     counters.ids++;
     el.removeAttribute('id');
   });
 
-  // 4. 统计图片
+  // 5. 统计图片
   doc.querySelectorAll('img').forEach(img => {
     counters.images++;
   });
@@ -94,15 +145,21 @@ function process(rawHtml) {
     counters.svgImages++;
   });
 
-  // 5. 提取 body 内容（公众号粘贴只关心正文）
+  // 6. 提取 body 内容（公众号粘贴只关心正文）
   const bodyHtml = doc.body ? doc.body.innerHTML : doc.documentElement.innerHTML;
   const cleanedBody = bodyHtml.trim();
 
-  // 6. 纯文本 fallback（用于 text/plain MIME）
+  // 7. 纯文本 fallback（用于 text/plain MIME）
   const textVersion = doc.body ? doc.body.textContent.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : '';
 
-  // 7. 警告
+  // 8. 警告
   const warns = [];
+  if (counters.extractedFrom) {
+    warns.push({ level: 'ok', text: `已提取 <${counters.extractedFrom}> 正文` });
+  }
+  if (counters.chromeStripped > 0) {
+    warns.push({ level: 'ok', text: `已剥离 ${counters.chromeStripped} 个导航/页脚/侧栏` });
+  }
   if (counters.images > 0) {
     warns.push({ level: 'warn', text: `${counters.images} 张 <img>：必须在公众号后台上传素材库换链接` });
   }
@@ -186,7 +243,7 @@ function updateInputStats() {
 function run() {
   updateInputStats();
   const raw = editor.value;
-  const result = process(raw);
+  const result = process(raw, { extractMain: optExtractMain.checked });
 
   if (result.error) {
     setStatus(result.error, 'warn');
@@ -226,6 +283,9 @@ editor.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(run, 250);
 });
+
+// re-run when toggle changes
+optExtractMain.addEventListener('change', run);
 
 // ---------- clipboard ----------
 
