@@ -1,10 +1,12 @@
 # html-to-wechat
 
-把"已经做好排版的 HTML 文章"投递到微信公众号生态及小红书等内容平台的工具集。
+把 **agent 生成的 HTML artifact 文章**投递到微信公众号、小红书、AI 视频生成软件的工具集。
+
+在线工具：https://ai-freer.github.io/html-to-wechat/
 
 ## 起因
 
-HTML artifact 的排版/交互/视觉远强于裸 Markdown。但公众号编辑器对 HTML 有严格白名单，直接粘贴会丢样式。这个项目就是把"HTML 是源"的工作流跑通，针对不同发布形态分别做一套转换管线。
+agent（Claude / Codex 等）生成的 HTML artifact，排版/交互/视觉远强于裸 Markdown。但公众号编辑器对 HTML 有严格白名单，直接粘贴会丢样式；小红书要"上图下文"图集格式；AI 视频软件要纯文字口播稿。这个项目把"HTML 是源"的工作流跑通，针对不同发布形态分别做一套转换管线。
 
 ## 三种投递形态
 
@@ -45,8 +47,9 @@ html-to-wechat/
 │   ├── 02-html-to-images.md
 │   └── 03-html-to-script.md
 ├── web/                            # GitHub Pages 静态前端
-│   ├── index.html                  # landing：三个入口
-│   ├── richtext/                   # 模式 1 页面
+│   ├── index.html                  # 模式 1 工具（即根页面，顶栏切换三模式）
+│   ├── styles.css                  # 共享样式
+│   ├── app.js                      # 模式 1 逻辑
 │   ├── images/                     # 模式 2 页面
 │   └── script/                     # 模式 3 页面
 └── skill/                          # Skill 包，可独立安装

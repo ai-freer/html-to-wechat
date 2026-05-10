@@ -40,27 +40,75 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding: 0 20px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
 }
-.topbar .back {
-  color: var(--muted);
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.25;
+  flex-shrink: 0;
+}
+.brand strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -0.2px;
+}
+.brand-sub {
+  font-size: 11px;
+}
+.modes-nav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  margin-left: 12px;
+}
+.mode-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
   text-decoration: none;
   font-size: 13px;
+  color: var(--muted);
+  transition: background 0.1s, color 0.1s;
 }
-.topbar .back:hover { color: var(--accent); }
-.topbar h1 {
-  font-size: 15px;
-  margin: 0;
+.mode-tab:hover:not(.disabled):not(.active) {
+  background: #f5f5f4;
+  color: var(--fg);
+}
+.mode-tab.active {
+  background: #fef3c7;
+  color: #92400e;
   font-weight: 600;
-  flex: 1;
+}
+.mode-tab.disabled {
+  color: #a8a29e;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.tab-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #f5f5f4;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-weight: 400;
 }
 .topbar .actions {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+.github-link {
+  text-decoration: none;
+  color: var(--fg);
 }
 
 button, label.ghost {
@@ -217,11 +265,44 @@ button.ghost, label.ghost {
 }
 
 /* ---- responsive ---- */
+@media (max-width: 900px) {
+  .brand-sub { display: none; }
+}
 @media (max-width: 720px) {
   body { grid-template-rows: var(--topbar-h) 1fr 1fr var(--bottombar-h); }
   .split {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
   }
-  .topbar h1 { display: none; }
+  .modes-nav { display: none; }
+  .github-link { display: none; }
+}
+
+/* ---- empty state placeholder pages (modes 2 / 3) ---- */
+.empty-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.empty-page .empty-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.empty-page .empty-body .card {
+  max-width: 480px;
+  text-align: center;
+}
+.empty-page .empty-body h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+.empty-page .empty-body p {
+  margin: 8px 0;
+  color: var(--muted);
+}
+.empty-page .empty-body a {
+  color: var(--accent);
 }

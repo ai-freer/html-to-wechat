@@ -73,7 +73,7 @@ input.html
    │     拿回链接后回填
    │
    └─ ⑤ 剪贴板富文本投递
-         GitHub Pages 上的静态交付页（/web/richtext/）
+         GitHub Pages 上的静态交付页（/web/，根路径就是模式 1 的工具）
          payload 通过 URL fragment（#payload=base64...）传入
          按钮 onclick → navigator.clipboard.write({text/html, text/plain})
          浏览器打开链接 → 点按钮 → 公众号后台 Cmd+V
@@ -172,7 +172,7 @@ await navigator.clipboard.write([
 
 ```
 v0.1 静态前端最小可粘贴：
-  /web/richtext/index.html
+  /web/index.html  ← 模式 1 即根页面，顶栏是三模式切换
     左侧：粘贴/上传 HTML
     中间：浏览器内跑 juice（juice/client 浏览器构建）+ 简单 DOM 清理
     右侧：实时预览
@@ -187,7 +187,7 @@ v0.2 前端加 DOM 静态化与图片清单：
 v0.3 Skill 包接入：
   /skill/modes/01-richtext/scripts/
     本地脚本跑完 juice + DOM + 抽图，把最终 HTML 编进 URL fragment
-    跳转到 https://<user>.github.io/html-to-wechat/richtext/#payload=...
+    跳转到 https://<user>.github.io/html-to-wechat/#payload=...
     用户开链接 → 复制 → 粘到公众号
 
 v0.4 体验打磨：
