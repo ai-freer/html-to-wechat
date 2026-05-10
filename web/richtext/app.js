@@ -100,34 +100,33 @@ function process(rawHtml, options = {}) {
       if (m && m.textContent.trim().length > 200) extracted = m;
     }
     if (extracted) {
+      // 抽出来了就完全信任：内部的 <aside>（callout / 引用框）、<nav>（TOC）等都是作者意图的一部分。
       const wrap = doc.createElement('body');
       wrap.appendChild(extracted.cloneNode(true));
       doc.body.replaceWith(wrap);
       counters.extractedFrom = extracted.tagName.toLowerCase();
-    }
-
-    // 3c. 不论是否抽出来，都删掉骨架元素 + ARIA chrome
-    const chromeSelectors = [
-      'nav', 'aside',
-      '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
-      '[role="complementary"]', '[role="search"]',
-    ];
-    chromeSelectors.forEach(sel => {
-      doc.querySelectorAll(sel).forEach(el => {
-        el.remove();
-        counters.chromeStripped++;
-      });
-    });
-
-    // 3d. 没抽出来时，再删 body 的直接子级 <header>/<footer>（页面级，非 article 内的）
-    if (!counters.extractedFrom && doc.body) {
-      [...doc.body.children].forEach(el => {
-        const tag = el.tagName.toLowerCase();
-        if (tag === 'header' || tag === 'footer') {
+    } else {
+      // 没找到正文容器，按"页面级骨架"的启发式删
+      const chromeSelectors = [
+        'nav', 'aside',
+        '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
+        '[role="complementary"]', '[role="search"]',
+      ];
+      chromeSelectors.forEach(sel => {
+        doc.querySelectorAll(sel).forEach(el => {
           el.remove();
           counters.chromeStripped++;
-        }
+        });
       });
+      if (doc.body) {
+        [...doc.body.children].forEach(el => {
+          const tag = el.tagName.toLowerCase();
+          if (tag === 'header' || tag === 'footer') {
+            el.remove();
+            counters.chromeStripped++;
+          }
+        });
+      }
     }
   }
 
