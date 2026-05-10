@@ -163,6 +163,10 @@ function setStatus(text, kind = '') {
   status.className = 'status' + (kind ? ' ' + kind : '');
 }
 
+function setStep(n) {
+  document.body.setAttribute('data-step', String(n));
+}
+
 function showToast(msg, ms = 1800) {
   toast.textContent = msg;
   toast.hidden = false;
@@ -186,6 +190,7 @@ function run() {
     renderPreview('');
     outputStats.textContent = '';
     renderWarnings([]);
+    setStep(1);
     return;
   }
 
@@ -195,6 +200,7 @@ function run() {
     renderPreview('');
     outputStats.textContent = '';
     renderWarnings([]);
+    setStep(1);
     return;
   }
 
@@ -208,6 +214,7 @@ function run() {
   outputStats.textContent = `${kb} KB · ${s.counters.images + s.counters.svgImages} 张图`;
   setStatus('已处理，可复制', 'ok');
   btnCopy.disabled = false;
+  setStep(3);
 }
 
 // debounced run on edit
