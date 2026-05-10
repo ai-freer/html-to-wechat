@@ -15,6 +15,10 @@ const btnSample = $('btn-sample');
 const btnClear = $('btn-clear');
 const fileInput = $('file-input');
 const toast = $('toast');
+const btnUrl = $('btn-url');
+const urlPopover = $('url-popover');
+const urlInput = $('url-input');
+const btnUrlFetch = $('btn-url-fetch');
 
 let processedHtml = '';
 let processedText = '';
@@ -265,6 +269,94 @@ btnClear.addEventListener('click', () => {
 btnSample.addEventListener('click', () => {
   editor.value = SAMPLE_HTML;
   run();
+});
+
+// ---------- URL fetch ----------
+
+function openUrlPopover() {
+  urlPopover.hidden = false;
+  btnUrl.setAttribute('aria-expanded', 'true');
+  setTimeout(() => urlInput.focus(), 0);
+}
+function closeUrlPopover() {
+  urlPopover.hidden = true;
+  btnUrl.setAttribute('aria-expanded', 'false');
+}
+
+btnUrl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (urlPopover.hidden) openUrlPopover(); else closeUrlPopover();
+});
+
+document.addEventListener('click', (e) => {
+  if (urlPopover.hidden) return;
+  if (urlPopover.contains(e.target) || btnUrl.contains(e.target)) return;
+  closeUrlPopover();
+});
+
+urlInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    btnUrlFetch.click();
+  } else if (e.key === 'Escape') {
+    closeUrlPopover();
+    btnUrl.focus();
+  }
+});
+
+async function fetchHtml(url) {
+  // 1) try direct
+  try {
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return { html: await res.text(), viaProxy: false };
+  } catch (directErr) {
+    // 2) fall back to corsproxy.io
+    setStatus('直接拉取被 CORS 阻止，改走 corsproxy.io …');
+    const proxied = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    try {
+      const res = await fetch(proxied);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return { html: await res.text(), viaProxy: true };
+    } catch (proxyErr) {
+      const msg = (directErr && directErr.message) || '';
+      throw new Error('拉取失败：直接 ' + (msg || '未知错误') + '；代理 ' + proxyErr.message);
+    }
+  }
+}
+
+btnUrlFetch.addEventListener('click', async () => {
+  let url = urlInput.value.trim();
+  if (!url) { urlInput.focus(); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  btnUrlFetch.disabled = true;
+  btnUrlFetch.textContent = '拉取中…';
+  setStatus('正在拉取 ' + url + ' …');
+  try {
+    const { html, viaProxy } = await fetchHtml(url);
+    editor.value = html;
+    closeUrlPopover();
+    run();
+    if (viaProxy) {
+      // 在 warnings 行追加一个提示 chip（run() 内的 renderWarnings 会基于新内容重渲染，
+      // 所以这里在下一帧追加）
+      requestAnimationFrame(() => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = '已通过 corsproxy.io 拉取';
+        warnings.appendChild(chip);
+      });
+      showToast('✓ 已通过代理拉取');
+    } else {
+      showToast('✓ 已从 URL 载入');
+    }
+  } catch (e) {
+    setStatus(e.message, 'warn');
+    showToast(e.message);
+  } finally {
+    btnUrlFetch.disabled = false;
+    btnUrlFetch.textContent = '获取';
+  }
 });
 
 // ---------- URL fragment payload (for Skill flow) ----------
