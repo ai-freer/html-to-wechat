@@ -442,6 +442,38 @@ button.primary:disabled .primary-num {
   align-items: center;
   gap: 14px;
 }
+
+/* segmented toggle (源码 / 渲染) */
+.seg {
+  display: inline-flex;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 0;
+}
+.seg-btn {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+  letter-spacing: 0.1px;
+}
+.seg-btn:hover:not(.is-active) {
+  color: var(--fg);
+  background: transparent;
+}
+.seg-btn.is-active {
+  background: var(--card-bg);
+  color: var(--fg);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.08), 0 0 0 1px var(--border);
+}
 .toggle {
   display: inline-flex;
   align-items: center;
@@ -488,12 +520,15 @@ button.primary:disabled .primary-num {
   white-space: pre-wrap;
 }
 
-#preview {
+#preview,
+#raw-preview {
   flex: 1;
   width: 100%;
   border: 0;
   background: var(--bg);
 }
+#editor[hidden],
+#raw-preview[hidden] { display: none; }
 
 /* ---- bottom bar ---- */
 .bottom-bar {

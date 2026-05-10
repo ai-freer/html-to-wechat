@@ -20,6 +20,9 @@ const urlPopover = $('url-popover');
 const urlInput = $('url-input');
 const btnUrlFetch = $('btn-url-fetch');
 const optExtractMain = $('opt-extract-main');
+const viewSourceBtn = $('view-source');
+const viewRenderBtn = $('view-render');
+const rawPreview = $('raw-preview');
 
 let processedHtml = '';
 let processedText = '';
@@ -227,6 +230,40 @@ function setStep(n) {
   document.body.setAttribute('data-step', String(n));
 }
 
+// ---------- editor view (源码 / 渲染) ----------
+
+let editorView = 'source'; // 'source' | 'render'
+
+function renderRawPreview() {
+  const raw = editor.value;
+  if (!raw.trim()) {
+    rawPreview.srcdoc = '<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#fafaf9}body{display:flex;align-items:center;justify-content:center;font-family:-apple-system,sans-serif;color:#a8a29e;font-size:13px}</style></head><body>切回「源码」输入 HTML 后这里会显示原始渲染效果</body></html>';
+    return;
+  }
+  // base target=_blank so any links open in a new tab; sandbox blocks scripts
+  if (/<head[\s>]/i.test(raw)) {
+    rawPreview.srcdoc = raw;
+  } else {
+    rawPreview.srcdoc = '<!doctype html><html><head><base target="_blank"><meta charset="utf-8"></head><body>' + raw + '</body></html>';
+  }
+}
+
+function setEditorView(mode) {
+  editorView = mode;
+  const isSource = mode === 'source';
+  editor.hidden = !isSource;
+  rawPreview.hidden = isSource;
+  viewSourceBtn.classList.toggle('is-active', isSource);
+  viewRenderBtn.classList.toggle('is-active', !isSource);
+  viewSourceBtn.setAttribute('aria-selected', String(isSource));
+  viewRenderBtn.setAttribute('aria-selected', String(!isSource));
+  if (!isSource) renderRawPreview();
+  else editor.focus();
+}
+
+viewSourceBtn.addEventListener('click', () => setEditorView('source'));
+viewRenderBtn.addEventListener('click', () => setEditorView('render'));
+
 function showToast(msg, ms = 1800) {
   toast.textContent = msg;
   toast.hidden = false;
@@ -241,6 +278,7 @@ function updateInputStats() {
 
 function run() {
   updateInputStats();
+  if (editorView === 'render') renderRawPreview();
   const raw = editor.value;
   const result = process(raw, { extractMain: optExtractMain.checked });
 
