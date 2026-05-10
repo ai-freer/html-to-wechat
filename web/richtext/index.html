@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HTML → 公众号富文本 · HTML-to-WeChat</title>
   <meta name="description" content="CSS 内联、清理后复制为富文本，粘贴到公众号后台即可保留样式。" />
-  <link rel="stylesheet" href="./styles.css?v=2" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
 </head>
 <body data-step="1">
   <header class="topbar">
@@ -28,6 +28,14 @@
       <li data-step="3"><span class="step-dot">3</span><span class="step-label">复制</span></li>
     </ol>
     <div class="actions">
+      <div class="url-wrap">
+        <button id="btn-url" type="button" class="ghost" aria-haspopup="dialog" aria-expanded="false">从 URL</button>
+        <div id="url-popover" class="url-popover" role="dialog" aria-label="从 URL 拉取 HTML" hidden>
+          <input id="url-input" type="url" placeholder="https://example.com/article.html" autocomplete="off" spellcheck="false" />
+          <button id="btn-url-fetch" type="button" class="primary-sm">获取</button>
+          <p class="url-hint muted small">优先直接拉取；遇到 CORS 自动改走 <code>corsproxy.io</code>。</p>
+        </div>
+      </div>
       <button id="btn-sample" type="button" class="ghost">载入示例</button>
       <label class="ghost" for="file-input">上传 .html</label>
       <input id="file-input" type="file" accept=".html,.htm,text/html" hidden />
