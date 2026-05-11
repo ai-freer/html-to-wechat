@@ -291,19 +291,34 @@ a:hover { text-decoration: underline; }
   font-size: 13px;
   line-height: 1.6;
 }
-.mode-preview-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
-  padding: 2px;
-}
-.mode-preview-strip img {
+.mode-preview-banner {
   width: 100%;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
-  border-radius: 4px;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
   background: #0E1A2B;
+  position: relative;
+}
+.mode-preview-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
   display: block;
+}
+.mode-preview-count {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #F5F1E8;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .mode-preview-code {
   margin: 0;
