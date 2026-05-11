@@ -225,6 +225,33 @@ function process(rawHtml, options = {}) {
     return null;
   };
 
+  // 把 grid-template-columns 的混合单位（60px / 1fr / 30%）归一成百分比，
+  // 让公众号 / 飞书等编辑器都能稳定渲染列宽。
+  // 假设排版宽度约 700px——只是为了把 px 折算成百分比，最终都按百分比分布。
+  const resolveCols = (cols) => {
+    const ASSUMED = 700;
+    const parsed = cols.map(c => {
+      let m;
+      if ((m = /^([\d.]+)px$/i.exec(c))) return { kind: 'px', v: parseFloat(m[1]) };
+      if ((m = /^([\d.]+)fr$/i.exec(c))) return { kind: 'fr', v: parseFloat(m[1]) };
+      if ((m = /^([\d.]+)%$/i.exec(c))) return { kind: 'pct', v: parseFloat(m[1]) };
+      return { kind: 'auto' };
+    });
+    const totalFr = parsed.reduce((s, p) => s + (p.kind === 'fr' ? p.v : 0), 0);
+    const usedPct = parsed.reduce((s, p) => {
+      if (p.kind === 'pct') return s + p.v;
+      if (p.kind === 'px') return s + (p.v / ASSUMED) * 100;
+      return s;
+    }, 0);
+    const remaining = Math.max(0, 100 - usedPct);
+    return parsed.map(p => {
+      if (p.kind === 'px') return Math.round((p.v / ASSUMED) * 1000) / 10;
+      if (p.kind === 'pct') return p.v;
+      if (p.kind === 'fr' && totalFr > 0) return Math.round((p.v / totalFr) * remaining * 10) / 10;
+      return null; // auto: leave the editor to figure it out
+    });
+  };
+
   const stripLayoutCss = (s) => s
     .replace(/display\s*:\s*(inline-)?(flex|grid)\s*(!important)?\s*;?/gi, '')
     .replace(/flex-(?:direction|wrap|grow|shrink|basis|flow)\s*:[^;]+;?/gi, '')
@@ -245,18 +272,46 @@ function process(rawHtml, options = {}) {
     const info = detectMultiCol(style, kids.length);
     if (!info) return;
 
+    // 解析出每列的百分比宽度（fr / px / %  → 百分比）
+    const colPcts = info.kind === 'grid' ? resolveCols(info.widths) : kids.map(() => null);
+
     const verticalAlign = /align-items\s*:\s*center/i.test(style) ? 'middle' : 'top';
+
     const tbl = doc.createElement('table');
-    tbl.setAttribute('style', ('width:100%;border-collapse:collapse;' + stripLayoutCss(style)).replace(/;\s*;+/g, ';'));
+    tbl.setAttribute('width', '100%');
+    tbl.setAttribute('cellpadding', '0');
+    tbl.setAttribute('cellspacing', '0');
+    tbl.setAttribute('border', '0');
+    tbl.setAttribute(
+      'style',
+      ('width:100%;border-collapse:collapse;table-layout:fixed;' + stripLayoutCss(style)).replace(/;\s*;+/g, ';')
+    );
+
+    // <colgroup> — 飞书 / 公众号 / 邮件客户端最稳的列宽锁定方式
+    const hasAnyWidth = colPcts.some(p => p != null);
+    if (hasAnyWidth) {
+      const cg = doc.createElement('colgroup');
+      colPcts.forEach(pct => {
+        const col = doc.createElement('col');
+        if (pct != null) {
+          col.setAttribute('width', pct + '%');
+          col.setAttribute('style', `width:${pct}%;`);
+        }
+        cg.appendChild(col);
+      });
+      tbl.appendChild(cg);
+    }
+
     const tr = doc.createElement('tr');
     tbl.appendChild(tr);
-
     kids.forEach((child, i) => {
       const td = doc.createElement('td');
+      const pct = colPcts[i];
       let tdStyle = `vertical-align:${verticalAlign};`;
-      const w = info.widths[i];
-      // 把 grid 的固定宽度（60px、30% 等）写到 td，避免公众号渲染失序；fr / auto 不设
-      if (w && /^[\d.]+(px|em|rem|%)$/i.test(w)) tdStyle += `width:${w};`;
+      if (pct != null) {
+        tdStyle += `width:${pct}%;`;
+        td.setAttribute('width', pct + '%');
+      }
       td.setAttribute('style', tdStyle);
       td.appendChild(child);
       tr.appendChild(td);
