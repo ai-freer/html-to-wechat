@@ -130,6 +130,7 @@ function process(rawHtml, options = {}) {
     chromeStripped: 0,
     extractedFrom: null, // 'article' | 'main' | null
     layoutNormalized: 0,
+    flexToTable: 0,
   };
 
   // 1. 删除完全不允许的标签
@@ -197,7 +198,54 @@ function process(rawHtml, options = {}) {
     }
   }
 
-  // 4. 规范化布局：公众号会丢弃 flex/grid/绝对定位 → 我们提前降级，preview 才能反映真实效果
+  // 4a. 多列 flex 容器 → <table><tr><td>...</td>...</tr></table>
+  //     公众号会完全剥离 flex，但会保留 table；一行多列的卡片型布局只有走 table 才能在
+  //     公众号草稿里活下来。
+  const flexCandidates = [...doc.querySelectorAll('[style]')].filter(el => {
+    const s = el.getAttribute('style') || '';
+    return /display\s*:\s*(inline-)?flex/i.test(s);
+  });
+  flexCandidates.forEach(el => {
+    if (!el.isConnected) return;
+    const style = el.getAttribute('style') || '';
+    if (/flex-direction\s*:\s*column/i.test(style)) return; // 纵向堆叠不需要 table
+    const kids = [...el.children];
+    if (kids.length < 2) return;
+
+    const tbl = doc.createElement('table');
+    const tableStyle = (
+      'width:100%;border-collapse:collapse;' +
+      style
+        .replace(/display\s*:\s*(inline-)?flex\s*(!important)?\s*;?/gi, '')
+        .replace(/flex-(?:direction|wrap|grow|shrink|basis|flow)\s*:[^;]+;?/gi, '')
+        .replace(/(?:align|justify)-(?:items|content|self)\s*:[^;]+;?/gi, '')
+        .replace(/gap\s*:[^;]+;?/gi, '')
+    ).replace(/;\s*;+/g, ';').trim();
+    tbl.setAttribute('style', tableStyle);
+    const tr = doc.createElement('tr');
+    tbl.appendChild(tr);
+    kids.forEach(child => {
+      const td = doc.createElement('td');
+      td.setAttribute('style', 'vertical-align:top;');
+      td.appendChild(child);
+      tr.appendChild(td);
+    });
+
+    // 原元素是 <a href> 的话，外层包一个新的 <a> 保住链接
+    let replacement = tbl;
+    if (el.tagName.toLowerCase() === 'a' && el.getAttribute('href')) {
+      const a = doc.createElement('a');
+      a.setAttribute('href', el.getAttribute('href'));
+      a.setAttribute('style', 'text-decoration:none;color:inherit;');
+      a.appendChild(tbl);
+      replacement = a;
+    }
+    el.replaceWith(replacement);
+    counters.flexToTable++;
+  });
+
+  // 4b. 剩下没转 table 的 flex/grid 元素（单子级、纵向栈、grid）降为 block；
+  //     绝对定位移除。让 preview 与公众号最终渲染保持一致。
   doc.querySelectorAll('[style]').forEach(el => {
     const before = el.getAttribute('style') || '';
     let after = before;
@@ -263,6 +311,9 @@ function process(rawHtml, options = {}) {
   if (counters.forms > 0) cleaned.push(`${counters.forms} form`);
   if (cleaned.length) oks.push(`已清理 ${cleaned.join(' / ')}`);
 
+  if (counters.flexToTable > 0) {
+    oks.push(`${counters.flexToTable} 处多列 flex 已转 <table>（公众号兼容）`);
+  }
   if (counters.layoutNormalized > 0) {
     oks.push(`已规范化 ${counters.layoutNormalized} 处布局（flex/grid/绝对定位 → block）`);
   }
