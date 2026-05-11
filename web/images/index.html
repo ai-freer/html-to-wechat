@@ -3,25 +3,177 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>图集 · HTML-to-WeChat</title>
-  <link rel="stylesheet" href="../landing.css?v=3" />
+  <title>HTML → 图文号 / 小红书图集 · HTML-to-WeChat</title>
+  <meta name="description" content="把长 HTML 文章用 Agent + 顶级生图模型自动转成统一风格的 8-10 张图集 + 配套文案，直接发小红书 / 公众号图文号。" />
+  <link rel="stylesheet" href="../landing.css?v=4" />
 </head>
-<body class="empty-page">
-  <header class="landing-head" style="max-width:960px;margin:0 auto;padding:24px 32px 0;">
-    <a class="logo" href="../" aria-label="返回首页">
-      <span class="logo-mark">⌬</span>
-      <span class="logo-text">HTML-to-WeChat</span>
-    </a>
-    <nav class="landing-nav">
-      <a href="../">← 首页</a>
-    </nav>
-  </header>
-  <main class="empty-body">
-    <div class="card">
-      <h2>HTML → 图文号 / 小红书图集</h2>
-      <p>把长 HTML 文章改造成"上图下文"的卡片图集。文字卡片为主、AI 插画为辅。</p>
-      <p class="muted small">规划中。设计文档：<a href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/02-html-to-images.md" target="_blank" rel="noopener">docs/02-html-to-images.md</a></p>
-    </div>
+<body>
+  <main class="subpage">
+    <header class="landing-head">
+      <a class="logo" href="../" aria-label="返回首页">
+        <span class="logo-mark">⌬</span>
+        <span class="logo-text">HTML-to-WeChat</span>
+      </a>
+      <nav class="landing-nav">
+        <a href="../">← 首页</a>
+      </nav>
+    </header>
+
+    <!-- HERO -->
+    <section class="subpage-hero">
+      <h1>HTML → 图文号 / 小红书图集</h1>
+      <p class="lede">
+        把一篇长 HTML 文章交给 Agent，自动产出 8-10 张统一风格的卡片图 + 配套文案，直接发小红书 / 公众号图文号。所有图由顶级文生图模型（GPT Image 2 等）生成，不是模板拼接。
+      </p>
+      <div class="cta-row">
+        <a class="cta cta-primary" href="#gallery">看示例图集</a>
+        <a class="cta cta-secondary" href="#how">了解工作流</a>
+        <a class="cta cta-secondary" href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/02-html-to-images.md" target="_blank" rel="noopener">设计文档 ↗</a>
+      </div>
+    </section>
+
+    <!-- EXAMPLE GALLERY -->
+    <section class="section" id="gallery">
+      <div class="section-head">
+        <h2>示例图集：上下文管理九层塔</h2>
+        <p class="section-sub">
+          以一篇 22k 字技术深度长文为输入，由 Agent 拆解 → 写 prompt → 调 gpt-image-2 生成的 8 张完整卡片。<a href="https://github.com/ai-freer/html-to-wechat/tree/main/samples/context-tower-9layers" target="_blank" rel="noopener">原始素材 + 设计过程 ↗</a>
+        </p>
+      </div>
+
+      <div class="gallery" role="list">
+        <a class="gallery-item" data-idx="01" href="./demo/01-cover.png" role="listitem">
+          <span class="gallery-num">01 / 封面</span>
+          <img src="./demo/01-cover.png" alt="封面：上下文管理九层塔" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="02" href="./demo/02-thesis.png" role="listitem">
+          <span class="gallery-num">02 / 核心论点</span>
+          <img src="./demo/02-thesis.png" alt="核心论点：大上下文窗口 ≠ 上下文管理" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="03" href="./demo/03-problems.png" role="listitem">
+          <span class="gallery-num">03 / 五个问题</span>
+          <img src="./demo/03-problems.png" alt="三层架构不够用，会发生什么" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="04" href="./demo/04-overview.png" role="listitem">
+          <span class="gallery-num">04 / 九层总览</span>
+          <img src="./demo/04-overview.png" alt="九层塔总览" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="05" href="./demo/05-l6-warning.png" role="listitem">
+          <span class="gallery-num">05 / L6 会话生存层</span>
+          <img src="./demo/05-l6-warning.png" alt="L6 会话生存层 Lossless Context Engine" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="06" href="./demo/06-loop.png" role="listitem">
+          <span class="gallery-num">06 / 数据流闭环</span>
+          <img src="./demo/06-loop.png" alt="九层不是流水线，是闭环" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="07" href="./demo/07-phases.png" role="listitem">
+          <span class="gallery-num">07 / 三阶段路径</span>
+          <img src="./demo/07-phases.png" alt="不必一次搭满，分三阶段" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="08" href="./demo/08-closing.png" role="listitem">
+          <span class="gallery-num">08 / 收尾</span>
+          <img src="./demo/08-closing.png" alt="好的 Agent 不是记得更多，而是知道何时遗忘" loading="lazy" width="1024" height="1536" />
+        </a>
+      </div>
+      <p class="gallery-hint">← 横向滑动查看全部 8 张 · 点击单图放大 →</p>
+
+      <!-- CAPTION SAMPLE -->
+      <div class="caption-sample">
+        <p class="caption-meta">小红书图下文案</p>
+        <h3>上下文管理九层塔｜长期 Agent 的活法</h3>
+        <p class="caption-body">🧱 大上下文窗口 ≠ 上下文管理
+
+窗口解决"能装多少"，但不解决：装什么、何时召回、如何压缩、跨会话怎么延续、多 Agent 怎么共享又隔离、错记忆怎么修、经验怎么变能力。
+
+我把 OpenClaw 多 Agent 跑了 3 个多月、近 1 个月集中整理后的架构整理成"九层塔"：
+
+▸ 基础层 L1-L3：身份 / 规则 / Markdown 记忆
+▸ 运行时层 L4-L6：检索 / 主动召回 / 会话生存
+▸ 进化层 L7-L9：后台整理 / 自我迭代 / 技能进化
+
+最容易"安静吃亏"的是 L6——contextEngine slot 不绑定不会报错，只会悄悄退化；摘要器不 redact secrets，sk-XXX 会经 FTS + vector 持续放大注入。
+
+✦ 好的 Agent 不是记得更多，是知道何时遗忘。✦</p>
+        <p class="caption-tags">#AIAgent #ChatGPT #LLM #ContextEngineering #AI工程化 #PromptEngineering #AI编程 #Agent架构</p>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section" id="how">
+      <div class="section-head">
+        <h2>工作流</h2>
+        <p class="section-sub">Skill 在你的 agent（Claude / Codex 等）里跑，浏览器只负责呈现结果。</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>在 agent 里装 Skill</h3>
+          <p>给你的 Claude / Codex 装上 <code>html-to-wechat</code> Skill 包，让 agent 学会"看一篇 HTML 文章 → 拆图集 → 写 prompt → 调生图 API"这条流。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>跑一条命令</h3>
+          <p>把 HTML 文件丢给 agent，例如 <code>/h2w-images report.html</code>。agent 在本地完成内容拆解、生图、文案生成，输出到一个 session 目录。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>本页面预览 + 下载</h3>
+          <p>agent 跑完后给你一个本地 URL 自动打开本页面的 app 态：单图重生成、平台框预览、一键下载 zip、复制文案。</p>
+        </div>
+      </div>
+
+      <div class="status-banner">
+        <strong>v0.1 还在开发：</strong>
+        Skill 包尚未发布，目前你看到的是"教育页"——示例图集和文案是真的，是用 gpt-image-2 实际跑出来的样本。Skill 接入、app 态（fragment 解析 / 单图重生成 / zip 打包）会在后续版本陆续上线。设计文档已开源，欢迎围观。
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="landing-foot">
+      <p>
+        开源项目 · <a href="https://github.com/ai-freer/html-to-wechat" target="_blank" rel="noopener">ai-freer/html-to-wechat</a>
+        · <a href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/02-html-to-images.md" target="_blank" rel="noopener">模式 2 设计文档</a>
+      </p>
+    </footer>
   </main>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="放大查看">
+    <button class="lightbox-close" type="button" aria-label="关闭">×</button>
+    <img alt="" />
+  </div>
+
+  <script>
+    // Lightbox: click gallery item → enlarge in overlay
+    (function () {
+      const lb = document.getElementById('lightbox');
+      const lbImg = lb.querySelector('img');
+      const lbClose = lb.querySelector('.lightbox-close');
+
+      document.querySelectorAll('.gallery-item').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          const img = el.querySelector('img');
+          lbImg.src = img.src;
+          lbImg.alt = img.alt;
+          lb.classList.add('is-open');
+          document.body.style.overflow = 'hidden';
+        });
+      });
+
+      function close() {
+        lb.classList.remove('is-open');
+        document.body.style.overflow = '';
+        lbImg.src = '';
+      }
+      lb.addEventListener('click', function (e) {
+        if (e.target === lb || e.target === lbImg) close();
+      });
+      lbClose.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lb.classList.contains('is-open')) close();
+      });
+    })();
+  </script>
 </body>
 </html>

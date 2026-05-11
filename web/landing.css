@@ -189,6 +189,11 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
   border-color: var(--border);
 }
+.badge.preview {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
 .mode-card p {
   margin: 0;
   color: var(--muted);
@@ -273,3 +278,334 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
 }
 .empty-page .empty-body a { color: var(--accent); }
+
+/* ===================================================================
+   Sub-page common (mode-2 education page, mode-3 education page)
+   =================================================================== */
+
+.subpage {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 32px 80px;
+}
+
+.subpage-hero {
+  padding: 48px 0 40px;
+}
+.subpage-hero h1 {
+  font-size: 32px;
+  line-height: 1.3;
+  margin: 0 0 16px;
+  letter-spacing: -0.3px;
+  font-weight: 700;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+.subpage-hero .lede {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0 0 28px;
+  line-height: 1.7;
+  max-width: 620px;
+}
+
+.cta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.cta-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.cta-primary:hover {
+  background: #9a3409;
+  border-color: #9a3409;
+  text-decoration: none;
+}
+.cta-secondary {
+  background: var(--card-bg);
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+.cta-secondary:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--muted-2);
+  text-decoration: none;
+}
+
+.section {
+  padding: 40px 0;
+  border-top: 1px solid var(--border);
+}
+.section-head {
+  margin-bottom: 24px;
+}
+.section-head h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.section-head .section-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ---------- mode-2 gallery (horizontal scroll snap, 小红书 carousel feel) ---------- */
+.gallery {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 4px 18px;
+  margin: 0 -4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.gallery::-webkit-scrollbar { height: 8px; }
+.gallery::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+.gallery-item {
+  flex: 0 0 auto;
+  width: 260px;
+  scroll-snap-align: start;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0E1A2B;
+  border: 1px solid var(--border);
+  position: relative;
+  cursor: zoom-in;
+}
+.gallery-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+.gallery-item .gallery-num {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  padding: 2px 7px;
+  background: rgba(0,0,0,0.45);
+  color: #F5F1E8;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+.gallery-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+/* ---------- caption sample block ---------- */
+.caption-sample {
+  margin-top: 28px;
+  padding: 24px 28px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.caption-sample .caption-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--muted-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.caption-sample .caption-meta::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 1px;
+  background: var(--muted-2);
+}
+.caption-sample h3 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.caption-sample .caption-body {
+  margin: 0 0 14px;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+.caption-sample .caption-tags {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  line-height: 1.7;
+  word-break: break-all;
+}
+
+/* ---------- how-it-works (3 steps) ---------- */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.step {
+  padding: 22px 22px 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.step .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.step h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.step code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--card-bg-hover);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* ---------- mode-3 before/after example pair ---------- */
+.example-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.example-col {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.example-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+.example-code {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--card-bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--fg);
+  white-space: pre-wrap;
+  overflow-x: auto;
+  flex: 1;
+}
+
+/* ---------- status / planning banner (for incomplete features) ---------- */
+.status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-soft);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.65;
+  margin-top: 24px;
+}
+.status-banner strong { font-weight: 600; }
+
+/* ---------- lightbox (image preview overlay) ---------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 26, 43, 0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+  cursor: zoom-out;
+}
+.lightbox.is-open { display: flex; }
+.lightbox img {
+  max-width: min(100%, 720px);
+  max-height: 92vh;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+}
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  font-size: 28px;
+  color: #F5F1E8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 10px;
+}
+
+/* ---------- subpage responsive ---------- */
+@media (max-width: 760px) {
+  .subpage { padding: 16px 20px 60px; }
+  .subpage-hero { padding: 28px 0 24px; }
+  .subpage-hero h1 { font-size: 26px; }
+  .section { padding: 28px 0; }
+  .steps { grid-template-columns: 1fr; }
+  .gallery-item { width: 200px; }
+  .example-pair { grid-template-columns: 1fr; }
+}
