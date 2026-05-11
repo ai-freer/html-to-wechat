@@ -198,35 +198,66 @@ function process(rawHtml, options = {}) {
     }
   }
 
-  // 4a. 多列 flex 容器 → <table><tr><td>...</td>...</tr></table>
-  //     公众号会完全剥离 flex，但会保留 table；一行多列的卡片型布局只有走 table 才能在
-  //     公众号草稿里活下来。
-  const flexCandidates = [...doc.querySelectorAll('[style]')].filter(el => {
+  // 4a. 多列卡片型 flex/grid → <table><tr><td>…</td></tr></table>
+  //     公众号会完全剥离 flex/grid，但会保留 table；一行 2-3 列的卡片型布局走 table 才能
+  //     在公众号草稿里活下来。
+  //
+  //     **不**触发 table 转换的几种情况，按 block 自然堆叠：
+  //       - flex-wrap:wrap（chips/tag 行，作者本来就想换行）
+  //       - 单子级 / 4+ 子级（chip / icon 排，挤成多列 td 反而难看）
+  //       - flex-direction:column（已经是纵向）
+  //
+  //     检查是否能转 table，能转就返回每列宽度（grid 用 grid-template-columns，flex 用空）。
+  const detectMultiCol = (style, kidCount) => {
+    if (kidCount < 2 || kidCount > 3) return null;
+    if (/display\s*:\s*(inline-)?flex/i.test(style)) {
+      if (/flex-direction\s*:\s*column/i.test(style)) return null;
+      if (/flex-wrap\s*:\s*wrap/i.test(style)) return null;
+      return { kind: 'flex', widths: [] };
+    }
+    if (/display\s*:\s*(inline-)?grid/i.test(style)) {
+      const m = /grid-template-columns\s*:\s*([^;]+)/i.exec(style);
+      if (!m) return null;
+      const cols = m[1].trim().split(/\s+/);
+      if (cols.length !== kidCount) return null;
+      return { kind: 'grid', widths: cols };
+    }
+    return null;
+  };
+
+  const stripLayoutCss = (s) => s
+    .replace(/display\s*:\s*(inline-)?(flex|grid)\s*(!important)?\s*;?/gi, '')
+    .replace(/flex-(?:direction|wrap|grow|shrink|basis|flow)\s*:[^;]+;?/gi, '')
+    .replace(/grid-[\w-]+\s*:[^;]+;?/gi, '')
+    .replace(/(?:align|justify)-(?:items|content|self)\s*:[^;]+;?/gi, '')
+    .replace(/gap\s*:[^;]+;?/gi, '')
+    .replace(/;\s*;+/g, ';').trim();
+
+  const candidates = [...doc.querySelectorAll('[style]')].filter(el => {
     const s = el.getAttribute('style') || '';
-    return /display\s*:\s*(inline-)?flex/i.test(s);
+    return /display\s*:\s*(inline-)?(flex|grid)/i.test(s);
   });
-  flexCandidates.forEach(el => {
+
+  candidates.forEach(el => {
     if (!el.isConnected) return;
     const style = el.getAttribute('style') || '';
-    if (/flex-direction\s*:\s*column/i.test(style)) return; // 纵向堆叠不需要 table
     const kids = [...el.children];
-    if (kids.length < 2) return;
+    const info = detectMultiCol(style, kids.length);
+    if (!info) return;
 
+    const verticalAlign = /align-items\s*:\s*center/i.test(style) ? 'middle' : 'top';
     const tbl = doc.createElement('table');
-    const tableStyle = (
-      'width:100%;border-collapse:collapse;' +
-      style
-        .replace(/display\s*:\s*(inline-)?flex\s*(!important)?\s*;?/gi, '')
-        .replace(/flex-(?:direction|wrap|grow|shrink|basis|flow)\s*:[^;]+;?/gi, '')
-        .replace(/(?:align|justify)-(?:items|content|self)\s*:[^;]+;?/gi, '')
-        .replace(/gap\s*:[^;]+;?/gi, '')
-    ).replace(/;\s*;+/g, ';').trim();
-    tbl.setAttribute('style', tableStyle);
+    tbl.setAttribute('style', ('width:100%;border-collapse:collapse;' + stripLayoutCss(style)).replace(/;\s*;+/g, ';'));
     const tr = doc.createElement('tr');
     tbl.appendChild(tr);
-    kids.forEach(child => {
+
+    kids.forEach((child, i) => {
       const td = doc.createElement('td');
-      td.setAttribute('style', 'vertical-align:top;');
+      let tdStyle = `vertical-align:${verticalAlign};`;
+      const w = info.widths[i];
+      // 把 grid 的固定宽度（60px、30% 等）写到 td，避免公众号渲染失序；fr / auto 不设
+      if (w && /^[\d.]+(px|em|rem|%)$/i.test(w)) tdStyle += `width:${w};`;
+      td.setAttribute('style', tdStyle);
       td.appendChild(child);
       tr.appendChild(td);
     });
@@ -236,7 +267,7 @@ function process(rawHtml, options = {}) {
     if (el.tagName.toLowerCase() === 'a' && el.getAttribute('href')) {
       const a = doc.createElement('a');
       a.setAttribute('href', el.getAttribute('href'));
-      a.setAttribute('style', 'text-decoration:none;color:inherit;');
+      a.setAttribute('style', 'text-decoration:none;color:inherit;display:block;');
       a.appendChild(tbl);
       replacement = a;
     }
@@ -312,7 +343,7 @@ function process(rawHtml, options = {}) {
   if (cleaned.length) oks.push(`已清理 ${cleaned.join(' / ')}`);
 
   if (counters.flexToTable > 0) {
-    oks.push(`${counters.flexToTable} 处多列 flex 已转 <table>（公众号兼容）`);
+    oks.push(`${counters.flexToTable} 处多列卡片转 <table>（公众号兼容）`);
   }
   if (counters.layoutNormalized > 0) {
     oks.push(`已规范化 ${counters.layoutNormalized} 处布局（flex/grid/绝对定位 → block）`);
