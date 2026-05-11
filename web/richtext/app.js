@@ -154,31 +154,41 @@ function process(rawHtml, options = {}) {
   // 7. 纯文本 fallback（用于 text/plain MIME）
   const textVersion = doc.body ? doc.body.textContent.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : '';
 
-  // 8. 警告
+  // 8. 警告（按级别排序：ok 在前，warn 在后；隐藏 0 计数）
+  const oks = [];
   const warns = [];
   if (counters.extractedFrom) {
-    warns.push({ level: 'ok', text: `已提取 <${counters.extractedFrom}> 正文` });
+    oks.push(`已提取 <${counters.extractedFrom}> 正文`);
   }
   if (counters.chromeStripped > 0) {
-    warns.push({ level: 'ok', text: `已剥离 ${counters.chromeStripped} 个导航/页脚/侧栏` });
+    oks.push(`已剥离 ${counters.chromeStripped} 个导航/页脚/侧栏`);
   }
+  // 已清理（只列非零项）
+  const cleaned = [];
+  if (counters.scripts > 0) cleaned.push(`${counters.scripts} script`);
+  if (counters.iframes > 0) cleaned.push(`${counters.iframes} iframe`);
+  if (counters.forms > 0) cleaned.push(`${counters.forms} form`);
+  if (cleaned.length) oks.push(`已清理 ${cleaned.join(' / ')}`);
+
   if (counters.images > 0) {
-    warns.push({ level: 'warn', text: `${counters.images} 张 <img>：必须在公众号后台上传素材库换链接` });
+    warns.push(`${counters.images} 张 <img> 需手动换素材库链接`);
   }
   if (counters.svgImages > 0) {
-    warns.push({ level: 'warn', text: `${counters.svgImages} 个 SVG 内嵌 <image>：同样需要素材库链接` });
+    warns.push(`${counters.svgImages} 个 SVG <image> 需手动换素材库链接`);
   }
   // 检测可能不兼容的 CSS（启发式）
   const styleAttrs = [...doc.querySelectorAll('[style]')].map(el => el.getAttribute('style')).join(';');
   if (/display\s*:\s*flex|display\s*:\s*grid/i.test(styleAttrs)) {
-    warns.push({ level: 'warn', text: 'Flex/Grid 检测到：公众号渲染可能错位，建议改 block/inline-block' });
+    warns.push('Flex/Grid 在公众号可能错位');
   }
   if (/position\s*:\s*(absolute|fixed|sticky)/i.test(styleAttrs)) {
-    warns.push({ level: 'warn', text: 'position:absolute/fixed/sticky 会被过滤' });
+    warns.push('position 绝对/固定 会被过滤');
   }
-  if (counters.scripts > 0 || counters.iframes > 0 || counters.forms > 0) {
-    warns.push({ level: 'ok', text: `已清理 ${counters.scripts} script / ${counters.iframes} iframe / ${counters.forms} form` });
-  }
+
+  const allWarns = [
+    ...oks.map(t => ({ level: 'ok', text: t })),
+    ...warns.map(t => ({ level: 'warn', text: t })),
+  ];
 
   return {
     html: cleanedBody,
@@ -188,7 +198,7 @@ function process(rawHtml, options = {}) {
       chars: cleanedBody.length,
       counters,
     },
-    warnings: warns,
+    warnings: allWarns,
   };
 }
 
