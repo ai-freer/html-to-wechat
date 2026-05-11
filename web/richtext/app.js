@@ -27,6 +27,69 @@ const rawPreview = $('raw-preview');
 let processedHtml = '';
 let processedText = '';
 let debounceTimer = null;
+let runSeq = 0;
+
+// ---------- pre-render (run JS in sandboxed iframe to populate dynamic content) ----------
+
+/**
+ * 把 rawHtml 丢进一个跨源 sandboxed iframe，等脚本跑完，postMessage 把渲染后的 DOM
+ * 序列化回主页面。用 opaque origin（不开 allow-same-origin），主页不可被 iframe 触达。
+ */
+function preRender(rawHtml, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    if (!/<script[\s>]/i.test(rawHtml)) {
+      resolve({ html: rawHtml, executed: false });
+      return;
+    }
+    const id = 'pre-' + Math.random().toString(36).slice(2);
+    const snapshotScript = `
+<script>
+(function(){
+  function snap(){
+    try {
+      var html = '<!doctype html>' + document.documentElement.outerHTML;
+      parent.postMessage({ __ptag: ${JSON.stringify(id)}, html: html }, '*');
+    } catch(e) {
+      parent.postMessage({ __ptag: ${JSON.stringify(id)}, error: String(e) }, '*');
+    }
+  }
+  // 等 load + 一拍 microtask，给 DOMContentLoaded 后还在跑的脚本一点缓冲
+  if (document.readyState === 'complete') setTimeout(snap, 250);
+  else window.addEventListener('load', function(){ setTimeout(snap, 250); });
+})();
+<\/script>`;
+
+    let injected;
+    if (/<\/body>/i.test(rawHtml)) {
+      injected = rawHtml.replace(/<\/body>/i, snapshotScript + '</body>');
+    } else {
+      injected = rawHtml + snapshotScript;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1024px;height:768px;border:0;visibility:hidden;';
+    // 没有 allow-same-origin → iframe 在 opaque origin 里，无法读主页 DOM/Storage
+    iframe.setAttribute('sandbox', 'allow-scripts');
+
+    let done = false;
+    const finish = (html, executed) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('message', onMsg);
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      resolve({ html: html || rawHtml, executed });
+    };
+    const onMsg = (e) => {
+      if (!e.data || e.data.__ptag !== id) return;
+      finish(e.data.html, true);
+    };
+    window.addEventListener('message', onMsg);
+    setTimeout(() => finish(rawHtml, false), timeoutMs);
+
+    document.body.appendChild(iframe);
+    iframe.srcdoc = injected;
+  });
+}
 
 // ---------- pipeline ----------
 
@@ -312,21 +375,10 @@ function updateInputStats() {
   inputStats.textContent = n ? `${n.toLocaleString()} 字符` : '0 字符';
 }
 
-function run() {
+async function run() {
   updateInputStats();
   if (editorView === 'render') renderRawPreview();
   const raw = editor.value;
-  const result = process(raw, { extractMain: optExtractMain.checked });
-
-  if (result.error) {
-    setStatus(result.error, 'warn');
-    btnCopy.disabled = true;
-    renderPreview('');
-    outputStats.textContent = '';
-    renderWarnings([]);
-    setStep(1);
-    return;
-  }
 
   if (!raw.trim()) {
     setStatus('等待输入…');
@@ -338,10 +390,35 @@ function run() {
     return;
   }
 
+  const seq = ++runSeq;
+  const hasScript = /<script[\s>]/i.test(raw);
+  if (hasScript) setStatus('正在执行脚本以补全动态内容…');
+
+  // pre-render in sandboxed iframe so JS-populated nodes (e.g. badges) are captured
+  const { html: rendered, executed } = await preRender(raw);
+  if (seq !== runSeq) return; // a newer run started; discard
+
+  const result = process(rendered, { extractMain: optExtractMain.checked });
+
+  if (result.error) {
+    setStatus(result.error, 'warn');
+    btnCopy.disabled = true;
+    renderPreview('');
+    outputStats.textContent = '';
+    renderWarnings([]);
+    setStep(1);
+    return;
+  }
+
   processedHtml = result.html;
   processedText = result.text;
   renderPreview(processedHtml);
-  renderWarnings(result.warnings);
+
+  // surface "scripts were executed" as a top-of-row chip
+  const finalWarnings = executed
+    ? [{ level: 'ok', text: '已执行脚本捕获动态内容' }, ...result.warnings]
+    : result.warnings;
+  renderWarnings(finalWarnings);
 
   const s = result.stats;
   const kb = (s.bytes / 1024).toFixed(1);
