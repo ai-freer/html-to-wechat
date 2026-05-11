@@ -215,6 +215,125 @@ a:hover { text-decoration: underline; }
   transform: translateX(2px);
 }
 
+/* ---------- mode-primary (01: live tool, full-width, strong CTA) ---------- */
+.mode-primary {
+  grid-template-columns: 56px 1fr auto;
+  padding: 28px 28px 28px 32px;
+}
+.mode-primary .mode-num {
+  font-size: 26px;
+}
+.mode-primary h2 {
+  font-size: 20px;
+}
+.mode-primary p {
+  font-size: 14.5px;
+}
+.mode-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.mode-primary:hover .mode-cta {
+  background: var(--accent);
+  color: #fff;
+  transform: translateX(2px);
+}
+
+/* ---------- modes-secondary (02/03: paired educational previews) ---------- */
+.modes-secondary-label {
+  margin: 28px 0 12px;
+  font-size: 12px;
+  color: var(--muted-2);
+  text-transform: none;
+  letter-spacing: 0;
+  text-align: center;
+}
+.modes-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.mode-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px 18px;
+  /* override the 3-column grid layout from .mode-card */
+  grid-template-columns: none;
+}
+.mode-secondary .mode-secondary-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.mode-secondary .mode-num {
+  font-size: 17px;
+  color: var(--muted);
+}
+.mode-secondary h2 {
+  font-size: 15px;
+  margin: 0;
+}
+.mode-secondary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.mode-preview-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 2px;
+}
+.mode-preview-strip img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0E1A2B;
+  display: block;
+}
+.mode-preview-code {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--card-bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--muted);
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 110px;
+}
+.mode-cta-link {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+  transition: transform 0.15s;
+}
+.mode-secondary:hover .mode-cta-link {
+  transform: translateX(2px);
+}
+
 /* ---------- footer ---------- */
 .landing-foot {
   margin-top: 48px;
@@ -246,6 +365,28 @@ a:hover { text-decoration: underline; }
   .mode-arrow { display: none; }
   .mode-num { font-size: 18px; }
   .mode-card h2 { font-size: 16px; }
+
+  /* primary card on mobile: body spans both cols, CTA below */
+  .mode-primary {
+    grid-template-columns: 36px 1fr;
+    grid-template-rows: auto auto;
+  }
+  .mode-primary .mode-cta {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .mode-primary h2 { font-size: 17px; }
+
+  /* secondary pair stacks vertically on mobile */
+  .modes-secondary {
+    grid-template-columns: 1fr;
+  }
+  .mode-secondary {
+    padding: 16px 18px;
+  }
 }
 
 /* ---------- empty state for stub mode pages ---------- */
