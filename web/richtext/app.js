@@ -66,6 +66,7 @@ function process(rawHtml, options = {}) {
     metas: 0,
     chromeStripped: 0,
     extractedFrom: null, // 'article' | 'main' | null
+    layoutNormalized: 0,
   };
 
   // 1. 删除完全不允许的标签
@@ -133,7 +134,36 @@ function process(rawHtml, options = {}) {
     }
   }
 
-  // 4. 删除所有元素的 id 属性（公众号会强制剥离）
+  // 4. 规范化布局：公众号会丢弃 flex/grid/绝对定位 → 我们提前降级，preview 才能反映真实效果
+  doc.querySelectorAll('[style]').forEach(el => {
+    const before = el.getAttribute('style') || '';
+    let after = before;
+
+    // display: flex|grid|inline-flex|inline-grid → block|inline-block
+    after = after.replace(
+      /display\s*:\s*(inline-)?(flex|grid)\s*(!important)?\s*;?/gi,
+      (_m, inline) => {
+        counters.layoutNormalized++;
+        return `display: ${inline ? 'inline-block' : 'block'};`;
+      }
+    );
+    // position: absolute|fixed|sticky → 删（保留 relative/static）
+    after = after.replace(
+      /position\s*:\s*(absolute|fixed|sticky)\s*(!important)?\s*;?/gi,
+      () => {
+        counters.layoutNormalized++;
+        return '';
+      }
+    );
+
+    if (after !== before) {
+      const trimmed = after.replace(/;\s*;/g, ';').trim();
+      if (trimmed) el.setAttribute('style', trimmed);
+      else el.removeAttribute('style');
+    }
+  });
+
+  // 5. 删除所有元素的 id 属性（公众号会强制剥离）
   doc.querySelectorAll('[id]').forEach(el => {
     counters.ids++;
     el.removeAttribute('id');
@@ -170,19 +200,15 @@ function process(rawHtml, options = {}) {
   if (counters.forms > 0) cleaned.push(`${counters.forms} form`);
   if (cleaned.length) oks.push(`已清理 ${cleaned.join(' / ')}`);
 
+  if (counters.layoutNormalized > 0) {
+    oks.push(`已规范化 ${counters.layoutNormalized} 处布局（flex/grid/绝对定位 → block）`);
+  }
+
   if (counters.images > 0) {
     warns.push(`${counters.images} 张 <img> 需手动换素材库链接`);
   }
   if (counters.svgImages > 0) {
     warns.push(`${counters.svgImages} 个 SVG <image> 需手动换素材库链接`);
-  }
-  // 检测可能不兼容的 CSS（启发式）
-  const styleAttrs = [...doc.querySelectorAll('[style]')].map(el => el.getAttribute('style')).join(';');
-  if (/display\s*:\s*flex|display\s*:\s*grid/i.test(styleAttrs)) {
-    warns.push('Flex/Grid 在公众号可能错位');
-  }
-  if (/position\s*:\s*(absolute|fixed|sticky)/i.test(styleAttrs)) {
-    warns.push('position 绝对/固定 会被过滤');
   }
 
   const allWarns = [
