@@ -131,6 +131,8 @@ function process(rawHtml, options = {}) {
     extractedFrom: null, // 'article' | 'main' | null
     layoutNormalized: 0,
     flexToTable: 0,
+    tablesMerged: 0,
+    tablesSized: 0,
   };
 
   // 1. 删除完全不允许的标签
@@ -210,12 +212,13 @@ function process(rawHtml, options = {}) {
   //     检查是否能转 table，能转就返回每列宽度（grid 用 grid-template-columns，flex 用空）。
   const detectMultiCol = (style, kidCount) => {
     if (kidCount < 2 || kidCount > 3) return null;
-    if (/display\s*:\s*(inline-)?flex/i.test(style)) {
+    // inline-flex / inline-grid 是行内对齐，转成 block table 等于把行内徽章撑成整行宽，跳过
+    if (/display\s*:\s*flex(?!\w)/i.test(style)) {
       if (/flex-direction\s*:\s*column/i.test(style)) return null;
       if (/flex-wrap\s*:\s*wrap/i.test(style)) return null;
       return { kind: 'flex', widths: [] };
     }
-    if (/display\s*:\s*(inline-)?grid/i.test(style)) {
+    if (/display\s*:\s*grid(?!\w)/i.test(style)) {
       const m = /grid-template-columns\s*:\s*([^;]+)/i.exec(style);
       if (!m) return null;
       const cols = m[1].trim().split(/\s+/);
@@ -330,6 +333,51 @@ function process(rawHtml, options = {}) {
     counters.flexToTable++;
   });
 
+  // 4a-2. 合并连续的"同列结构 <a><table>"为单个多行 <table>，让用户在编辑器里拖一次列宽
+  //       就能改全部行（典型场景：九层塔的 9 个 tower-row 都被独立转成了表）。
+  const tablesInAnchor = [...doc.querySelectorAll('a > table')];
+  const parentsToTry = new Set();
+  tablesInAnchor.forEach(t => parentsToTry.add(t.parentElement.parentElement));
+  parentsToTry.forEach(parent => {
+    if (!parent || !parent.isConnected) return;
+    const kids = [...parent.children];
+    if (kids.length < 3) return;
+    // 全部 <a><table>，且每个 table 都只有一个 <tr>，列数一致
+    const sigs = kids.map(k => {
+      if (k.tagName.toLowerCase() !== 'a' || k.children.length !== 1) return null;
+      const t = k.children[0];
+      if (t.tagName.toLowerCase() !== 'table') return null;
+      const tr = t.querySelector('tr');
+      if (!tr) return null;
+      return { table: t, rows: [tr], cellCount: tr.children.length };
+    });
+    if (!sigs.every(s => s)) return;
+    const cellCount = sigs[0].cellCount;
+    if (!sigs.every(s => s.cellCount === cellCount)) return;
+
+    // 构造合并后的表，沿用第一个表的 <colgroup> + width/style
+    const merged = doc.createElement('table');
+    merged.setAttribute('width', '100%');
+    merged.setAttribute('cellpadding', '0');
+    merged.setAttribute('cellspacing', '0');
+    merged.setAttribute('border', '0');
+    merged.setAttribute('style', sigs[0].table.getAttribute('style') || 'width:100%;border-collapse:collapse;table-layout:fixed;');
+    const firstCg = sigs[0].table.querySelector('colgroup');
+    if (firstCg) merged.appendChild(firstCg.cloneNode(true));
+
+    // 把每个 <a><table> 的内容作为一个 <tr> 拼进 merged
+    // （丢弃 href 锚点——粘到公众号 / 飞书里 in-page 锚点也用不上）
+    sigs.forEach(s => {
+      const tr = s.rows[0].cloneNode(true);
+      merged.appendChild(tr);
+    });
+
+    // 替换原有的 N 个 <a><table>
+    kids.slice(1).forEach(k => k.remove());
+    kids[0].replaceWith(merged);
+    counters.tablesMerged += sigs.length;
+  });
+
   // 4b. 剩下没转 table 的 flex/grid 元素（单子级、纵向栈、grid）降为 block；
   //     绝对定位移除。让 preview 与公众号最终渲染保持一致。
   doc.querySelectorAll('[style]').forEach(el => {
@@ -358,6 +406,77 @@ function process(rawHtml, options = {}) {
       if (trimmed) el.setAttribute('style', trimmed);
       else el.removeAttribute('style');
     }
+  });
+
+  // 4c. 给所有 <table>（不论来自源 HTML 还是我们生成）补列宽提示。
+  //     公众号 / 飞书等编辑器在没有 colgroup / td width 时会把所有列均分，
+  //     根据每列内容长度估一组百分比，写到 colgroup + td 上。
+  doc.querySelectorAll('table').forEach(tbl => {
+    // 收集所有 tr（无论是否在 thead/tbody 里）
+    const trs = [...tbl.querySelectorAll('tr')].filter(tr => tr.closest('table') === tbl);
+    if (trs.length === 0) return;
+    const cellCounts = trs.map(tr => tr.children.length);
+    const cellCount = Math.max(...cellCounts);
+    if (cellCount < 2) return;
+    // 任何一行有 colspan/rowspan → 跳过，避免误判
+    const hasSpan = trs.some(tr => [...tr.children].some(c => c.hasAttribute('colspan') || c.hasAttribute('rowspan')));
+    if (hasSpan) return;
+    // 已经有 colgroup 且各 <col> 都有 width → 信任作者
+    const cg = tbl.querySelector('colgroup');
+    if (cg && [...cg.children].every(c => c.hasAttribute('width') || /width\s*:/i.test(c.getAttribute('style') || ''))) return;
+
+    // 估列宽：取每列内容文本长度的最大值
+    const colLens = new Array(cellCount).fill(0);
+    trs.forEach(tr => {
+      [...tr.children].forEach((cell, i) => {
+        if (i >= cellCount) return;
+        const len = (cell.textContent || '').trim().length || 1;
+        if (len > colLens[i]) colLens[i] = len;
+      });
+    });
+    // 限制最大/最小比例：避免某一列文本特别长把其它列挤到很窄
+    const cappedLens = colLens.map(L => Math.min(L, 40)); // 单列最多算 40 字符
+    const totalCapped = cappedLens.reduce((a, b) => a + b, 0);
+    const MIN_PCT = Math.floor(100 / cellCount * 0.4); // 最小不低于均分的 40%
+    let pcts = cappedLens.map(L => Math.max(MIN_PCT, Math.round((L / totalCapped) * 100)));
+    const sum = pcts.reduce((a, b) => a + b, 0);
+    pcts = pcts.map(p => Math.round((p / sum) * 1000) / 10);
+
+    // 写 colgroup
+    let cgEl = cg;
+    if (!cgEl) {
+      cgEl = doc.createElement('colgroup');
+      tbl.insertBefore(cgEl, tbl.firstChild);
+    } else {
+      cgEl.innerHTML = '';
+    }
+    pcts.forEach(pct => {
+      const col = doc.createElement('col');
+      col.setAttribute('width', pct + '%');
+      col.setAttribute('style', `width:${pct}%;`);
+      cgEl.appendChild(col);
+    });
+
+    // 表格设 width=100% + table-layout:fixed
+    if (!tbl.hasAttribute('width')) tbl.setAttribute('width', '100%');
+    const tblStyle = tbl.getAttribute('style') || '';
+    let newTblStyle = tblStyle;
+    if (!/width\s*:/i.test(newTblStyle)) newTblStyle += ';width:100%';
+    if (!/table-layout/i.test(newTblStyle)) newTblStyle += ';table-layout:fixed';
+    if (!/border-collapse/i.test(newTblStyle)) newTblStyle += ';border-collapse:collapse';
+    tbl.setAttribute('style', newTblStyle.replace(/^;+/, '').replace(/;\s*;+/g, ';'));
+
+    // 第一行 td 也补 width（colgroup 被剥时的备份）
+    const firstTr = trs[0];
+    [...firstTr.children].forEach((cell, i) => {
+      const pct = pcts[i];
+      if (pct == null) return;
+      if (!cell.hasAttribute('width')) cell.setAttribute('width', pct + '%');
+      const cs = cell.getAttribute('style') || '';
+      if (!/width\s*:/i.test(cs)) cell.setAttribute('style', (cs + ';width:' + pct + '%').replace(/^;+/, ''));
+    });
+
+    counters.tablesSized++;
   });
 
   // 5. 删除所有元素的 id 属性（公众号会强制剥离）
@@ -399,6 +518,12 @@ function process(rawHtml, options = {}) {
 
   if (counters.flexToTable > 0) {
     oks.push(`${counters.flexToTable} 处多列卡片转 <table>（公众号兼容）`);
+  }
+  if (counters.tablesMerged > 0) {
+    oks.push(`${counters.tablesMerged} 行合并到 1 张表（拖列宽改全部）`);
+  }
+  if (counters.tablesSized > 0) {
+    oks.push(`已为 ${counters.tablesSized} 张表估算列宽`);
   }
   if (counters.layoutNormalized > 0) {
     oks.push(`已规范化 ${counters.layoutNormalized} 处布局（flex/grid/绝对定位 → block）`);
