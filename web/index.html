@@ -7,7 +7,7 @@
   <meta name="description" content="把 Agent 生成的 HTML Artifact 文章，投递到公众号、小红书、AI 视频生成软件的工具集。" />
   <meta property="og:title" content="HTML-to-WeChat" />
   <meta property="og:description" content="把 Agent 生成的 HTML Artifact 投递到公众号、小红书、AI 视频" />
-  <link rel="stylesheet" href="./landing.css?v=3" />
+  <link rel="stylesheet" href="./landing.css?v=5" />
 </head>
 <body>
   <main class="landing">
@@ -35,7 +35,8 @@
     </section>
 
     <section class="modes">
-      <a class="mode-card live" href="./richtext/">
+      <!-- PRIMARY: live, full-functionality tool — full width, primary CTA -->
+      <a class="mode-card mode-primary live" href="./richtext/">
         <div class="mode-num">01</div>
         <div class="mode-body">
           <div class="mode-title-row">
@@ -45,34 +46,43 @@
           <p>粘贴 / 输入 URL / 上传 HTML，浏览器内做 CSS 内联、清理脚本、复制为富文本，直接粘到公众号后台编辑器。</p>
           <p class="mode-meta">无需安装 · 浏览器内运行 · 不上传服务器</p>
         </div>
-        <div class="mode-arrow" aria-hidden="true">→</div>
+        <div class="mode-cta">开始转换 →</div>
       </a>
 
-      <a class="mode-card" href="./images/">
-        <div class="mode-num">02</div>
-        <div class="mode-body">
-          <div class="mode-title-row">
-            <h2>HTML → 图文号 / 小红书图集</h2>
-            <span class="badge preview">样例可看 · Skill 待发布</span>
+      <!-- SECONDARY: educational pages with inline previews — 2-column grid -->
+      <p class="modes-secondary-label">下面两个还在开发，先看示例了解能做什么</p>
+      <div class="modes-secondary">
+        <a class="mode-card mode-secondary" href="./images/">
+          <div class="mode-secondary-head">
+            <span class="mode-num">02</span>
+            <h2>HTML → 图集</h2>
+            <span class="badge preview">样例可看</span>
           </div>
-          <p>把长 HTML 文章自动转成 8-10 张统一风格的卡片图集 + 配套文案。每张图由顶级文生图模型（GPT Image 2 等）生成，不是模板拼接。</p>
-          <p class="mode-meta">配合 Skill 使用 · 浏览器只做预览 / 下载</p>
-        </div>
-        <div class="mode-arrow" aria-hidden="true">→</div>
-      </a>
+          <p>把长文章自动转成 8-10 张统一风格的卡片图集 + 配套文案。所有图由顶级文生图模型生成。</p>
+          <div class="mode-preview-strip" aria-hidden="true">
+            <img src="./images/demo/01-cover.png" alt="" loading="lazy" width="1024" height="1536" />
+            <img src="./images/demo/04-overview.png" alt="" loading="lazy" width="1024" height="1536" />
+            <img src="./images/demo/05-l6-warning.png" alt="" loading="lazy" width="1024" height="1536" />
+            <img src="./images/demo/06-loop.png" alt="" loading="lazy" width="1024" height="1536" />
+          </div>
+          <div class="mode-cta-link">看示例图集 →</div>
+        </a>
 
-      <a class="mode-card" href="./script/">
-        <div class="mode-num">03</div>
-        <div class="mode-body">
-          <div class="mode-title-row">
-            <h2>HTML → 口播稿 Markdown</h2>
+        <a class="mode-card mode-secondary" href="./script/">
+          <div class="mode-secondary-head">
+            <span class="mode-num">03</span>
+            <h2>HTML → 口播稿</h2>
             <span class="badge planned">Skill 待发布</span>
           </div>
-          <p>改写成 AI 视频生成软件（Sora / 即梦 / 海螺 / Pika 等 V2C 工具）可直接喂的口播稿。短句、口语化、按节奏切段。</p>
-          <p class="mode-meta">配合 Skill 使用 · 浏览器只做预览 / 复制</p>
-        </div>
-        <div class="mode-arrow" aria-hidden="true">→</div>
-      </a>
+          <p>改写成 AI 视频生成软件（Sora / 即梦 / 海螺 / Pika 等）可直接喂的口播稿。短句、口语化、按节奏切段。</p>
+          <pre class="mode-preview-code" aria-hidden="true">咱们聊聊 L6——会话生存层。
+
+很多人以为，只要模型窗口够大，就不用管上下文了。
+
+但你跑一个长任务三天后，最早那几句关键约定，已经被截断丢掉了……</pre>
+          <div class="mode-cta-link">看改写示例 →</div>
+        </a>
+      </div>
     </section>
 
     <footer class="landing-foot">
