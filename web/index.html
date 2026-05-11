@@ -7,7 +7,7 @@
   <meta name="description" content="把 Agent 生成的 HTML Artifact 文章，投递到公众号、小红书、AI 视频生成软件的工具集。" />
   <meta property="og:title" content="HTML-to-WeChat" />
   <meta property="og:description" content="把 Agent 生成的 HTML Artifact 投递到公众号、小红书、AI 视频" />
-  <link rel="stylesheet" href="./landing.css?v=6" />
+  <link rel="stylesheet" href="./landing.css?v=7" />
 </head>
 <body>
   <main class="landing">
@@ -77,7 +77,13 @@
 
 很多人以为，只要模型窗口够大，就不用管上下文了。
 
-但你跑一个长任务三天后，最早那几句关键约定，已经被截断丢掉了……</pre>
+但你跑一个长任务三天后，最早那几句关键约定，已经被截断丢掉了。
+
+OpenClaw 是怎么解决的？
+
+它有一个东西叫 Lossless Context Engine。实时摄入每一条消息，用 DAG、摘要、分层压缩，组装下一轮的上下文。
+
+简单说：长对话不丢东西。</pre>
           <div class="mode-cta-link">看改写示例 →</div>
         </a>
       </div>
