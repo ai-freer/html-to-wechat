@@ -96,6 +96,54 @@ mode 01 的两条入口都跑在同一个 1A 引擎上，**差别只在 plan 的
     "minRows": 3                 // ≥ N 行连续同结构才合并
   },
 
+  // === <dl><div><dt><dd> → <table> ===
+  // 公众号会把 dt/dd 当 list item 加 bullet，必须重写
+  "dlToTable": {
+    "enabled": true,
+    "minKids": 2,
+    "maxKids": 6                 // metrics 卡片网格常见 4-5 列
+  },
+
+  // === 公众号兼容性修复层（v0.2 引入，针对车展报告类视觉重 HTML）===
+  // 公众号对 inline style "一条 declaration 不认就整条丢"。
+  // 这里把不认的属性预先剥掉，避免连带砍掉 background/color 等关键属性。
+  "stripUnknownCssProps": {
+    "enabled": true,
+    "blacklist": [
+      "min-height", "max-height", "min-width", "max-width",
+      "overflow", "overflow-x", "overflow-y",
+      "backdrop-filter", "-webkit-backdrop-filter",
+      "object-fit", "object-position",
+      "aspect-ratio",
+      "inset", "inset-block", "inset-inline",
+      "will-change", "transform-origin", "transform-style",
+      "filter", "-webkit-filter"
+    ]
+  },
+
+  // clamp/min/max 公众号不支持，整条 declaration 会丢
+  "cssFunctionFlatten": {
+    "enabled": true
+    // clamp(min, ideal, max) → ideal（之后被 viewportUnits 继续换算）
+    // min(a, b) → a
+    // max(a, b) → a
+  },
+
+  // vw/vh 换算成 px。公众号视宽 ~375-414px，但 HTML Artifact 多按 750px 设计
+  "viewportUnits": {
+    "enabled": true,
+    "docWidth": 750,
+    "docHeight": 900
+  },
+
+  // 半透明 rgba 背景预先压平到不透明等效色。
+  // 公众号渲染半透明色不可靠 + 父链一断下游 alpha 全乱。
+  // 自顶向下 alpha-blend 到父背景上，写回不透明色。
+  "flattenAlphaBackgrounds": {
+    "enabled": true,
+    "defaultPageBg": "#ffffff"   // 找不到不透明父背景时的兜底
+  },
+
   // === 图片策略 ===
   "imageStrategy": "manual",     // "manual" | "placeholder" | "inline-base64"
 
@@ -152,6 +200,14 @@ mode 01 的两条入口都跑在同一个 1A 引擎上，**差别只在 plan 的
    ├─ ② preRender（可选，仅网页入口）
    │     sandbox iframe 跑脚本捕获动态内容
    │
+   ├─ ②.5 CSS 兼容性修复层（针对视觉重 HTML 的关键修复）
+   │     a. stripUnknownCssProps — 剥 min-height / overflow / inset 等
+   │        公众号不认的属性，避免 background 等关键属性被一锅端
+   │     b. cssFunctionFlatten — clamp/min/max → 单值
+   │     c. convertViewportUnits — vw/vh → px（按 docWidth/docHeight 换算）
+   │     d. flattenAlphaBackgrounds — 半透明 rgba 沿父链 alpha-blend
+   │        到不透明等效色，对抗"父链一断下游全乱"的级联失败
+   │
    ├─ ③ 删除 plan.bannedTags
    │
    ├─ ④ 应用 plan.directives（节点级指令）
@@ -164,10 +220,13 @@ mode 01 的两条入口都跑在同一个 1A 引擎上，**差别只在 plan 的
    ├─ ⑥ flex/grid → <table>（plan.multiColConversion）
    │     公众号会剥 flex/grid，table 才能活下来
    │
+   ├─ ⑥.5 <dl><div><dt><dd> → <table>（plan.dlToTable）
+   │     公众号会把 dt/dd 当 list item 加 ▪，必须重写
+   │
    ├─ ⑦ 同结构表合并（plan.tableMerging）
    │     连续 N 行同列结构 <a><table> → 单个多行 <table>
    │
-   ├─ ⑧ 剩余 flex/grid → block 降级
+   ├─ ⑧ 剩余 flex/grid → block 降级 + position 删除时连带删 top/right/bottom/left
    │
    ├─ ⑨ 表格列宽估算（plan.tableColumnSizing）
    │     公众号 / 飞书无 colgroup 时均分列宽，按文本长度估

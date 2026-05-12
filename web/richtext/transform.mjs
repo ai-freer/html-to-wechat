@@ -63,7 +63,34 @@ export function transform(rawHtml, planArg = {}) {
     tablesSized: 0,
     directivesApplied: 0,
     directivesMissed: 0,
+    // CSS 修复层（v0.2 引入）
+    unknownPropsStripped: 0,
+    cssFunctionsFlattened: 0,
+    viewportUnitsConverted: 0,
+    alphaBackgroundsFlattened: 0,
+    dlsConverted: 0,
   };
+
+  // 2.5 CSS 修复层（公众号兼容性）
+  //     这一组必须在所有 DOM 操作之前做，因为它修的是 inline style 字符串本身。
+  //     顺序：剥不认的属性 → 展平 CSS 函数 → 换算 vw/vh → alpha-blend 半透明背景
+  //
+  //     为什么提前：公众号对 inline style 是"一条 declaration 不认就整条丢"，
+  //     如果 style="background:#0d1416; min-height:92vh; overflow:hidden" 里
+  //     min-height/overflow 被整条丢规则连带，background 也会一起没。
+  //     所以先把"不认的"剥干净，给 background/color/font-size 这些关键属性留活路。
+  if (plan.stripUnknownCssProps.enabled) {
+    stripUnknownCssProps(doc, plan.stripUnknownCssProps, counters);
+  }
+  if (plan.cssFunctionFlatten.enabled) {
+    flattenCssFunctions(doc, counters);
+  }
+  if (plan.viewportUnits.enabled) {
+    convertViewportUnits(doc, plan.viewportUnits, counters);
+  }
+  if (plan.flattenAlphaBackgrounds.enabled) {
+    flattenAlphaBackgrounds(doc, plan.flattenAlphaBackgrounds, counters);
+  }
 
   // 3. 删除完全不允许的标签（plan.bannedTags）
   const bannedCounters = {
@@ -146,12 +173,20 @@ export function transform(rawHtml, planArg = {}) {
     convertMultiColToTable(doc, plan.multiColConversion, counters);
   }
 
+  // 6b. <dl><div><dt><dd> → <table>（plan.dlToTable）
+  //     公众号会把 dt/dd 当 list item 加 ▪ bullet，必须重写。
+  if (plan.dlToTable.enabled) {
+    convertDlToTable(doc, plan.dlToTable, counters);
+  }
+
   // 7. 同结构表合并（plan.tableMerging）
   if (plan.tableMerging.enabled) {
     mergeUniformTables(doc, plan.tableMerging, counters);
   }
 
-  // 8. 剩余 flex/grid → block；绝对定位移除
+  // 8. 剩余 flex/grid → block；position absolute/fixed/sticky 删除时
+  //    同步删 top/right/bottom/left（孤儿 offset 无意义）。
+  //    inset 由 stripUnknownCssProps 在 2.5 步统一删。
   doc.querySelectorAll('[style]').forEach(el => {
     const before = el.getAttribute('style') || '';
     let after = before;
@@ -162,6 +197,8 @@ export function transform(rawHtml, planArg = {}) {
         return `display: ${inline ? 'inline-block' : 'block'};`;
       }
     );
+    // position absolute/fixed/sticky 删除时连带删 top/right/bottom/left
+    const hasAbsPos = /position\s*:\s*(absolute|fixed|sticky)/i.test(after);
     after = after.replace(
       /position\s*:\s*(absolute|fixed|sticky)\s*(!important)?\s*;?/gi,
       () => {
@@ -169,6 +206,12 @@ export function transform(rawHtml, planArg = {}) {
         return '';
       }
     );
+    if (hasAbsPos) {
+      after = after.replace(/\b(top|right|bottom|left)\s*:[^;]+;?/gi, () => {
+        counters.layoutNormalized++;
+        return '';
+      });
+    }
     if (after !== before) {
       const trimmed = after.replace(/;\s*;/g, ';').trim();
       if (trimmed) el.setAttribute('style', trimmed);
@@ -533,6 +576,240 @@ function sizeAllTables(doc, cfg, counters) {
 }
 
 // ============================================================
+//        CSS 修复层（公众号兼容性，v0.2 引入）
+// ============================================================
+
+/**
+ * 把不认的 CSS 属性预先剥掉，避免连带砍掉 background/color 等关键属性。
+ *
+ * 公众号对 inline style 是"一条 declaration 不认就整条丢"——
+ * style="background:#0d1416; min-height:92vh; overflow:hidden" 里
+ * 任意一条不认就可能整条 style 一起没。所以先把"不认的"清干净。
+ */
+function stripUnknownCssProps(doc, cfg, counters) {
+  // 不吃尾 `;`：global regex 的 lastIndex 是相对原字符串的，如果第一次匹配把
+  // 结尾分号一起吃了，下一条要删的属性就失去前导 `;`，匹配不上。
+  // 用 (^|;) 捕获前导分隔符，替换时回填这个分隔符。
+  const propsRe = new RegExp(
+    '(^|;)\\s*(' + cfg.blacklist.map(p => p.replace(/-/g, '\\-')).join('|') + ')\\s*:[^;]*',
+    'gi'
+  );
+  doc.querySelectorAll('[style]').forEach(el => {
+    const before = el.getAttribute('style') || '';
+    let after = before.replace(propsRe, (_full, prefix) => prefix);
+    after = after.replace(/;\s*;+/g, ';').replace(/^;+/, '').trim();
+    if (after !== before) {
+      counters.unknownPropsStripped++;
+      if (after) el.setAttribute('style', after);
+      else el.removeAttribute('style');
+    }
+  });
+}
+
+/**
+ * clamp(min, ideal, max) → ideal     公众号窄屏下 ideal 通常是最贴近实际显示的
+ * min(a, b)              → a         典型场景 "max-width: min(760px, 100%)" 取 760px
+ * max(a, b)              → a
+ *
+ * 展平后的值如果含 vw/vh，会被下一步 convertViewportUnits 继续换算。
+ */
+function flattenCssFunctions(doc, counters) {
+  // clamp(min, ideal, max) — 取中间项
+  const clampRe = /clamp\(\s*([^,()]+)\s*,\s*([^,()]+)\s*,\s*([^,()]+)\s*\)/gi;
+  // min(a, b[, c...]) / max(a, b[, c...]) — 取第一项
+  const minMaxRe = /(min|max)\(\s*([^,()]+?)(?:\s*,\s*[^()]+?)+\s*\)/gi;
+
+  doc.querySelectorAll('[style]').forEach(el => {
+    const before = el.getAttribute('style') || '';
+    let after = before;
+
+    after = after.replace(clampRe, (_full, _min, ideal) => {
+      counters.cssFunctionsFlattened++;
+      return ideal.trim();
+    });
+
+    after = after.replace(minMaxRe, (_full, _fn, first) => {
+      counters.cssFunctionsFlattened++;
+      return first.trim();
+    });
+
+    if (after !== before) el.setAttribute('style', after);
+  });
+}
+
+/**
+ * vw/vh → px 换算。
+ *
+ * 公众号实际视宽 ~375-414px，但 HTML Artifact 多按 750px 设计。
+ * 取 docWidth=750 / docHeight=900 在视觉上最接近原设计意图。
+ */
+function convertViewportUnits(doc, cfg, counters) {
+  doc.querySelectorAll('[style]').forEach(el => {
+    const before = el.getAttribute('style') || '';
+    let after = before;
+
+    after = after.replace(/([\d.]+)vw\b/gi, (_m, n) => {
+      counters.viewportUnitsConverted++;
+      return Math.round(parseFloat(n) * cfg.docWidth / 100) + 'px';
+    });
+    after = after.replace(/([\d.]+)vh\b/gi, (_m, n) => {
+      counters.viewportUnitsConverted++;
+      return Math.round(parseFloat(n) * cfg.docHeight / 100) + 'px';
+    });
+
+    if (after !== before) el.setAttribute('style', after);
+  });
+}
+
+/**
+ * 沿 DOM 父链找第一个不透明 background-color，把当前元素的 rgba 半透明背景
+ * alpha-blend 到该底色上，写回为不透明颜色。
+ *
+ * 公众号渲染半透明色不可靠 + 父链一断下游 alpha 全乱。预先压平后所有
+ * background-color 都是不透明的，渲染就稳了。
+ *
+ * 自顶向下处理：保证父先变成不透明，子再查父时拿到的是合成后的值。
+ */
+function flattenAlphaBackgrounds(doc, cfg, counters) {
+  const NAMED = {
+    transparent: { r: 0, g: 0, b: 0, a: 0 },
+    white: { r: 255, g: 255, b: 255, a: 1 },
+    black: { r: 0, g: 0, b: 0, a: 1 },
+  };
+  const parseHex = (h) => {
+    if (h.length === 3) return { r: hex2(h[0]+h[0]), g: hex2(h[1]+h[1]), b: hex2(h[2]+h[2]), a: 1 };
+    if (h.length === 6) return { r: hex2(h.slice(0,2)), g: hex2(h.slice(2,4)), b: hex2(h.slice(4,6)), a: 1 };
+    if (h.length === 8) return { r: hex2(h.slice(0,2)), g: hex2(h.slice(2,4)), b: hex2(h.slice(4,6)), a: hex2(h.slice(6,8))/255 };
+    return null;
+  };
+  const hex2 = (s) => parseInt(s, 16);
+  const parseColor = (raw) => {
+    if (!raw) return null;
+    const s = raw.trim().toLowerCase();
+    if (NAMED[s]) return NAMED[s];
+    let m = /^#([0-9a-f]{3,8})$/i.exec(s);
+    if (m) return parseHex(m[1]);
+    m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(s);
+    if (m) return { r: +m[1], g: +m[2], b: +m[3], a: m[4] != null ? +m[4] : 1 };
+    return null;
+  };
+  const getBg = (el) => {
+    const s = el.getAttribute('style') || '';
+    const m = /background(?:-color)?\s*:\s*([^;]+)/i.exec(s);
+    if (!m) return null;
+    return parseColor(m[1]);
+  };
+  const fallback = parseColor(cfg.defaultPageBg) || NAMED.white;
+  const findOpaqueAncestorBg = (el) => {
+    let cur = el.parentElement;
+    while (cur) {
+      const bg = getBg(cur);
+      if (bg && bg.a === 1) return bg;
+      cur = cur.parentElement;
+    }
+    return fallback;
+  };
+  const blend = (fg, bg) => {
+    const a = fg.a;
+    return {
+      r: Math.round(fg.r * a + bg.r * (1 - a)),
+      g: Math.round(fg.g * a + bg.g * (1 - a)),
+      b: Math.round(fg.b * a + bg.b * (1 - a)),
+      a: 1,
+    };
+  };
+  const toHex = (c) =>
+    '#' + [c.r, c.g, c.b].map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join('');
+
+  // 自顶向下 DFS：父先于子被处理
+  const walk = (node) => {
+    if (node.nodeType !== 1) return;
+    const bg = getBg(node);
+    if (bg && bg.a < 1 && bg.a > 0) {
+      const opaque = findOpaqueAncestorBg(node);
+      const result = blend(bg, opaque);
+      const style = node.getAttribute('style') || '';
+      // 删原 background / background-color，写回压平后的 background-color
+      const next = style
+        .replace(/background(?:-color)?\s*:[^;]+;?/gi, '')
+        .replace(/;\s*;+/g, ';')
+        .replace(/^;+/, '')
+        .trim();
+      const sep = next && !next.endsWith(';') ? ';' : '';
+      node.setAttribute('style', next + sep + 'background-color:' + toHex(result));
+      counters.alphaBackgroundsFlattened++;
+    }
+    for (const child of node.children) walk(child);
+  };
+  if (doc.body) walk(doc.body);
+}
+
+/**
+ * <dl><div><dt><dd></div>...</dl> → <table><tr><td>...</td></tr></table>
+ *
+ * 公众号会把 dt/dd 当 list item 自动加 ▪ bullet，无法关闭。必须重写。
+ * dt/dd 内部分别变成 <p>（保留 inline style 但失去 list 语义）。
+ */
+function convertDlToTable(doc, cfg, counters) {
+  const dls = [...doc.querySelectorAll('dl')];
+  dls.forEach(dl => {
+    if (!dl.isConnected) return;
+    const divs = [...dl.children].filter(c => c.tagName === 'DIV');
+    if (divs.length < cfg.minKids || divs.length > cfg.maxKids) return;
+    const allHaveDtDd = divs.every(d => d.querySelector('dt') && d.querySelector('dd'));
+    if (!allHaveDtDd) return;
+
+    const dlStyle = dl.getAttribute('style') || '';
+    const tbl = doc.createElement('table');
+    tbl.setAttribute('width', '100%');
+    tbl.setAttribute('cellpadding', '0');
+    tbl.setAttribute('cellspacing', '0');
+    tbl.setAttribute('border', '0');
+    tbl.setAttribute(
+      'style',
+      ('width:100%;border-collapse:collapse;table-layout:fixed;' + dlStyle).replace(/;\s*;+/g, ';')
+    );
+
+    const pct = Math.round(1000 / divs.length) / 10;
+    const cg = doc.createElement('colgroup');
+    divs.forEach(() => {
+      const col = doc.createElement('col');
+      col.setAttribute('width', pct + '%');
+      col.setAttribute('style', `width:${pct}%;`);
+      cg.appendChild(col);
+    });
+    tbl.appendChild(cg);
+
+    const tr = doc.createElement('tr');
+    divs.forEach(d => {
+      const td = doc.createElement('td');
+      const dStyle = d.getAttribute('style') || '';
+      td.setAttribute('style', `vertical-align:top;width:${pct}%;` + dStyle);
+      td.setAttribute('width', pct + '%');
+
+      const dt = d.querySelector('dt');
+      const dd = d.querySelector('dd');
+      if (dt) {
+        const p = doc.createElement('p');
+        if (dt.getAttribute('style')) p.setAttribute('style', dt.getAttribute('style'));
+        while (dt.firstChild) p.appendChild(dt.firstChild);
+        td.appendChild(p);
+      }
+      if (dd) {
+        const p = doc.createElement('p');
+        if (dd.getAttribute('style')) p.setAttribute('style', dd.getAttribute('style'));
+        while (dd.firstChild) p.appendChild(dd.firstChild);
+        td.appendChild(p);
+      }
+      tr.appendChild(td);
+    });
+    tbl.appendChild(tr);
+    dl.replaceWith(tbl);
+    counters.dlsConverted++;
+  });
+}
+
+// ============================================================
 //                    Warnings aggregation
 // ============================================================
 
@@ -554,6 +831,21 @@ function buildWarnings(counters) {
 
   if (counters.directivesApplied > 0) {
     oks.push(`已应用 ${counters.directivesApplied} 条 LLM directives`);
+  }
+  if (counters.unknownPropsStripped > 0) {
+    oks.push(`已剥 ${counters.unknownPropsStripped} 处不兼容 CSS 属性（min-height / overflow / inset 等）`);
+  }
+  if (counters.cssFunctionsFlattened > 0) {
+    oks.push(`已展平 ${counters.cssFunctionsFlattened} 处 clamp/min/max`);
+  }
+  if (counters.viewportUnitsConverted > 0) {
+    oks.push(`已换算 ${counters.viewportUnitsConverted} 处 vw/vh → px`);
+  }
+  if (counters.alphaBackgroundsFlattened > 0) {
+    oks.push(`已压平 ${counters.alphaBackgroundsFlattened} 处半透明背景（alpha → 不透明等效色）`);
+  }
+  if (counters.dlsConverted > 0) {
+    oks.push(`${counters.dlsConverted} 个 <dl> 卡片网格转 <table>（避免 bullet）`);
   }
   if (counters.flexToTable > 0) {
     oks.push(`${counters.flexToTable} 处多列卡片转 <table>（公众号兼容）`);
