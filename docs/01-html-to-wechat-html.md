@@ -4,7 +4,12 @@
 
 ## 1. 输入与输出
 
-**输入**：standalone HTML 文件（`<style>` 嵌入、`<script>` 嵌入、SVG 内联或外链均可）。
+**输入**：HTML 内容，**三种来源任一**：
+- 本地 standalone HTML 文件（`<style>` 嵌入、`<script>` 嵌入、SVG 内联或外链均可）
+- 公开可访问的 HTML 网页 URL（http/https，Skill 端 fetch 后等价于上一种）
+- HTML 字符串直接传入（粘贴框 / agent fragment）
+
+Skill 端在前置处理时把三种来源**归一化**成"内存中的 HTML 字符串 + 关联资源目录"，后续管线统一处理。模式 2/3/4 同此。
 
 **最终交付物**：浏览器剪贴板里的 `text/html` blob，到公众号后台编辑器 Cmd+V 即可。
 
