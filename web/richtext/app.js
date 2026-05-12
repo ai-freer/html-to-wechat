@@ -12,7 +12,7 @@
 // 注意：import 路径必须带 ?v= cache buster；否则浏览器 ES module map
 // 把 './transform.mjs' 作为 URL key 缓存，永远拿不到新版本。
 // index.html 的 app.js?v=XX 和此处的版本号必须同步更新。
-import { transform, DEFAULT_PLAN } from './transform.mjs?v=20';
+import { transform, DEFAULT_PLAN } from './transform.mjs?v=21';
 
 const $ = (id) => document.getElementById(id);
 const editor = $('editor');
