@@ -50,6 +50,56 @@ export const DEFAULT_PLAN = Object.freeze({
     minRows: 3,
   },
 
+  // === <dl><div><dt><dd> → <table> ===
+  // 公众号会把 dt/dd 当 list item 加 bullet，必须重写。
+  // 单独走一条路径，不混进 multiColConversion（child 结构特殊）。
+  dlToTable: {
+    enabled: true,
+    minKids: 2,
+    maxKids: 6, // metrics 卡片网格常见 4-5 列
+  },
+
+  // === 公众号不认的 CSS 属性预先剥除 ===
+  // 公众号对 inline style "一条 declaration 不认就整条丢"。
+  // 这里把无副作用的 layout/effect 属性预先剥掉，避免连带砍掉
+  // background-color / color 等关键属性。
+  stripUnknownCssProps: {
+    enabled: true,
+    blacklist: [
+      'min-height', 'max-height', 'min-width', 'max-width',
+      'overflow', 'overflow-x', 'overflow-y',
+      'backdrop-filter', '-webkit-backdrop-filter',
+      'object-fit', 'object-position',
+      'aspect-ratio',
+      'inset', 'inset-block', 'inset-inline',
+      'will-change', 'transform-origin', 'transform-style',
+      'filter', '-webkit-filter',
+    ],
+  },
+
+  // === CSS 函数展平（公众号不支持 clamp/min/max，整条 declaration 会丢）===
+  cssFunctionFlatten: {
+    enabled: true,
+    // clamp(min, ideal, max) → ideal（之后再被 viewportUnits 换算）
+    // min(a, b) → 取第一个（"max-width: min(760px, 100%)" 这种语义）
+    // max(a, b) → 取第一个
+  },
+
+  // === Viewport 单位换算 ===
+  // 公众号视宽实际 375-414px，但 HTML Artifact 多按 750px 设计，取中间偏理想值。
+  viewportUnits: {
+    enabled: true,
+    docWidth: 750,
+    docHeight: 900,
+  },
+
+  // === 半透明背景压平到不透明等效色 ===
+  // 公众号渲染不可靠 + 父链一断下游 alpha 全乱，必须预先 alpha-blend 到父背景上。
+  flattenAlphaBackgrounds: {
+    enabled: true,
+    defaultPageBg: '#ffffff', // 找不到不透明父背景的兜底
+  },
+
   // === 图片策略 ===
   imageStrategy: 'manual', // 'manual' | 'placeholder' | 'inline-base64'
 
@@ -65,7 +115,12 @@ export const DEFAULT_PLAN = Object.freeze({
  */
 export function mergePlan(partial = {}) {
   const out = { ...DEFAULT_PLAN, ...partial };
-  for (const key of ['multiColConversion', 'tableColumnSizing', 'tableMerging']) {
+  const nested = [
+    'multiColConversion', 'tableColumnSizing', 'tableMerging',
+    'dlToTable', 'stripUnknownCssProps', 'cssFunctionFlatten',
+    'viewportUnits', 'flattenAlphaBackgrounds',
+  ];
+  for (const key of nested) {
     if (partial[key]) out[key] = { ...DEFAULT_PLAN[key], ...partial[key] };
   }
   // directives：partial 优先，default 为兜底空数组
