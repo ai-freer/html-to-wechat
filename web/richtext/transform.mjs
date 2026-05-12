@@ -404,6 +404,9 @@ function convertMultiColToTable(doc, cfg, counters) {
     .replace(/grid-[\w-]+\s*:[^;]+;?/gi, '')
     .replace(/(?:align|justify)-(?:items|content|self)\s*:[^;]+;?/gi, '')
     .replace(/gap\s*:[^;]+;?/gi, '')
+    // 原容器 width 转到 table 后会覆盖 width:100% 导致溢出
+    // （cssFunctionFlatten 把 min(760px, 100%) 变成 760px 后尤其明显）
+    .replace(/(?<![\w-])(width|min-width|max-width)\s*:[^;]+;?/gi, '')
     .replace(/;\s*;+/g, ';').trim();
 
   const candidates = [...doc.querySelectorAll('[style]')].filter(el => {
@@ -617,7 +620,9 @@ function flattenCssFunctions(doc, counters) {
   // clamp(min, ideal, max) — 取中间项
   const clampRe = /clamp\(\s*([^,()]+)\s*,\s*([^,()]+)\s*,\s*([^,()]+)\s*\)/gi;
   // min(a, b[, c...]) / max(a, b[, c...]) — 取第一项
-  const minMaxRe = /(min|max)\(\s*([^,()]+?)(?:\s*,\s*[^()]+?)+\s*\)/gi;
+  // \b 防误吃 minmax(0, 1fr) 这种 grid 函数 — 它内部的 max(0, 1fr) 子串
+  // 不该被识别成 max 函数（否则 minmax → min0）。
+  const minMaxRe = /\b(min|max)\(\s*([^,()]+?)(?:\s*,\s*[^()]+?)+\s*\)/gi;
 
   doc.querySelectorAll('[style]').forEach(el => {
     const before = el.getAttribute('style') || '';
@@ -759,7 +764,18 @@ function convertDlToTable(doc, cfg, counters) {
     const allHaveDtDd = divs.every(d => d.querySelector('dt') && d.querySelector('dd'));
     if (!allHaveDtDd) return;
 
-    const dlStyle = dl.getAttribute('style') || '';
+    // 剥掉 dl 原 inline style 里的"容器尺寸 + 布局"属性：
+    //   - width / min-width / max-width 会覆盖 table 自己设的 width:100% 导致溢出
+    //     （hero-metrics 的 `width: min(760px, 100%)` 被 cssFunctionFlatten 展平
+    //      成 760px，原样带过来就把 table 撑到 760px 溢出 432px 容器）
+    //   - display / grid-* / gap / align-* / justify-* 在 table 上无意义
+    //   - background / border / border-radius / padding / margin 保留（视觉属性）
+    const dlStyle = (dl.getAttribute('style') || '')
+      .replace(
+        /(^|;)\s*(?:display|grid|grid-[\w-]+|gap|align-items|align-content|justify-items|justify-content|justify-self|align-self|width|min-width|max-width)\s*:[^;]*/gi,
+        '$1'
+      )
+      .replace(/;\s*;+/g, ';').replace(/^;+/, '').trim();
     const tbl = doc.createElement('table');
     tbl.setAttribute('width', '100%');
     tbl.setAttribute('cellpadding', '0');
@@ -767,7 +783,7 @@ function convertDlToTable(doc, cfg, counters) {
     tbl.setAttribute('border', '0');
     tbl.setAttribute(
       'style',
-      ('width:100%;border-collapse:collapse;table-layout:fixed;' + dlStyle).replace(/;\s*;+/g, ';')
+      ('width:100%;border-collapse:collapse;table-layout:fixed;' + (dlStyle ? dlStyle : '')).replace(/;\s*;+/g, ';')
     );
 
     const pct = Math.round(1000 / divs.length) / 10;
