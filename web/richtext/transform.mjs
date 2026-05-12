@@ -11,7 +11,7 @@
 
 import juice from 'https://esm.sh/juice@10';
 // 注意：?v= cache buster — 同步 index.html / app.js 的版本号
-import { DEFAULT_PLAN, mergePlan } from './default-plan.mjs?v=20';
+import { DEFAULT_PLAN, mergePlan } from './default-plan.mjs?v=21';
 
 /**
  * 主管线：HTML 字符串 + plan → 公众号兼容富文本 + 元数据
@@ -72,6 +72,7 @@ export function transform(rawHtml, planArg = {}) {
     alphaBackgroundsFlattened: 0,
     dlsConverted: 0,
     detailsExpanded: 0,
+    cardsFolded: 0,
   };
 
   // 2.5 CSS 修复层（公众号兼容性）
@@ -456,10 +457,28 @@ function convertMultiColToTable(doc, cfg, counters) {
     const info = detectMultiCol(style, kids.length);
     if (!info) return;
 
+    // ---- Fold 长文本卡片：N 列 + 长文本 → 2 列 ceil(N/2) 行 ----
+    // 物理限制：公众号正文 ~414px，5+ 列每列 < 80px，长文本会被挤成竖向单字。
+    let foldedRows = null;
+    if (kids.length >= cfg.foldAtCols) {
+      const totalChars = kids.reduce((s, k) => s + (k.textContent?.trim().length || 0), 0);
+      const avgChars = totalChars / kids.length;
+      if (avgChars >= cfg.foldMinCharsPerCell) {
+        const target = cfg.foldTargetCols;
+        foldedRows = [];
+        for (let i = 0; i < kids.length; i += target) {
+          foldedRows.push(kids.slice(i, i + target));
+        }
+        counters.cardsFolded = (counters.cardsFolded || 0) + 1;
+      }
+    }
+
     // widths=null（repeat 路径）→ 均分；否则按显式列宽计算
-    const colPcts = info.kind === 'grid' && info.widths
-      ? resolveCols(info.widths)
-      : kids.map(() => null);
+    // 折叠后强制均分（target 列均分）
+    const effectiveCols = foldedRows ? cfg.foldTargetCols : kids.length;
+    const colPcts = foldedRows
+      ? new Array(effectiveCols).fill(null)
+      : (info.kind === 'grid' && info.widths ? resolveCols(info.widths) : kids.map(() => null));
     const verticalAlign = /align-items\s*:\s*center/i.test(style) ? 'middle' : 'top';
 
     const tbl = doc.createElement('table');
@@ -486,20 +505,34 @@ function convertMultiColToTable(doc, cfg, counters) {
       tbl.appendChild(cg);
     }
 
-    const tr = doc.createElement('tr');
-    tbl.appendChild(tr);
-    kids.forEach((child, i) => {
-      const td = doc.createElement('td');
-      const pct = colPcts[i];
-      let tdStyle = `vertical-align:${verticalAlign};`;
-      if (pct != null) {
-        tdStyle += `width:${pct}%;`;
-        td.setAttribute('width', pct + '%');
-      }
-      td.setAttribute('style', tdStyle);
-      td.appendChild(child);
-      tr.appendChild(td);
-    });
+    if (foldedRows) {
+      // 多行 table：每个 row 一个 tr
+      foldedRows.forEach(rowKids => {
+        const tr = doc.createElement('tr');
+        for (let i = 0; i < effectiveCols; i++) {
+          const td = doc.createElement('td');
+          td.setAttribute('style', `vertical-align:${verticalAlign};`);
+          if (rowKids[i]) td.appendChild(rowKids[i]);
+          tr.appendChild(td);
+        }
+        tbl.appendChild(tr);
+      });
+    } else {
+      const tr = doc.createElement('tr');
+      tbl.appendChild(tr);
+      kids.forEach((child, i) => {
+        const td = doc.createElement('td');
+        const pct = colPcts[i];
+        let tdStyle = `vertical-align:${verticalAlign};`;
+        if (pct != null) {
+          tdStyle += `width:${pct}%;`;
+          td.setAttribute('width', pct + '%');
+        }
+        td.setAttribute('style', tdStyle);
+        td.appendChild(child);
+        tr.appendChild(td);
+      });
+    }
 
     let replacement = tbl;
     if (el.tagName.toLowerCase() === 'a' && el.getAttribute('href')) {
@@ -1081,6 +1114,9 @@ function buildWarnings(counters) {
   }
   if (counters.flexToTable > 0) {
     oks.push(`${counters.flexToTable} 处多列卡片转 <table>（公众号兼容）`);
+  }
+  if (counters.cardsFolded > 0) {
+    oks.push(`${counters.cardsFolded} 处长文本卡片折成 2 列多行（避免窄屏单字阅读）`);
   }
   if (counters.tablesMerged > 0) {
     oks.push(`${counters.tablesMerged} 行合并到 1 张表（拖列宽改全部）`);

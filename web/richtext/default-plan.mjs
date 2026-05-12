@@ -38,6 +38,13 @@ export const DEFAULT_PLAN = Object.freeze({
     minKids: 2,
     maxKids: 6,
     assumedDocWidth: 700, // px → 百分比折算用
+    // 长文本卡片折叠：N 列 + 每 cell 平均文本长 → 折成 2 列 N 行
+    // 公众号正文宽 ~414px，5 列每列 ~83px 减 padding 后实际可读宽 ~35px，
+    // 一行只能放 2-3 个汉字，长文本会被挤成"竖向单字阅读"。
+    // 触发：cols >= foldAtCols AND avg chars >= foldMinChars
+    foldAtCols: 5,
+    foldMinCharsPerCell: 30,
+    foldTargetCols: 2,
   },
 
   // === 表格列宽估算 ===
