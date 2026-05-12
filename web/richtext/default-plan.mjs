@@ -62,6 +62,14 @@ export const DEFAULT_PLAN = Object.freeze({
     maxKids: 6, // metrics 卡片网格常见 4-5 列
   },
 
+  // === <details> 静态化（展开为 div）===
+  // 公众号粘贴 <details> 默认 collapsed，body 不显示。把所有 details 展开成
+  // 普通 div：summary 内容 → 卡片 header；detail-body 内容 → 卡片正文。
+  // docs/01 §4.3 的"折叠/展开 → 全部展开"约束在这里落地。
+  expandDetails: {
+    enabled: true,
+  },
+
   // === 公众号不认的 CSS 属性预先剥除 ===
   // 公众号对 inline style "一条 declaration 不认就整条丢"。
   // 这里把无副作用的 layout/effect 属性预先剥掉，避免连带砍掉
@@ -130,8 +138,9 @@ export function mergePlan(partial = {}) {
   const out = { ...DEFAULT_PLAN, ...partial };
   const nested = [
     'multiColConversion', 'tableColumnSizing', 'tableMerging',
-    'dlToTable', 'stripUnknownCssProps', 'cssFunctionFlatten',
-    'viewportUnits', 'flattenBackgrounds', 'flattenAlphaBackgrounds',
+    'dlToTable', 'expandDetails', 'stripUnknownCssProps',
+    'cssFunctionFlatten', 'viewportUnits',
+    'flattenBackgrounds', 'flattenAlphaBackgrounds',
   ];
   for (const key of nested) {
     if (partial[key]) out[key] = { ...DEFAULT_PLAN[key], ...partial[key] };
