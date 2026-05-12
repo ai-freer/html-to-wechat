@@ -14,8 +14,51 @@
 
 ## 关键决策（在 Plan 阶段已对齐）
 
+### 跨模式统一范式：**C 决策 + A 执行（X-C / X-A）**
+
+所有 4 个模式都采用「决策层 + 执行层」分离的统一架构：
+
+```
+HTML
+  ↓
+X-C（决策层，LLM）
+  看截图 + 源码 → 输出 transform-plan.json：
+    - 输入类型分类、视觉单元识别
+    - 每个单元的处理指令（保留 / 重编码 / 截图 / 删除）
+    - 视觉编码 → 文字层翻译指令（"对比维度 1"、"📅 日期"等）
+    - 阅读节奏 / 章节切分建议
+  ↓
+X-A（执行层，纯函数）
+  pure function: (HTML, plan) → 模式特定产物
+  - 输入空间从 "open-ended HTML" 收窄为 "固定 schema 的 plan"
+  - long tail 转移到 X-C 那一层，让 LLM 处理（这是 LLM 强项）
+  - 脚本逻辑稳定、可测试、不为输入多样性买单
+  ↓
+X-C-validate（验证层，LLM）
+  对比前后截图 → 失败清单 / 接受
+```
+
+**为什么不是 X-A → X-C（先执行后修补）**：X-A 输出后视觉编码已丢失，X-C 看不到原始结构，无从补救结构性信息损失。
+
+**为什么不是完全独立（用户自选 A 或 C）**：用户判断负担 + A 通道修复成本累积。
+
+**保留"X-A 独立可用"承诺**：X-A 是纯函数 `transform(HTML, plan)`。两种 plan 来源——
+- **default plan**（hardcoded 兜底）：服务"结构标准 HTML"，零依赖网页可直接跑
+- **LLM-generated plan**（X-C 产出）：服务复杂报告
+
+mode 01 的 `web/richtext/` 网页用 default plan，**不依赖 skill / LLM**，原承诺成立。复杂报告由 mode 01 skill 通道（1C → 1A）处理。
+
+**对各模式的具体形态**：
+- mode 01：1C 出 plan → 1A 跑 juice + DOM 清理 + 文字层重编码 → 公众号富文本
+- mode 02：2C 出 plan（卡片切分 + 模板选择 + 生图 prompt） → 2A 渲染
+- mode 03：3C 出 plan（切段 + 改写规则） → 3A 文本输出
+- mode 04：4C 出 plan（Block 树结构 + 嵌套决策） → 4A lark-cli 灌块
+
+### 其他决策
+
 - **飞书身份**：mode 4 默认走 UAT（用户身份，OAuth 扫码），文档作者归属用户本人，匹配"我用 AI 操作我的飞书"语境。bot 身份（TAT）作为可选参数 `--as bot` 保留，留给"应用代表组织发文档"场景。
 - **Skill 发布形态**：纯 GitHub 仓库分发，**不发 npm 包**。Claude Code skill 的标准就是文件夹结构，用户 install 是把文件夹拷到 `.claude/skills/` 或 plugin 管理器拉取。Skill 内部 `scripts/` 用 `package.json` 管 Node 依赖（juice、cheerio、puppeteer 等），首次执行自动 `npm install`。
+- **Skill 包结构**：路径 B（4 个独立 skill），命名 `html-to-wechat` / `html-to-images` / `html-to-script` / `html-to-feishu`。每个 skill self-contained——shared 代码通过 build-script 注入（或直接复制，待定）。
 
 ## 阶段总览
 
@@ -59,6 +102,15 @@
 - 标记阶段 1 完成，进入阶段 2
 
 **Done 标准**：所有文档 commit；用户口头/书面确认设计落定。
+
+### ✅ 阶段 1 完成（commit fe0ffb5）
+
+**Act 总结**：
+- 用户在 C 阶段补了 5 条约束（视觉理解 / UAT 身份 / GitHub 直装不发 npm / 输入三来源 / 映射表 sample-driven）——这些都是从对话里浮现的，不是 P 阶段能"设计"出来的
+- **Learning**：每个阶段的 P 阶段不要锁死细节，要预留"用户在 C 阶段补约束"的空间，PDCA 的 C/A 不是走过场
+- **Learning**：映射表、能力清单这类"覆盖度无法预判"的内容，要在文档里显式声明"sample-driven 渐进补全"，避免后续 commit 看起来像"被推翻"
+- **Learning**：sample 反向推动顺序——拿到车展报告 + 座舱对标两份样本后，发现 CSS 60%+、无 DSL 图表，阶段 4 子迭代顺序被反推调整（画板下放到 v0.4，嵌套块升 v0.2）。**P 阶段排定的子任务顺序在 D 之前应该再用真 sample 校验一次**
+- 跨模式约束（如视觉理解）一旦确认，要同时写进 memory + 相关 docs，单点声明会被遗忘
 
 ---
 
@@ -127,37 +179,39 @@
 
 ## 阶段 4：Mode 4 渐进 v0.2-v0.5（批次 2-A）
 
-每个子迭代一个完整 PDCA，但可在同一阶段串行。**顺序按"飞书独家价值"优先**——画板和嵌套块是飞书原生特色（决定了"为什么是飞书而不是别的"），图片和样式是后置兜底。
+每个子迭代一个完整 PDCA，但可在同一阶段串行。**顺序基于 sample 复杂度画像**——`samples/full-report-standalone.html` 与 `samples/bench-standalone.html` 两份样本（车展报告 + AI 座舱对标）显示：CSS 占文件 60%+，无 mermaid/PlantUML/SVG，视觉全靠 CSS 卡片嵌套绘制。因此嵌套块路径远比画板路径紧迫，顺序调整为：**嵌套 → 图片 → 画板 → 样式**。
 
-### v0.2 — 画板（Mermaid / PlantUML）
+### v0.2 — 嵌套块（column / callout）
 
-- **P**：识别 ` ```mermaid ` / ` ```plantuml ` 代码块 → 抽 DSL → 调画板 API → 嵌入 doc。**飞书会把 DSL 自动转成可编辑矢量画板**，团队成员能拖节点、改文字
-- **D**：实现画板路径；agent 看 HTML 截图判断"哪些是图表"，对 SVG/canvas 难以转 DSL 的元素做降级标记
-- **C**：sample 跑出来的画板可被团队成员协同编辑
-- **A**：记录复杂 Mermaid / 非 DSL 来源图的降级策略（先标记，v0.4 再做截图 fallback）
-
-### v0.3 — 嵌套块（column / callout）
-
-- **P**：DOM 树递归 emit，column 嵌 column、column 嵌 callout、callout 嵌 list 等任意深度
+- **P**：DOM 树递归 emit，column 嵌 column、column 嵌 callout、callout 嵌 list 等任意深度。这是当前两个 sample 的**主要视觉编码方式**，也是飞书相对其他平台的独家价值
 - **D**：递归 emitter，参考用户提供的「column + callout 嵌套」示例；元素 → block-type 映射表落到代码
 - **C**：sample 里复杂卡片视觉接近原 HTML 且层级正确
 - **A**：记录"非语义视觉块"（纯装饰 div、复杂背景层）的降级清单 → 决定哪些下放到 v0.5 截图处理
 
-### v0.4 — 图片上传
+### v0.3 — 图片上传
 
 - **P**：扫描 `<img>` / inline base64 / inline SVG → 并发上传飞书素材 → 替换为 image block（两遍法）
 - **D**：实现 `image-uploader.mjs`；inline SVG 矢量装饰图 rasterize 成 PNG
 - **C**：sample 跑出来图片正确显示，base64 / 外链 / SVG 三种来源都能 cover
-- **A**：记录 SVG 转 PNG 的清晰度参数；记 v0.2 标记过的"图表降级图"在这一步如何上传
+- **A**：记录 SVG 转 PNG 的清晰度参数
+
+### v0.4 — 画板（Mermaid / PlantUML）
+
+- **P**：识别 ` ```mermaid ` / ` ```plantuml ` 代码块 → 抽 DSL → 调画板 API → 嵌入 doc。**飞书会把 DSL 自动转成可编辑矢量画板**，团队成员能拖节点、改文字
+- **D**：实现画板路径；agent 看 HTML 截图判断"哪些是图表"
+- **C**：等遇到含 mermaid/PlantUML 的 sample 时跑通，画板可协同编辑
+- **A**：记录复杂 Mermaid / 非 DSL 来源图的降级策略（v0.5 走截图 fallback）
+
+> **注**：当前两个 sample 均不含 DSL 图表，v0.4 在拿到合适 sample 后才能真正 C。可以在 v0.2/v0.3 同时建议用户产出含 mermaid 的 Artifact 用作测试。
 
 ### v0.5 — 高保真样式 & 截图兜底
 
-- **P**：内联 style 解析 → 映射到 block style 字段（背景色、文字颜色、加粗、对齐）；v0.3 列出的"非语义视觉块"走截图块 fallback
+- **P**：内联 style 解析 → 映射到 block style 字段（背景色、文字颜色、加粗、对齐）；v0.2 列出的"非语义视觉块"走截图块 fallback
 - **D**：style 映射表 + 块级截图工具
 - **C**：sample 视觉相似度评估
 - **A**：评估是否需要继续迭代
 
-**Done 标准**：复杂 Artifact 转出来的飞书文档画板可拖、嵌套结构正确、视觉接近原图、可协同编辑。
+**Done 标准**：复杂 Artifact 转出来的飞书文档嵌套结构正确、视觉接近原图、可协同编辑；含 DSL 图表的 Artifact 画板可拖。
 
 ---
 
