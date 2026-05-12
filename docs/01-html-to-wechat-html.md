@@ -1,6 +1,7 @@
 # 模式 1：HTML → 公众号兼容富文本
 
-> 目标：把一份带 `<style>`/`<script>`/SVG 的 standalone HTML 文件，转换成可直接粘贴到公众号后台编辑器、且样式不丢的富文本。
+> 目标：把一份 HTML Artifact 转换成可直接粘贴到公众号后台编辑器、且样式不丢的富文本。
+> 采用统一范式 **1C（决策）+ 1A（执行）**：1C 用 LLM 决策处理方案，1A 是纯函数按方案执行。两种入口共享同一个 1A 引擎。
 
 ## 1. 输入与输出
 
@@ -14,10 +15,215 @@ Skill 端在前置处理时把三种来源**归一化**成"内存中的 HTML 字
 **最终交付物**：浏览器剪贴板里的 `text/html` blob，到公众号后台编辑器 Cmd+V 即可。
 
 **中间产物**（用于调试和归档）：
-- `*.inlined.html` —— CSS 全部内联后的 HTML
-- `*.wechat.html` —— 静态化、清理 script、图片替换素材库链接后的最终版
+- `*.plan.json` —— 1C 产出的转换方案（skill 路径有，网页路径用 default plan 无此文件）
+- `*.wechat.html` —— 1A 执行后的最终版
 
-## 2. 公众号 HTML/CSS 白名单（关键约束）
+## 2. 统一范式（核心）
+
+mode 01 的两条入口都跑在同一个 1A 引擎上，**差别只在 plan 的来源**：
+
+```
+入口 A：网页（web/richtext/）
+  HTML（用户粘贴 / URL 拉取 / fragment 注入）
+   ↓
+  1A(HTML, default-plan)
+   ↓
+  公众号富文本 → Clipboard API → 用户 Cmd+V 投递
+  
+  特征：零 LLM、零 skill、零 token；服务"结构标准 HTML"
+
+入口 C：skill（skills/html-to-wechat/）
+  HTML（agent 接收的输入）
+   ↓
+  1C-pre: agent 看截图 + 读源码 → 输出 plan.json
+   ↓
+  1A(HTML, plan)
+   ↓
+  公众号富文本 + assets-checklist.md
+   ↓
+  1C-post: agent 对比前后截图 → 验证 / 重跑
+   ↓
+  agent 给用户一个 fragment URL，跳网页页一键复制
+  
+  特征：依赖 LLM；服务视觉复杂报告（车展、对标分析类）
+```
+
+**1A = 纯函数 `transform(html, plan) → { html, text, stats, warnings }`**
+
+无副作用、无 IO、无 LLM 调用。所有"长尾"决策都被 plan 吸收。
+
+**plan schema 的两层**：
+- **全局开关 / 阈值**（数值类，default plan 提供合理值）
+- **节点级 directives**（数组，LLM 在 1C 阶段针对具体 DOM 节点生成；default plan 为空数组）
+
+## 3. plan.json schema
+
+```jsonc
+{
+  // === 正文抽取 ===
+  "extractMain": true,
+  "extractMainMinChars": 200,    // <article>/<main> 至少多少字才信任
+
+  // === 标签清理 ===
+  "bannedTags": ["script", "iframe", "form", "input", "link", "meta", "noscript"],
+  "removeIds": true,             // 公众号会强制剥离 id，预先删了避免歧义
+
+  // === 页面骨架剥离（无 article/main 时启发式）===
+  "chromeSelectors": [
+    "nav", "aside",
+    "[role=navigation]", "[role=banner]", "[role=contentinfo]",
+    "[role=complementary]", "[role=search]"
+  ],
+
+  // === 多列 flex/grid → table ===
+  "multiColConversion": {
+    "enabled": true,
+    "minKids": 2,
+    "maxKids": 3,                // 4+ 子级不转（chip / icon 排）
+    "assumedDocWidth": 700       // px → 百分比折算用
+  },
+
+  // === 表格列宽估算 ===
+  "tableColumnSizing": {
+    "enabled": true,
+    "textCellMaxLen": 40,        // 单列最多算 N 字符
+    "minColPctRatio": 0.4        // 最小不低于均分的 N%
+  },
+
+  // === 同结构表合并 ===
+  "tableMerging": {
+    "enabled": true,
+    "minRows": 3                 // ≥ N 行连续同结构才合并
+  },
+
+  // === 图片策略 ===
+  "imageStrategy": "manual",     // "manual" | "placeholder" | "inline-base64"
+
+  // === 节点级 directives（LLM 产出 / default 为空）===
+  // 1C 看完 HTML 后针对具体节点的处理指令
+  "directives": [
+    {
+      "selector": ".timeline-container",
+      "action": "unwrap",
+      "reason": "timeline 容器自身无视觉作用，子节点直接进流"
+    },
+    {
+      "selector": ".timeline-item",
+      "action": "prepend-text",
+      "content": "📅 {{data-date}}",
+      "format": "h3",
+      "reason": "把时间编码进文字层"
+    },
+    {
+      "selector": ".comparison-card",
+      "action": "wrap-section",
+      "headingTemplate": "对比维度 {{index}}：{{title}}",
+      "reason": "横向对比卡 → 章节式叙述"
+    },
+    {
+      "selector": ".decorative-bg",
+      "action": "remove",
+      "reason": "纯装饰，无信息"
+    },
+    {
+      "selector": "section.dark-theme",
+      "action": "lighten-bg",
+      "reason": "公众号暗色模式会反色，强制改浅底"
+    }
+  ]
+}
+```
+
+**directives 当前支持的 action**（v1，未来扩展）：
+- `unwrap` — 删除元素自身，保留子节点
+- `remove` — 删除元素及其子节点
+- `prepend-text` / `append-text` — 插入文字前缀/后缀
+- `wrap-section` — 把元素包成章节（前置 heading + 后置 divider）
+- `lighten-bg` / `darken-bg` — 背景色翻转
+- `flatten` — 把嵌套盒子拍平成 block 序列
+
+## 4. 1A 管线（pure function）
+
+```
+1A(rawHtml, plan) {
+   │
+   ├─ ① CSS 内联（juice）
+   │
+   ├─ ② preRender（可选，仅网页入口）
+   │     sandbox iframe 跑脚本捕获动态内容
+   │
+   ├─ ③ 删除 plan.bannedTags
+   │
+   ├─ ④ 应用 plan.directives（节点级指令）
+   │     按 selector 找到节点 → 执行 action
+   │     这一层是 LLM 决策落地的入口
+   │
+   ├─ ⑤ 正文抽取（plan.extractMain）
+   │     <article> / <main> 优先 → 否则启发式剥页面骨架
+   │
+   ├─ ⑥ flex/grid → <table>（plan.multiColConversion）
+   │     公众号会剥 flex/grid，table 才能活下来
+   │
+   ├─ ⑦ 同结构表合并（plan.tableMerging）
+   │     连续 N 行同列结构 <a><table> → 单个多行 <table>
+   │
+   ├─ ⑧ 剩余 flex/grid → block 降级
+   │
+   ├─ ⑨ 表格列宽估算（plan.tableColumnSizing）
+   │     公众号 / 飞书无 colgroup 时均分列宽，按文本长度估
+   │
+   ├─ ⑩ 删除 id 属性
+   │
+   ├─ ⑪ 提取 body innerHTML + 纯文本 fallback
+   │
+   └─ 返回 { html, text, stats, warnings }
+}
+```
+
+## 5. 两个入口的实现
+
+### 入口 A：网页（web/richtext/）
+
+```
+web/richtext/
+├── index.html
+├── styles.css
+├── transform.mjs        ← 1A 引擎（纯函数，无 UI）
+├── default-plan.mjs     ← default plan 常量
+└── app.js               ← UI 层，import transform + default-plan
+                           调用 transform(html, defaultPlan)
+```
+
+**特征**：
+- 浏览器内运行，不依赖 Node / skill / token / LLM
+- 用户三种路径：粘贴 / URL 拉取 / fragment 注入（skill 路径产物用）
+- "结构标准 HTML"用 default plan 就够，复杂报告产出会失味——这种就走入口 C
+
+### 入口 C：skill（skills/html-to-wechat/）
+
+```
+skills/html-to-wechat/
+├── SKILL.md             ← 三段式工作流：1C-pre / 1A / 1C-post
+├── scripts/
+│   ├── transform.mjs    ← 与网页版同一份 1A（通过 build-script 注入或直接复制）
+│   ├── default-plan.mjs
+│   ├── render-snapshot.mjs   ← puppeteer 全页截图，给 agent 视觉理解用
+│   └── runner.mjs       ← 接 plan.json 文件路径，跑 transform，输出 wechat.html
+└── references/
+    ├── wechat-html-css-whitelist.md  ← 公众号白名单速查
+    └── directive-patterns.md          ← directives action 写法 cookbook
+```
+
+**SKILL.md 工作流**：
+```
+Step 1 (1C-pre): agent 用 render-snapshot 截图 → Read 截图 → 看视觉
+Step 2 (1C-pre): agent 读 HTML 源码 → 结合截图判断视觉单元 → 写 plan.json
+Step 3 (1A):     agent 执行 `node runner.mjs --html INPUT.html --plan plan.json --out OUTPUT.html`
+Step 4 (1C-post): agent 用 puppeteer 渲染 OUTPUT.html 截图 → 对比原截图 → 验证
+Step 5:          agent 把 OUTPUT.html 编 fragment URL，给用户跳网页一键复制
+```
+
+## 6. 公众号 HTML/CSS 白名单（关键约束）
 
 参考：[微信公众号 HTML/CSS 支持情况解析](https://www.axtonliu.ai/newsletters/ai-2/posts/wechat-article-html-css-support)
 
@@ -39,7 +245,7 @@ Skill 端在前置处理时把三种来源**归一化**成"内存中的 HTML 字
 | 盒模型：`margin` `padding` `border-*` `border-radius` `box-shadow` | 完全支持 |
 | 背景：`background-color` | 支持；`linear-gradient` 在部分设备不稳定，建议纯色兜底 |
 | 显示：`display: block / inline-block` | 支持 |
-| 显示：Flex / Grid | **基本不支持**，需用传统盒模型重写 |
+| 显示：Flex / Grid | **基本不支持**，需用传统盒模型重写（→ table 或 inline-block） |
 | 定位：`position` | **过滤** |
 | 响应式：`@media` `@keyframes` `:hover` | **过滤** |
 | 字体：自定义字体 / `@font-face` | **不可用**，仅系统字体 |
@@ -52,170 +258,51 @@ Skill 端在前置处理时把三种来源**归一化**成"内存中的 HTML 字
 - **只有上传到公众号素材库换得的链接才能显示**
 - SVG 里的 `<image href>` 同样受此约束
 
-## 3. 核心管线
+## 7. 已知坑（开工前必读）
+
+1. **Clipboard API 必须 https / localhost**：非安全上下文下不可用
+2. **跨浏览器**：Chromium 系（Chrome/Edge/Brave）对 `ClipboardItem` 支持最完整
+3. **公众号编辑器"剥层"**：包裹太多 `<div>` 嵌套层时外层 div 会被拉平，1A 输出尽量浅嵌套
+4. **代码块**：公众号原生不支持代码高亮，靠 inline 样式手画或截图
+5. **表格宽度**：公众号正文 ~375-414px，桌面宽表格溢出。1A 已加 `width:100%; table-layout:fixed` + colgroup 锁列
+6. **暗色模式**：公众号读者可能开启暗色阅读，纯白背景配深色字会被反转。设计时避免硬编码 `background: white`
+7. **directives 误匹配**：LLM 生成的 selector 可能命中多个节点。1A 执行 directives 时应 log warning 提示用户
+8. **空 plan 兼容**：1A 必须能用纯 default plan 跑（即 `directives: []`），跟当前 `app.js` 的行为完全一致
+
+## 8. 实现路径
 
 ```
-input.html
-   │
-   ├─ ① CSS 内联（juice）
-   │     <style> 规则展开到每个元素的 style="..." 上
-   │     输出：*.inlined.html
-   │
-   ├─ ② <script> 移除 + 交互静态化
-   │     删除全部 <script>
-   │     折叠/tab/隐藏元素 → 默认全部展开
-   │     输出：*.flat.html
-   │
-   ├─ ③ 不兼容 CSS 重写
-   │     Flex/Grid → table 或 inline-block
-   │     position → 删除
-   │     %  → px
-   │     gradient → 纯色兜底
-   │
-   ├─ ④ 图片素材库化
-   │     抽取所有 <img src> 和 <svg><image href>
-   │     提示用户上传到公众号素材库
-   │     拿回链接后回填
-   │
-   └─ ⑤ 剪贴板富文本投递
-         GitHub Pages 上的静态交付页（/web/richtext/）
-         payload 通过 URL fragment（#payload=base64...）传入
-         按钮 onclick → navigator.clipboard.write({text/html, text/plain})
-         浏览器打开链接 → 点按钮 → 公众号后台 Cmd+V
-```
+v0.1（当前阶段 = 范式落地）：
+  - 重构 web/richtext/app.js → transform.mjs + default-plan.mjs + app.js（UI）
+  - default plan 字段覆盖 process() 内部所有硬编码值
+  - directives 接口预留但 v0.1 不实现（plan.directives = []）
+  - 网页 UI 行为完全不变
 
-**两种入口共享同一个页面**：
-- **不装 Skill**：用户直接访问页面，把 HTML 粘贴进左侧文本框，浏览器内跑 juice + DOM 处理，右侧出预览
-- **装了 Skill**：agent 在本地跑完前 4 步，把最终 HTML 编进 URL fragment，给用户一个一键链接
+v0.2（阶段 2 D 阶段 = mode 01 skill）：
+  - 实现 skills/html-to-wechat/
+  - 实现 directives 的 action（v1 集合：unwrap / remove / prepend-text / wrap-section / lighten-bg / flatten）
+  - 跑 sample（车展报告 / AI 座舱对标）
 
-## 4. 关键工具与机制
-
-### 4.1 juice：CSS 内联
-
-[Automattic/juice](https://github.com/Automattic/juice) 是事实标准，原本服务于邮件模板生态，规则成熟。
-
-```bash
-npx juice input.html output.inlined.html
-```
-
-或编程方式：
-
-```js
-import juice from 'juice';
-const inlined = juice(html, {
-  removeStyleTags: true,         // 内联后删 <style>
-  preserveImportant: true,       // 保留 !important
-  applyAttributesTableElements: true,
-});
-```
-
-注意：juice 默认不处理伪类（`:hover` 等），公众号本来也不支持，正好对齐。
-
-### 4.2 剪贴板富文本写入
-
-**核心问题**：直接复制 .html 文件，浏览器把它当 `text/plain`，公众号编辑器收到字符串，会显示成 HTML 源码。
-
-**解法**：在浏览器里通过 Clipboard API 显式写入 `text/html` MIME：
-
-```js
-const html = document.getElementById('payload').innerHTML;
-const blob = new Blob([html], { type: 'text/html' });
-const plainBlob = new Blob([html.replace(/<[^>]+>/g, '')], { type: 'text/plain' });
-await navigator.clipboard.write([
-  new ClipboardItem({
-    'text/html': blob,
-    'text/plain': plainBlob,
-  })
-]);
-```
-
-公众号编辑器优先读 `text/html`，渲染成富文本。
-
-参考实现思路：[公众号图文编辑器开发必备技能：样式内联化和富文本粘贴](https://juejin.cn/post/7368777511953809434)
-
-### 4.3 交互静态化
-
-公众号没有 JS。所有 `<script>` 必删。但被 JS 控制的视觉状态需要"展平"成默认可见态：
-
-| 原交互 | 静态化策略 |
-|---|---|
-| 折叠/展开 | 全部展开，删除"展开"按钮 |
-| Tab 切换 | 所有 tab 内容顺序排列，加小标题分隔 |
-| 复制按钮 | 删除按钮 |
-| Modal / 弹窗 | 内容内联到正文流 |
-| 进度条 / 动画 | 截图替换或删除 |
-
-实现层面：在管线第 ② 步用类似 cheerio / linkedom 解析 DOM，按 class/id 选择器移除特定元素 + 修改 `display:none` 为 `display:block`。
-
-### 4.4 图片素材库化
-
-**痛点**：公众号要求图片必须托管在自己的素材库，没有自动化 API（开放平台的 API 受限严格）。
-
-**实务方案**：管线产出一份 `assets-checklist.md`，列出所有需要手动上传的图片及其在 HTML 中的位置。用户在公众号后台上传后，把素材库链接逐条回填。可以脚本化为交互式 CLI：
-
-```
-[1/3] 请上传 ./assets/cover.png 到公众号后台并粘贴链接：
-> https://mmbiz.qpic.cn/mmbiz_png/...
-```
-
-回填后产出最终 `*.wechat.html`。
-
-**SVG 头图特殊处理**：如果 SVG 内部全部是矢量绘制（无 `<image href>`），可保留原样直接内联——公众号支持纯矢量 SVG。如果 SVG 含 `<image>`，建议整张 SVG → PNG 后走素材库。
-
-## 5. 已知坑（开工前必读）
-
-1. **复制按钮所在页必须是 `https://` 或 `localhost`**：Clipboard API 在非安全上下文下不可用。
-2. **跨浏览器**：Chromium 系（Chrome/Edge/Brave）对 `ClipboardItem` 支持最完整，Firefox 部分版本受限。优先用 Chromium。
-3. **公众号编辑器粘贴时偶发"剥层"**：包裹太多 `<div>` 嵌套层时，编辑器会把外层 div 拉平。设计粘贴 HTML 结构时尽量浅。
-4. **代码块**：公众号原生不支持代码高亮，要么靠 inline 样式手画（mdnice/juejin 主题就是这么干的），要么截图。
-5. **表格宽度**：公众号正文宽度约 375-414px（移动优先），桌面 HTML 的宽表格会溢出。需要在管线里加 `max-width: 100%; overflow-x: auto;` 或重排为纵向卡片。
-6. **暗色模式**：公众号读者可能开启暗色阅读，纯白背景配深色字会被反转。设计时避免硬编码 `background: white`，用语义色或留空。
-
-## 6. 实现路径建议
-
-按"流量入口先做"的顺序，先把 GitHub Pages 上的纯前端跑通，Skill 是后续的自动化层。
-
-```
-v0.1 静态前端最小可粘贴：
-  /web/richtext/index.html  ← 模式 1 工具页（独立 Landing 在 /web/index.html）
-    左侧：粘贴/上传 HTML
-    中间：浏览器内跑 juice（juice/client 浏览器构建）+ 简单 DOM 清理
-    右侧：实时预览
-    底部：「复制为富文本」按钮 → Clipboard API
-  部署到 GitHub Pages，验证整条路径可行
-
-v0.2 前端加 DOM 静态化与图片清单：
-  集成 DOMParser / linkedom，按选择器规则展平交互
-  扫描 <img> / <svg><image>，输出图片清单
-  支持「粘贴素材库链接回填」交互
-
-v0.3 Skill 包接入：
-  /skill/modes/01-richtext/scripts/
-    本地脚本跑完 juice + DOM + 抽图，把最终 HTML 编进 URL fragment
-    跳转到 https://<user>.github.io/html-to-wechat/richtext/#payload=...
-    用户开链接 → 复制 → 粘到公众号
+v0.3（阶段 4-x）：
+  - 1C-post 验证机制
+  - 失败块清单返流给 agent 重生
+  - 评估是否需要更复杂的 action
 
 v0.4 体验打磨：
-  - URL fragment 容量超限时降级方案（localStorage 跨页 / 本地一次性服务）
-  - 多版本对比（原始 HTML / 最终 HTML）
-  - 移动端预览模式（公众号正文 ~375px）
+  - URL fragment 容量超限的降级方案
+  - 移动端预览（公众号正文 ~375px）
 ```
 
-## 7. 已识别的开源参考
+## 9. 已识别的开源参考
 
-实现时先读这几个，不要重复造：
-
-- [doocs/md](https://github.com/doocs/md) —— Markdown → 公众号编辑器，已有完整剪贴板写入逻辑可借鉴
+- [doocs/md](https://github.com/doocs/md) —— Markdown → 公众号编辑器，剪贴板写入逻辑可借鉴
+- [Automattic/juice](https://github.com/Automattic/juice) —— CSS 内联底层（已用）
 - [ufologist/wechat-mp-article](https://github.com/ufologist/wechat-mp-article) —— 公众号图文排版工具
-- [mengjian-github/lark-to-markdown](https://github.com/mengjian-github/lark-to-markdown) —— 飞书 → 公众号，含富文本 → 公众号样式映射
-- [Automattic/juice](https://github.com/Automattic/juice) —— CSS 内联底层
 
-doocs/md 是这个领域最成熟的开源实现，Markdown 路线吃透了，但**它的输入是 Markdown**——我们要做的是把"已经成型的 HTML"作为输入，相当于跳过它的 markdown→html 渲染层，直接接入它的"html→公众号"投递层。这部分代码可能可以摘出来复用。
-
-## 8. 不在范围内（明确划界）
+## 10. 不在范围内（明确划界）
 
 - 自动上传素材库（公众号开放平台 API 限制严，且需要认证主体）
 - 公众号自动发布（同上）
-- 交互的 JS 等价模拟（公众号根本没有 JS 运行时）
-- 多平台同步（这是 X / 飞书的事，不在本模式）
-- 后端服务（整个项目坚持零后端，需要 API key 的能力一律放 Skill 端）
+- 交互的 JS 等价模拟（公众号没有 JS 运行时）
+- 后端服务（项目坚持零后端）
+- 修复 1A 已知 bug（深色排版失误等）——由独立 hotfix 轨道处理，不在范式落地的 commit 里
