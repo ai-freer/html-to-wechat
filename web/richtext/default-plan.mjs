@@ -30,10 +30,13 @@ export const DEFAULT_PLAN = Object.freeze({
   ],
 
   // === 多列 flex/grid → table ===
+  // maxKids 提到 6 以覆盖 metric strip / KPI 卡（"6 列指标网格"是常见结构）。
+  // grid 路径会按 grid-template-columns 显式列数走，所以 maxKids 是绝对上限不是
+  // 强制值。flex 6 列 chip 排理论上也可能误转，但实务上极少见。
   multiColConversion: {
     enabled: true,
     minKids: 2,
-    maxKids: 3,
+    maxKids: 6,
     assumedDocWidth: 700, // px → 百分比折算用
   },
 
@@ -93,6 +96,16 @@ export const DEFAULT_PLAN = Object.freeze({
     docHeight: 900,
   },
 
+  // === Gradient / var() 背景展平 ===
+  // 公众号不支持 linear-gradient / radial-gradient / var(--foo)，整条 background
+  // 会被丢，导致父链断 → 下游 alpha-blend 全错。
+  // 把 gradient 第一个颜色 stop 提取为 background-color；var 用 fallback。
+  // **必须在 flattenAlphaBackgrounds 之前跑**——否则父背景已丢失，alpha-blend
+  // 沿父链找不到正确 opaque ancestor。
+  flattenBackgrounds: {
+    enabled: true,
+  },
+
   // === 半透明背景压平到不透明等效色 ===
   // 公众号渲染不可靠 + 父链一断下游 alpha 全乱，必须预先 alpha-blend 到父背景上。
   flattenAlphaBackgrounds: {
@@ -118,7 +131,7 @@ export function mergePlan(partial = {}) {
   const nested = [
     'multiColConversion', 'tableColumnSizing', 'tableMerging',
     'dlToTable', 'stripUnknownCssProps', 'cssFunctionFlatten',
-    'viewportUnits', 'flattenAlphaBackgrounds',
+    'viewportUnits', 'flattenBackgrounds', 'flattenAlphaBackgrounds',
   ];
   for (const key of nested) {
     if (partial[key]) out[key] = { ...DEFAULT_PLAN[key], ...partial[key] };
