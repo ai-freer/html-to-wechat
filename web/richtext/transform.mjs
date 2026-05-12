@@ -11,7 +11,7 @@
 
 import juice from 'https://esm.sh/juice@10';
 // 注意：?v= cache buster — 同步 index.html / app.js 的版本号
-import { DEFAULT_PLAN, mergePlan } from './default-plan.mjs?v=19';
+import { DEFAULT_PLAN, mergePlan } from './default-plan.mjs?v=20';
 
 /**
  * 主管线：HTML 字符串 + plan → 公众号兼容富文本 + 元数据
@@ -71,6 +71,7 @@ export function transform(rawHtml, planArg = {}) {
     backgroundsFlattened: 0,
     alphaBackgroundsFlattened: 0,
     dlsConverted: 0,
+    detailsExpanded: 0,
   };
 
   // 2.5 CSS 修复层（公众号兼容性）
@@ -114,6 +115,13 @@ export function transform(rawHtml, planArg = {}) {
 
   // 3b. 删除残留 <style>（juice removeStyleTags 已处理大部分）
   doc.querySelectorAll('style').forEach(el => el.remove());
+
+  // 3c. <details> 静态化：公众号粘贴 <details> 默认 collapsed，内容隐藏。
+  //     把 <details> 展开成 <div>，summary 改成 div（保留内部 h4/p 不变）。
+  //     必须在 multiCol / dlToTable 之前——details 内可能含 grid/dl 需要后续处理。
+  if (plan.expandDetails.enabled) {
+    expandDetails(doc, counters);
+  }
 
   // 4. 应用节点级 directives（LLM 决策落地入口）
   //    default plan 的 directives 为 []，这一步是 no-op；
@@ -609,6 +617,54 @@ function sizeAllTables(doc, cfg, counters) {
 }
 
 // ============================================================
+//                <details> 静态化
+// ============================================================
+
+/**
+ * 把 <details> 元素展开成 <div>，summary 改成 div（保留内部内容）。
+ *
+ * 公众号粘贴 <details> 会按原生 HTML 行为渲染——默认 collapsed，body 隐藏。
+ * 用户看不到 detail-body 里的内容。docs/01 §4.3 约定折叠/展开类交互一律展平。
+ *
+ * 实施：
+ *   <details class="x" style="..."><summary>...</summary><div>...</div></details>
+ *   → <div class="x" style="..."><div data-was-summary>...</div><div>...</div></div>
+ *
+ * 嵌套 <details> 用 querySelectorAll 一次性收集，自底向上替换避免父被替换后
+ * 子的引用失效。
+ */
+function expandDetails(doc, counters) {
+  const detailsList = [...doc.querySelectorAll('details')];
+  // 自底向上：深度大的先处理，避免父先被 replaceWith 后子失去引用
+  detailsList.sort((a, b) => getDepth(b) - getDepth(a));
+  for (const det of detailsList) {
+    if (!det.isConnected) continue;
+    const wrap = doc.createElement('div');
+    [...det.attributes].forEach(attr => wrap.setAttribute(attr.name, attr.value));
+    [...det.childNodes].forEach(child => {
+      if (child.nodeType === 1 && child.tagName === 'SUMMARY') {
+        const replaced = doc.createElement('div');
+        replaced.setAttribute('data-was-summary', '1');
+        [...child.attributes].forEach(a => replaced.setAttribute(a.name, a.value));
+        while (child.firstChild) replaced.appendChild(child.firstChild);
+        wrap.appendChild(replaced);
+      } else {
+        wrap.appendChild(child);
+      }
+    });
+    det.replaceWith(wrap);
+    counters.detailsExpanded++;
+  }
+}
+
+function getDepth(el) {
+  let d = 0;
+  let cur = el.parentElement;
+  while (cur) { d++; cur = cur.parentElement; }
+  return d;
+}
+
+// ============================================================
 //        CSS 修复层（公众号兼容性，v0.2 引入）
 // ============================================================
 
@@ -1019,6 +1075,9 @@ function buildWarnings(counters) {
   }
   if (counters.dlsConverted > 0) {
     oks.push(`${counters.dlsConverted} 个 <dl> 卡片网格转 <table>（避免 bullet）`);
+  }
+  if (counters.detailsExpanded > 0) {
+    oks.push(`已展开 ${counters.detailsExpanded} 个 <details>（避免公众号默认 collapsed）`);
   }
   if (counters.flexToTable > 0) {
     oks.push(`${counters.flexToTable} 处多列卡片转 <table>（公众号兼容）`);
