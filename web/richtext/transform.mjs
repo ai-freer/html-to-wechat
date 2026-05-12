@@ -373,9 +373,29 @@ function convertMultiColToTable(doc, cfg, counters) {
     if (/display\s*:\s*grid(?!\w)/i.test(style)) {
       const m = /grid-template-columns\s*:\s*([^;]+)/i.exec(style);
       if (!m) return null;
-      const cols = m[1].trim().split(/\s+/);
-      if (cols.length !== kidCount) return null;
-      return { kind: 'grid', widths: cols };
+      const ctc = m[1].trim();
+      // case A: repeat(N, ...) — 显式 N 列。child 数应等于 N 才转。
+      //         列宽信息（minmax/fr/...）公众号都不认，统一均分。
+      const repeatM = /repeat\s*\(\s*(\d+)\s*,/i.exec(ctc);
+      if (repeatM) {
+        const n = parseInt(repeatM[1], 10);
+        if (n !== kidCount) return null;
+        return { kind: 'grid', widths: null };  // null = 均分
+      }
+      // case B: 显式列定义（"100px 1fr 2fr" / "1fr 1fr"），depth-aware split
+      //         避免 minmax(0, 1fr) 内部空格被错切
+      const tokens = [];
+      let depth = 0, buf = '';
+      for (const ch of ctc) {
+        if (ch === '(') depth++;
+        else if (ch === ')') depth--;
+        if (/\s/.test(ch) && depth === 0) {
+          if (buf) { tokens.push(buf); buf = ''; }
+        } else buf += ch;
+      }
+      if (buf) tokens.push(buf);
+      if (tokens.length !== kidCount) return null;
+      return { kind: 'grid', widths: tokens };
     }
     return null;
   };
@@ -427,7 +447,10 @@ function convertMultiColToTable(doc, cfg, counters) {
     const info = detectMultiCol(style, kids.length);
     if (!info) return;
 
-    const colPcts = info.kind === 'grid' ? resolveCols(info.widths) : kids.map(() => null);
+    // widths=null（repeat 路径）→ 均分；否则按显式列宽计算
+    const colPcts = info.kind === 'grid' && info.widths
+      ? resolveCols(info.widths)
+      : kids.map(() => null);
     const verticalAlign = /align-items\s*:\s*center/i.test(style) ? 'middle' : 'top';
 
     const tbl = doc.createElement('table');
