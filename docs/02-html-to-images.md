@@ -4,7 +4,7 @@
 
 ## 1. 输入与输出
 
-**输入**：standalone HTML 文章（同模式 1）。
+**输入**：HTML 内容（同模式 1，**三种来源任一**：本地文件 / 公开 URL / HTML 字符串）。
 
 **最终交付物**：
 - N 张图片（PNG / JPG），按发布顺序命名（`01.png` `02.png` ...）
@@ -33,8 +33,13 @@
 ```
 input.html
    │
+   ├─ ⓪ 视觉理解（强约束，见 §4.0）
+   │     puppeteer headless render → 整页 PNG
+   │     agent 同时看「截图 + 源码」做后续决策
+   │     截图不入产物，只是 agent 决策时的视觉参考
+   │
    ├─ ① 内容拆解（agent 直接做，不写脚本）
-   │     LLM 读全文 → 决定切成 N 个卡片
+   │     LLM 读全文 + 看截图 → 决定切成 N 个卡片
    │     每个卡片确定：标题 / 类型（文字卡 / 插画）/ 核心内容
    │     输出：plan.json
    │       [
@@ -69,6 +74,38 @@ input.html
 ```
 
 ## 4. 关键工具与机制
+
+### 4.0 视觉理解（强约束）
+
+**所有内容拆解决策必须基于"截图 + 源码"双输入，不能只读 DOM**。
+
+**Why**：HTML Artifact 的信息大量编码在视觉里——卡片分组、颜色对比、阴影层级、空间分割、装饰元素。只读 DOM 树容易出错：
+- 把视觉上一个语义单元误拆成多个（比如带阴影的复合卡片）
+- 把装饰性 div 当成正文段落
+- 错过视觉强调（大字号 / 高对比色块标识的核心金句）
+- 不理解信息的"视觉权重"，切卡片时主次倒置
+
+这条约束的原因是项目已经踩过坑——早期不看截图就转，结果转出错误信息。
+
+**How**：
+```
+Skill 端：
+  skill/modes/02-images/scripts/render-snapshot.mjs
+    puppeteer render input.html
+    deviceScaleFactor: 2
+    fullPage: true
+    输出：snapshot.png（可能分段输出 long-page 的多段）
+
+agent 工作流：
+  Step 1 (必须): Read snapshot.png  ← agent 是 multimodal，直接看图
+  Step 2: 读 HTML 源码
+  Step 3: 双输入做 plan.json
+```
+
+**实施约束**：
+- SKILL.md 模式 2 入口必须**显式要求** agent 工作流第一步 Read 截图
+- 截图不进入最终产物（图集里的图是另外用 gpt-image-2 生的，见 §4.2）
+- 这条约束跨模式：模式 4 同样强制（见 `docs/04-html-to-feishu.md` §6.2），模式 3 大概率也需要（后续验证）
 
 ### 4.1 文字卡片模板系统
 
