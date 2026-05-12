@@ -1,7 +1,15 @@
-// HTML → 公众号富文本 v0.1
-// Pipeline: parse → juice (CSS inline) → DOM cleanup → preview → clipboard
+// HTML → 公众号富文本 · 网页 UI 层
+//
+// 本文件**只负责 UI**：事件绑定、剪贴板、预览、URL fragment 等。
+// 实际的 HTML → 富文本转换由 1A 引擎（transform.mjs）提供，使用 DEFAULT_PLAN 兜底。
+//
+// 范式 X-A/X-C：
+//   - 网页入口（本文件） → transform(html, DEFAULT_PLAN)
+//   - skill 入口 → transform(html, llmGeneratedPlan)  // 见 skills/html-to-wechat/
+//
+// 见 docs/01-html-to-wechat-html.md §2 / §5。
 
-import juice from 'https://esm.sh/juice@10';
+import { transform, DEFAULT_PLAN } from './transform.mjs';
 
 const $ = (id) => document.getElementById(id);
 const editor = $('editor');
@@ -30,6 +38,9 @@ let debounceTimer = null;
 let runSeq = 0;
 
 // ---------- pre-render (run JS in sandboxed iframe to populate dynamic content) ----------
+//
+// 网页入口特有：跑用户原始 HTML 里的 <script>，让动态填充的节点先就位再丢给 1A。
+// skill 入口由 Skill 端的 puppeteer 完成同等工作，所以这一步不在 transform.mjs 里。
 
 /**
  * 把 rawHtml 丢进一个跨源 sandboxed iframe，等脚本跑完，postMessage 把渲染后的 DOM
@@ -53,7 +64,6 @@ function preRender(rawHtml, timeoutMs = 2500) {
       parent.postMessage({ __ptag: ${JSON.stringify(id)}, error: String(e) }, '*');
     }
   }
-  // 等 load + 一拍 microtask，给 DOMContentLoaded 后还在跑的脚本一点缓冲
   if (document.readyState === 'complete') setTimeout(snap, 250);
   else window.addEventListener('load', function(){ setTimeout(snap, 250); });
 })();
@@ -68,7 +78,6 @@ function preRender(rawHtml, timeoutMs = 2500) {
 
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1024px;height:768px;border:0;visibility:hidden;';
-    // 没有 allow-same-origin → iframe 在 opaque origin 里，无法读主页 DOM/Storage
     iframe.setAttribute('sandbox', 'allow-scripts');
 
     let done = false;
@@ -91,473 +100,9 @@ function preRender(rawHtml, timeoutMs = 2500) {
   });
 }
 
-// ---------- pipeline ----------
-
-/**
- * 主管线：HTML 字符串 → 公众号兼容 HTML + 元数据
- */
-function process(rawHtml, options = {}) {
-  if (!rawHtml.trim()) {
-    return { html: '', text: '', stats: null, warnings: [] };
-  }
-
-  let inlinedHtml;
-  try {
-    inlinedHtml = juice(rawHtml, {
-      removeStyleTags: true,
-      preserveImportant: true,
-      applyAttributesTableElements: true,
-      applyStyleTags: true,
-    });
-  } catch (e) {
-    return { html: '', text: '', stats: null, error: 'CSS 内联失败：' + e.message, warnings: [] };
-  }
-
-  // 解析为 DOM
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(inlinedHtml, 'text/html');
-
-  const counters = {
-    scripts: 0,
-    iframes: 0,
-    forms: 0,
-    inputs: 0,
-    links: 0,
-    ids: 0,
-    images: 0,
-    svgImages: 0,
-    metas: 0,
-    chromeStripped: 0,
-    extractedFrom: null, // 'article' | 'main' | null
-    layoutNormalized: 0,
-    flexToTable: 0,
-    tablesMerged: 0,
-    tablesSized: 0,
-  };
-
-  // 1. 删除完全不允许的标签
-  const banned = ['script', 'iframe', 'form', 'input', 'link', 'meta', 'noscript'];
-  banned.forEach(tag => {
-    const els = doc.querySelectorAll(tag);
-    els.forEach(el => {
-      if (tag === 'script') counters.scripts++;
-      else if (tag === 'iframe') counters.iframes++;
-      else if (tag === 'form') counters.forms++;
-      else if (tag === 'input') counters.inputs++;
-      else if (tag === 'link') counters.links++;
-      else if (tag === 'meta') counters.metas++;
-      el.remove();
-    });
-  });
-
-  // 2. 删除残留 <style>（juice removeStyleTags 已处理大部分）
-  doc.querySelectorAll('style').forEach(el => el.remove());
-
-  // 3. 提取正文 / 剥离页面骨架（导航、页脚、侧边栏等）
-  if (options.extractMain !== false && doc.body) {
-    // 3a. 优先抓 <article>（多个则取文本最长的）
-    let extracted = null;
-    const articles = [...doc.querySelectorAll('article')];
-    if (articles.length) {
-      const best = articles.reduce((a, b) =>
-        (b.textContent.length > a.textContent.length ? b : a)
-      );
-      if (best.textContent.trim().length > 200) extracted = best;
-    }
-    // 3b. 否则用 <main> / [role="main"]
-    if (!extracted) {
-      const m = doc.querySelector('main, [role="main"]');
-      if (m && m.textContent.trim().length > 200) extracted = m;
-    }
-    if (extracted) {
-      // 抽出来了就完全信任：内部的 <aside>（callout / 引用框）、<nav>（TOC）等都是作者意图的一部分。
-      const wrap = doc.createElement('body');
-      wrap.appendChild(extracted.cloneNode(true));
-      doc.body.replaceWith(wrap);
-      counters.extractedFrom = extracted.tagName.toLowerCase();
-    } else {
-      // 没找到正文容器，按"页面级骨架"的启发式删
-      const chromeSelectors = [
-        'nav', 'aside',
-        '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
-        '[role="complementary"]', '[role="search"]',
-      ];
-      chromeSelectors.forEach(sel => {
-        doc.querySelectorAll(sel).forEach(el => {
-          el.remove();
-          counters.chromeStripped++;
-        });
-      });
-      if (doc.body) {
-        [...doc.body.children].forEach(el => {
-          const tag = el.tagName.toLowerCase();
-          if (tag === 'header' || tag === 'footer') {
-            el.remove();
-            counters.chromeStripped++;
-          }
-        });
-      }
-    }
-  }
-
-  // 4a. 多列卡片型 flex/grid → <table><tr><td>…</td></tr></table>
-  //     公众号会完全剥离 flex/grid，但会保留 table；一行 2-3 列的卡片型布局走 table 才能
-  //     在公众号草稿里活下来。
-  //
-  //     **不**触发 table 转换的几种情况，按 block 自然堆叠：
-  //       - flex-wrap:wrap（chips/tag 行，作者本来就想换行）
-  //       - 单子级 / 4+ 子级（chip / icon 排，挤成多列 td 反而难看）
-  //       - flex-direction:column（已经是纵向）
-  //
-  //     检查是否能转 table，能转就返回每列宽度（grid 用 grid-template-columns，flex 用空）。
-  const detectMultiCol = (style, kidCount) => {
-    if (kidCount < 2 || kidCount > 3) return null;
-    // inline-flex / inline-grid 是行内对齐，转成 block table 等于把行内徽章撑成整行宽，跳过
-    if (/display\s*:\s*flex(?!\w)/i.test(style)) {
-      if (/flex-direction\s*:\s*column/i.test(style)) return null;
-      if (/flex-wrap\s*:\s*wrap/i.test(style)) return null;
-      return { kind: 'flex', widths: [] };
-    }
-    if (/display\s*:\s*grid(?!\w)/i.test(style)) {
-      const m = /grid-template-columns\s*:\s*([^;]+)/i.exec(style);
-      if (!m) return null;
-      const cols = m[1].trim().split(/\s+/);
-      if (cols.length !== kidCount) return null;
-      return { kind: 'grid', widths: cols };
-    }
-    return null;
-  };
-
-  // 把 grid-template-columns 的混合单位（60px / 1fr / 30%）归一成百分比，
-  // 让公众号 / 飞书等编辑器都能稳定渲染列宽。
-  // 假设排版宽度约 700px——只是为了把 px 折算成百分比，最终都按百分比分布。
-  const resolveCols = (cols) => {
-    const ASSUMED = 700;
-    const parsed = cols.map(c => {
-      let m;
-      if ((m = /^([\d.]+)px$/i.exec(c))) return { kind: 'px', v: parseFloat(m[1]) };
-      if ((m = /^([\d.]+)fr$/i.exec(c))) return { kind: 'fr', v: parseFloat(m[1]) };
-      if ((m = /^([\d.]+)%$/i.exec(c))) return { kind: 'pct', v: parseFloat(m[1]) };
-      return { kind: 'auto' };
-    });
-    const totalFr = parsed.reduce((s, p) => s + (p.kind === 'fr' ? p.v : 0), 0);
-    const usedPct = parsed.reduce((s, p) => {
-      if (p.kind === 'pct') return s + p.v;
-      if (p.kind === 'px') return s + (p.v / ASSUMED) * 100;
-      return s;
-    }, 0);
-    const remaining = Math.max(0, 100 - usedPct);
-    return parsed.map(p => {
-      if (p.kind === 'px') return Math.round((p.v / ASSUMED) * 1000) / 10;
-      if (p.kind === 'pct') return p.v;
-      if (p.kind === 'fr' && totalFr > 0) return Math.round((p.v / totalFr) * remaining * 10) / 10;
-      return null; // auto: leave the editor to figure it out
-    });
-  };
-
-  const stripLayoutCss = (s) => s
-    .replace(/display\s*:\s*(inline-)?(flex|grid)\s*(!important)?\s*;?/gi, '')
-    .replace(/flex-(?:direction|wrap|grow|shrink|basis|flow)\s*:[^;]+;?/gi, '')
-    .replace(/grid-[\w-]+\s*:[^;]+;?/gi, '')
-    .replace(/(?:align|justify)-(?:items|content|self)\s*:[^;]+;?/gi, '')
-    .replace(/gap\s*:[^;]+;?/gi, '')
-    .replace(/;\s*;+/g, ';').trim();
-
-  const candidates = [...doc.querySelectorAll('[style]')].filter(el => {
-    const s = el.getAttribute('style') || '';
-    return /display\s*:\s*(inline-)?(flex|grid)/i.test(s);
-  });
-
-  candidates.forEach(el => {
-    if (!el.isConnected) return;
-    const style = el.getAttribute('style') || '';
-    const kids = [...el.children];
-    const info = detectMultiCol(style, kids.length);
-    if (!info) return;
-
-    // 解析出每列的百分比宽度（fr / px / %  → 百分比）
-    const colPcts = info.kind === 'grid' ? resolveCols(info.widths) : kids.map(() => null);
-
-    const verticalAlign = /align-items\s*:\s*center/i.test(style) ? 'middle' : 'top';
-
-    const tbl = doc.createElement('table');
-    tbl.setAttribute('width', '100%');
-    tbl.setAttribute('cellpadding', '0');
-    tbl.setAttribute('cellspacing', '0');
-    tbl.setAttribute('border', '0');
-    tbl.setAttribute(
-      'style',
-      ('width:100%;border-collapse:collapse;table-layout:fixed;' + stripLayoutCss(style)).replace(/;\s*;+/g, ';')
-    );
-
-    // <colgroup> — 飞书 / 公众号 / 邮件客户端最稳的列宽锁定方式
-    const hasAnyWidth = colPcts.some(p => p != null);
-    if (hasAnyWidth) {
-      const cg = doc.createElement('colgroup');
-      colPcts.forEach(pct => {
-        const col = doc.createElement('col');
-        if (pct != null) {
-          col.setAttribute('width', pct + '%');
-          col.setAttribute('style', `width:${pct}%;`);
-        }
-        cg.appendChild(col);
-      });
-      tbl.appendChild(cg);
-    }
-
-    const tr = doc.createElement('tr');
-    tbl.appendChild(tr);
-    kids.forEach((child, i) => {
-      const td = doc.createElement('td');
-      const pct = colPcts[i];
-      let tdStyle = `vertical-align:${verticalAlign};`;
-      if (pct != null) {
-        tdStyle += `width:${pct}%;`;
-        td.setAttribute('width', pct + '%');
-      }
-      td.setAttribute('style', tdStyle);
-      td.appendChild(child);
-      tr.appendChild(td);
-    });
-
-    // 原元素是 <a href> 的话，外层包一个新的 <a> 保住链接
-    let replacement = tbl;
-    if (el.tagName.toLowerCase() === 'a' && el.getAttribute('href')) {
-      const a = doc.createElement('a');
-      a.setAttribute('href', el.getAttribute('href'));
-      a.setAttribute('style', 'text-decoration:none;color:inherit;display:block;');
-      a.appendChild(tbl);
-      replacement = a;
-    }
-    el.replaceWith(replacement);
-    counters.flexToTable++;
-  });
-
-  // 4a-2. 合并连续的"同列结构 <a><table>"为单个多行 <table>，让用户在编辑器里拖一次列宽
-  //       就能改全部行（典型场景：九层塔的 9 个 tower-row 都被独立转成了表）。
-  const tablesInAnchor = [...doc.querySelectorAll('a > table')];
-  const parentsToTry = new Set();
-  tablesInAnchor.forEach(t => parentsToTry.add(t.parentElement.parentElement));
-  parentsToTry.forEach(parent => {
-    if (!parent || !parent.isConnected) return;
-    const kids = [...parent.children];
-    if (kids.length < 3) return;
-    // 全部 <a><table>，且每个 table 都只有一个 <tr>，列数一致
-    const sigs = kids.map(k => {
-      if (k.tagName.toLowerCase() !== 'a' || k.children.length !== 1) return null;
-      const t = k.children[0];
-      if (t.tagName.toLowerCase() !== 'table') return null;
-      const tr = t.querySelector('tr');
-      if (!tr) return null;
-      return { table: t, rows: [tr], cellCount: tr.children.length };
-    });
-    if (!sigs.every(s => s)) return;
-    const cellCount = sigs[0].cellCount;
-    if (!sigs.every(s => s.cellCount === cellCount)) return;
-
-    // 构造合并后的表，沿用第一个表的 <colgroup> + width/style
-    const merged = doc.createElement('table');
-    merged.setAttribute('width', '100%');
-    merged.setAttribute('cellpadding', '0');
-    merged.setAttribute('cellspacing', '0');
-    merged.setAttribute('border', '0');
-    merged.setAttribute('style', sigs[0].table.getAttribute('style') || 'width:100%;border-collapse:collapse;table-layout:fixed;');
-    const firstCg = sigs[0].table.querySelector('colgroup');
-    if (firstCg) merged.appendChild(firstCg.cloneNode(true));
-
-    // 把每个 <a><table> 的内容作为一个 <tr> 拼进 merged
-    // （丢弃 href 锚点——粘到公众号 / 飞书里 in-page 锚点也用不上）
-    sigs.forEach(s => {
-      const tr = s.rows[0].cloneNode(true);
-      merged.appendChild(tr);
-    });
-
-    // 替换原有的 N 个 <a><table>
-    kids.slice(1).forEach(k => k.remove());
-    kids[0].replaceWith(merged);
-    counters.tablesMerged += sigs.length;
-  });
-
-  // 4b. 剩下没转 table 的 flex/grid 元素（单子级、纵向栈、grid）降为 block；
-  //     绝对定位移除。让 preview 与公众号最终渲染保持一致。
-  doc.querySelectorAll('[style]').forEach(el => {
-    const before = el.getAttribute('style') || '';
-    let after = before;
-
-    // display: flex|grid|inline-flex|inline-grid → block|inline-block
-    after = after.replace(
-      /display\s*:\s*(inline-)?(flex|grid)\s*(!important)?\s*;?/gi,
-      (_m, inline) => {
-        counters.layoutNormalized++;
-        return `display: ${inline ? 'inline-block' : 'block'};`;
-      }
-    );
-    // position: absolute|fixed|sticky → 删（保留 relative/static）
-    after = after.replace(
-      /position\s*:\s*(absolute|fixed|sticky)\s*(!important)?\s*;?/gi,
-      () => {
-        counters.layoutNormalized++;
-        return '';
-      }
-    );
-
-    if (after !== before) {
-      const trimmed = after.replace(/;\s*;/g, ';').trim();
-      if (trimmed) el.setAttribute('style', trimmed);
-      else el.removeAttribute('style');
-    }
-  });
-
-  // 4c. 给所有 <table>（不论来自源 HTML 还是我们生成）补列宽提示。
-  //     公众号 / 飞书等编辑器在没有 colgroup / td width 时会把所有列均分，
-  //     根据每列内容长度估一组百分比，写到 colgroup + td 上。
-  doc.querySelectorAll('table').forEach(tbl => {
-    // 收集所有 tr（无论是否在 thead/tbody 里）
-    const trs = [...tbl.querySelectorAll('tr')].filter(tr => tr.closest('table') === tbl);
-    if (trs.length === 0) return;
-    const cellCounts = trs.map(tr => tr.children.length);
-    const cellCount = Math.max(...cellCounts);
-    if (cellCount < 2) return;
-    // 任何一行有 colspan/rowspan → 跳过，避免误判
-    const hasSpan = trs.some(tr => [...tr.children].some(c => c.hasAttribute('colspan') || c.hasAttribute('rowspan')));
-    if (hasSpan) return;
-    // 已经有 colgroup 且各 <col> 都有 width → 信任作者
-    const cg = tbl.querySelector('colgroup');
-    if (cg && [...cg.children].every(c => c.hasAttribute('width') || /width\s*:/i.test(c.getAttribute('style') || ''))) return;
-
-    // 估列宽：取每列内容文本长度的最大值
-    const colLens = new Array(cellCount).fill(0);
-    trs.forEach(tr => {
-      [...tr.children].forEach((cell, i) => {
-        if (i >= cellCount) return;
-        const len = (cell.textContent || '').trim().length || 1;
-        if (len > colLens[i]) colLens[i] = len;
-      });
-    });
-    // 限制最大/最小比例：避免某一列文本特别长把其它列挤到很窄
-    const cappedLens = colLens.map(L => Math.min(L, 40)); // 单列最多算 40 字符
-    const totalCapped = cappedLens.reduce((a, b) => a + b, 0);
-    const MIN_PCT = Math.floor(100 / cellCount * 0.4); // 最小不低于均分的 40%
-    let pcts = cappedLens.map(L => Math.max(MIN_PCT, Math.round((L / totalCapped) * 100)));
-    const sum = pcts.reduce((a, b) => a + b, 0);
-    pcts = pcts.map(p => Math.round((p / sum) * 1000) / 10);
-
-    // 写 colgroup
-    let cgEl = cg;
-    if (!cgEl) {
-      cgEl = doc.createElement('colgroup');
-      tbl.insertBefore(cgEl, tbl.firstChild);
-    } else {
-      cgEl.innerHTML = '';
-    }
-    pcts.forEach(pct => {
-      const col = doc.createElement('col');
-      col.setAttribute('width', pct + '%');
-      col.setAttribute('style', `width:${pct}%;`);
-      cgEl.appendChild(col);
-    });
-
-    // 表格设 width=100% + table-layout:fixed
-    if (!tbl.hasAttribute('width')) tbl.setAttribute('width', '100%');
-    const tblStyle = tbl.getAttribute('style') || '';
-    let newTblStyle = tblStyle;
-    if (!/width\s*:/i.test(newTblStyle)) newTblStyle += ';width:100%';
-    if (!/table-layout/i.test(newTblStyle)) newTblStyle += ';table-layout:fixed';
-    if (!/border-collapse/i.test(newTblStyle)) newTblStyle += ';border-collapse:collapse';
-    tbl.setAttribute('style', newTblStyle.replace(/^;+/, '').replace(/;\s*;+/g, ';'));
-
-    // 第一行 td 也补 width（colgroup 被剥时的备份）
-    const firstTr = trs[0];
-    [...firstTr.children].forEach((cell, i) => {
-      const pct = pcts[i];
-      if (pct == null) return;
-      if (!cell.hasAttribute('width')) cell.setAttribute('width', pct + '%');
-      const cs = cell.getAttribute('style') || '';
-      if (!/width\s*:/i.test(cs)) cell.setAttribute('style', (cs + ';width:' + pct + '%').replace(/^;+/, ''));
-    });
-
-    counters.tablesSized++;
-  });
-
-  // 5. 删除所有元素的 id 属性（公众号会强制剥离）
-  doc.querySelectorAll('[id]').forEach(el => {
-    counters.ids++;
-    el.removeAttribute('id');
-  });
-
-  // 5. 统计图片
-  doc.querySelectorAll('img').forEach(img => {
-    counters.images++;
-  });
-  doc.querySelectorAll('svg image').forEach(img => {
-    counters.svgImages++;
-  });
-
-  // 6. 提取 body 内容（公众号粘贴只关心正文）
-  const bodyHtml = doc.body ? doc.body.innerHTML : doc.documentElement.innerHTML;
-  const cleanedBody = bodyHtml.trim();
-
-  // 7. 纯文本 fallback（用于 text/plain MIME）
-  const textVersion = doc.body ? doc.body.textContent.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : '';
-
-  // 8. 警告（按级别排序：ok 在前，warn 在后；隐藏 0 计数）
-  const oks = [];
-  const warns = [];
-  if (counters.extractedFrom) {
-    oks.push(`已提取 <${counters.extractedFrom}> 正文`);
-  }
-  if (counters.chromeStripped > 0) {
-    oks.push(`已剥离 ${counters.chromeStripped} 个导航/页脚/侧栏`);
-  }
-  // 已清理（只列非零项）
-  const cleaned = [];
-  if (counters.scripts > 0) cleaned.push(`${counters.scripts} script`);
-  if (counters.iframes > 0) cleaned.push(`${counters.iframes} iframe`);
-  if (counters.forms > 0) cleaned.push(`${counters.forms} form`);
-  if (cleaned.length) oks.push(`已清理 ${cleaned.join(' / ')}`);
-
-  if (counters.flexToTable > 0) {
-    oks.push(`${counters.flexToTable} 处多列卡片转 <table>（公众号兼容）`);
-  }
-  if (counters.tablesMerged > 0) {
-    oks.push(`${counters.tablesMerged} 行合并到 1 张表（拖列宽改全部）`);
-  }
-  if (counters.tablesSized > 0) {
-    oks.push(`已为 ${counters.tablesSized} 张表估算列宽`);
-  }
-  if (counters.layoutNormalized > 0) {
-    oks.push(`已规范化 ${counters.layoutNormalized} 处布局（flex/grid/绝对定位 → block）`);
-  }
-
-  if (counters.images > 0) {
-    warns.push(`${counters.images} 张 <img> 需手动换素材库链接`);
-  }
-  if (counters.svgImages > 0) {
-    warns.push(`${counters.svgImages} 个 SVG <image> 需手动换素材库链接`);
-  }
-
-  const allWarns = [
-    ...oks.map(t => ({ level: 'ok', text: t })),
-    ...warns.map(t => ({ level: 'warn', text: t })),
-  ];
-
-  return {
-    html: cleanedBody,
-    text: textVersion,
-    stats: {
-      bytes: new Blob([cleanedBody]).size,
-      chars: cleanedBody.length,
-      counters,
-    },
-    warnings: allWarns,
-  };
-}
-
 // ---------- UI ----------
 
 function renderPreview(html) {
-  // 用 srcdoc 让 iframe 自己当 document，sandbox 已禁 script
-  // 外层留浅灰，内层卡片模拟公众号阅读视宽（移动端 ~414px，留点呼吸宽到 480）
   const wrapStyle = `
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;background:#fafaf9}
@@ -593,7 +138,7 @@ function setStep(n) {
 
 // ---------- editor view (源码 / 渲染) ----------
 
-let editorView = 'source'; // 'source' | 'render'
+let editorView = 'source';
 
 function renderRawPreview() {
   const raw = editor.value;
@@ -601,7 +146,6 @@ function renderRawPreview() {
     rawPreview.srcdoc = '<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#fafaf9}body{display:flex;align-items:center;justify-content:center;font-family:-apple-system,sans-serif;color:#a8a29e;font-size:13px}</style></head><body>切回「源码」输入 HTML 后这里会显示原始渲染效果</body></html>';
     return;
   }
-  // base target=_blank so any links open in a new tab; sandbox blocks scripts
   if (/<head[\s>]/i.test(raw)) {
     rawPreview.srcdoc = raw;
   } else {
@@ -656,11 +200,13 @@ async function run() {
   const hasScript = /<script[\s>]/i.test(raw);
   if (hasScript) setStatus('正在执行脚本以补全动态内容…');
 
-  // pre-render in sandboxed iframe so JS-populated nodes (e.g. badges) are captured
+  // pre-render 在 sandboxed iframe 里跑用户的 <script>，把动态填充的 DOM 抓回来
   const { html: rendered, executed } = await preRender(raw);
   if (seq !== runSeq) return; // a newer run started; discard
 
-  const result = process(rendered, { extractMain: optExtractMain.checked });
+  // 1A 调用：网页入口用 DEFAULT_PLAN（UI 的 extractMain 复选框作为唯一可调字段）
+  const plan = { ...DEFAULT_PLAN, extractMain: optExtractMain.checked };
+  const result = transform(rendered, plan);
 
   if (result.error) {
     setStatus(result.error, 'warn');
@@ -676,7 +222,6 @@ async function run() {
   processedText = result.text;
   renderPreview(processedHtml);
 
-  // surface "scripts were executed" as a top-of-row chip
   const finalWarnings = executed
     ? [{ level: 'ok', text: '已执行脚本捕获动态内容' }, ...result.warnings]
     : result.warnings;
@@ -711,7 +256,6 @@ btnCopy.addEventListener('click', async () => {
     ]);
     showToast('✓ 已复制富文本，去公众号编辑器 Cmd+V');
   } catch (e) {
-    // 退化：用 execCommand 复制纯 HTML 字符串（不会被识别为富文本）
     try {
       await navigator.clipboard.writeText(processedHtml);
       showToast('已复制 HTML 源码（浏览器不支持富文本剪贴板，需用 Chrome/Edge）');
@@ -777,13 +321,11 @@ urlInput.addEventListener('keydown', (e) => {
 });
 
 async function fetchHtml(url) {
-  // 1) try direct
   try {
     const res = await fetch(url, { redirect: 'follow' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return { html: await res.text(), viaProxy: false };
   } catch (directErr) {
-    // 2) fall back to corsproxy.io
     setStatus('直接拉取被 CORS 阻止，改走 corsproxy.io …');
     const proxied = 'https://corsproxy.io/?' + encodeURIComponent(url);
     try {
@@ -810,8 +352,6 @@ btnUrlFetch.addEventListener('click', async () => {
     closeUrlPopover();
     run();
     if (viaProxy) {
-      // 在 warnings 行追加一个提示 chip（run() 内的 renderWarnings 会基于新内容重渲染，
-      // 所以这里在下一帧追加）
       requestAnimationFrame(() => {
         const chip = document.createElement('span');
         chip.className = 'chip';
@@ -842,12 +382,11 @@ function loadPayloadFromHash() {
   if (!hash.startsWith('#payload=')) return;
   const b64 = hash.slice('#payload='.length);
   try {
-    // base64 → bytes → utf-8 string
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     const decoded = new TextDecoder().decode(bytes);
     editor.value = decoded;
     run();
-    history.replaceState(null, '', location.pathname); // 清掉超长 URL
+    history.replaceState(null, '', location.pathname);
     showToast('已从链接载入内容');
   } catch (e) {
     showToast('链接 payload 解析失败：' + e.message);
