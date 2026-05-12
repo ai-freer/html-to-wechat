@@ -67,6 +67,7 @@ export function transform(rawHtml, planArg = {}) {
     unknownPropsStripped: 0,
     cssFunctionsFlattened: 0,
     viewportUnitsConverted: 0,
+    backgroundsFlattened: 0,
     alphaBackgroundsFlattened: 0,
     dlsConverted: 0,
   };
@@ -87,6 +88,11 @@ export function transform(rawHtml, planArg = {}) {
   }
   if (plan.viewportUnits.enabled) {
     convertViewportUnits(doc, plan.viewportUnits, counters);
+  }
+  // ★ flattenBackgrounds 必须在 flattenAlphaBackgrounds 之前：
+  //   gradient / var 不展平 → background 整条丢 → alpha-blend 父链断 → 文字消失
+  if (plan.flattenBackgrounds.enabled) {
+    flattenBackgrounds(doc, plan.flattenBackgrounds, counters);
   }
   if (plan.flattenAlphaBackgrounds.enabled) {
     flattenAlphaBackgrounds(doc, plan.flattenAlphaBackgrounds, counters);
@@ -667,6 +673,130 @@ function convertViewportUnits(doc, cfg, counters) {
 }
 
 /**
+ * 把 background 上的 linear-gradient / radial-gradient / var(--xxx) 展平成
+ * 不透明 background-color。
+ *
+ * 为什么必须做：公众号编辑器不支持 gradient 函数和 CSS variable，整条 background
+ * declaration 会被丢弃。后果：
+ *   1. 该元素自己的背景消失 → 视觉失败
+ *   2. **更严重**：作为 ancestor 的元素丢了 background，下游 flattenAlphaBackgrounds
+ *      沿父链找不到正确的 opaque 底色，半透明子元素被错误地 blend 到默认页面色上，
+ *      导致级联视觉失败（典型案例：dark-band section + judgement-grid article
+ *      的"白文字消失"）。
+ *
+ * 处理策略：
+ *   - linear-gradient(...) / radial-gradient(...) → 取第一个 color stop 作为兜底色
+ *   - var(--foo, fallback) → 取 fallback；无 fallback 则删 declaration
+ *   - background-image / multi-layer background → 提取最底层不透明色
+ *
+ * 必须在 flattenAlphaBackgrounds **之前**跑。
+ */
+function flattenBackgrounds(doc, cfg, counters) {
+  const colorRe = /(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|transparent|black|white|currentcolor)/i;
+  const angleOrDirRe = /^(-?[\d.]+(?:deg|rad|grad|turn)|to\s+\w+(?:\s+\w+)?|from\s+|at\s+)/i;
+
+  // 从 gradient 内容里提取第一个 color
+  const firstColorFromGradient = (gradContent) => {
+    // gradient 内容形如：
+    //   "135deg, rgba(13,20,22,0.96), rgba(21,30,34,0.98)"
+    //   "to right, #fff 0%, #000 100%"
+    // 但内部有嵌套 rgba(...)，简单 split(',') 会切坏。先按顶层逗号分割。
+    const parts = [];
+    let depth = 0;
+    let buf = '';
+    for (const ch of gradContent) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === ',' && depth === 0) { parts.push(buf.trim()); buf = ''; }
+      else buf += ch;
+    }
+    if (buf.trim()) parts.push(buf.trim());
+    for (const p of parts) {
+      if (angleOrDirRe.test(p)) continue;  // 跳过 angle / 方向
+      const m = colorRe.exec(p);
+      if (m) return m[1];
+    }
+    return null;
+  };
+
+  // 提取 var(--foo, fallback) 的 fallback
+  const fallbackFromVar = (val) => {
+    // var(--foo, ...rest)，rest 可能是 color、可能是 var(...) 嵌套
+    const m = /var\s*\(\s*--[\w-]+\s*,\s*([^)]+(?:\([^)]*\))?[^)]*)\)/i.exec(val);
+    if (!m) return null;
+    const inner = m[1].trim();
+    const cm = colorRe.exec(inner);
+    return cm ? cm[1] : null;
+  };
+
+  doc.querySelectorAll('[style]').forEach(el => {
+    const style = el.getAttribute('style') || '';
+    if (!/(linear-gradient|radial-gradient|var\s*\()/i.test(style)) return;
+    // 按 ; 顶层切（注意 declaration 值里可能有 (...) 括号）
+    const decls = [];
+    let depth = 0;
+    let buf = '';
+    for (const ch of style) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === ';' && depth === 0) { decls.push(buf.trim()); buf = ''; }
+      else buf += ch;
+    }
+    if (buf.trim()) decls.push(buf.trim());
+
+    let changed = false;
+    const newDecls = decls.map(d => {
+      const m = /^(background|background-image|background-color)\s*:\s*([\s\S]+)$/i.exec(d);
+      if (!m) return d;
+      const prop = m[1].toLowerCase();
+      const val = m[2].trim();
+
+      // 不含 gradient / var → 不动
+      if (!/(linear-gradient|radial-gradient|var\s*\()/i.test(val)) return d;
+
+      // 1. linear-gradient / radial-gradient
+      const gm = /(?:linear|radial)-gradient\s*\(([\s\S]+?)\)(?=\s*[,\s]|$)/i.exec(val);
+      if (gm) {
+        const fb = firstColorFromGradient(gm[1]);
+        if (fb) {
+          counters.backgroundsFlattened++;
+          changed = true;
+          return `background-color: ${fb}`;
+        }
+      }
+
+      // 2. multi-layer background：linear-gradient(...), <color>
+      //    取 color 部分
+      const layerMatch = colorRe.exec(val);
+      if (layerMatch) {
+        counters.backgroundsFlattened++;
+        changed = true;
+        return `background-color: ${layerMatch[1]}`;
+      }
+
+      // 3. var(--foo, fallback)
+      const vfb = fallbackFromVar(val);
+      if (vfb) {
+        counters.backgroundsFlattened++;
+        changed = true;
+        return `background-color: ${vfb}`;
+      }
+
+      // 4. 无法解析 → 删 declaration（避免公众号整条 style 一锅端）
+      counters.backgroundsFlattened++;
+      changed = true;
+      return '';
+    }).filter(Boolean);
+
+    if (changed) {
+      const newStyle = newDecls.join('; ').replace(/;\s*;+/g, ';').replace(/^;+/, '').trim();
+      if (newStyle) el.setAttribute('style', newStyle);
+      else el.removeAttribute('style');
+    }
+  });
+}
+
+/**
  * 沿 DOM 父链找第一个不透明 background-color，把当前元素的 rgba 半透明背景
  * alpha-blend 到该底色上，写回为不透明颜色。
  *
@@ -856,6 +986,9 @@ function buildWarnings(counters) {
   }
   if (counters.viewportUnitsConverted > 0) {
     oks.push(`已换算 ${counters.viewportUnitsConverted} 处 vw/vh → px`);
+  }
+  if (counters.backgroundsFlattened > 0) {
+    oks.push(`已展平 ${counters.backgroundsFlattened} 处 gradient/var 背景（提取兜底色）`);
   }
   if (counters.alphaBackgroundsFlattened > 0) {
     oks.push(`已压平 ${counters.alphaBackgroundsFlattened} 处半透明背景（alpha → 不透明等效色）`);
