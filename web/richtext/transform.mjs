@@ -10,7 +10,8 @@
 // 见 docs/01-html-to-wechat-html.md §2 / §4。
 
 import juice from 'https://esm.sh/juice@10';
-import { DEFAULT_PLAN, mergePlan } from './default-plan.mjs';
+// 注意：?v= cache buster — 同步 index.html / app.js 的版本号
+import { DEFAULT_PLAN, mergePlan } from './default-plan.mjs?v=19';
 
 /**
  * 主管线：HTML 字符串 + plan → 公众号兼容富文本 + 元数据
