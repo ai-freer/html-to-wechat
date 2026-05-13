@@ -1,0 +1,136 @@
+/* Mode 2 app 态样式 — 仅在 body[data-mode="app"] 下生效 */
+
+body[data-mode="app"] .status-banner {
+  display: none;
+}
+
+body[data-mode="app"] .subpage-hero .lede b {
+  color: var(--accent, #c2410c);
+}
+
+/* 工具栏 */
+.app-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 24px 0 36px;
+  padding: 16px 18px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e7e5e4);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+}
+
+.app-toolbar button {
+  font: inherit;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong, #d6d3d1);
+  background: var(--card-bg, #fff);
+  color: var(--fg, #1c1917);
+  transition: background 120ms, border-color 120ms, transform 120ms;
+}
+
+.app-toolbar button:hover {
+  background: var(--accent-bg, #fff7ed);
+  border-color: var(--accent-soft, #fed7aa);
+}
+
+.app-toolbar .tb-zip {
+  background: var(--accent, #c2410c);
+  color: #fff;
+  border-color: var(--accent, #c2410c);
+}
+
+.app-toolbar .tb-zip:hover {
+  background: #a8350a;
+  color: #fff;
+}
+
+.app-toolbar .tb-hint {
+  font-size: 13px;
+  color: var(--muted, #78716c);
+  margin-left: auto;
+}
+
+/* gallery item app-mode 增强 */
+.gallery-item.app-mode-item {
+  cursor: grab;
+  position: relative;
+}
+
+.gallery-item.app-mode-item:active {
+  cursor: grabbing;
+}
+
+.gallery-item.app-mode-item.dragging {
+  opacity: 0.4;
+  outline: 2px dashed var(--accent, #c2410c);
+}
+
+.gallery-item .regen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  font: 600 12px/1 system-ui, sans-serif;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms, background 120ms;
+}
+
+.gallery-item:hover .regen-btn,
+.gallery-item:focus-within .regen-btn {
+  opacity: 1;
+}
+
+.gallery-item .regen-btn:hover {
+  background: rgba(194, 65, 12, 0.95);
+}
+
+/* caption 复制按钮 */
+.caption-copy {
+  margin-top: 16px;
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong, #d6d3d1);
+  background: var(--card-bg, #fff);
+  color: var(--fg, #1c1917);
+}
+
+.caption-copy:hover {
+  background: var(--accent-bg, #fff7ed);
+  border-color: var(--accent-soft, #fed7aa);
+}
+
+/* Toast */
+.app-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(28, 25, 23, 0.92);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font: 500 14px/1.4 system-ui, sans-serif;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms, transform 200ms;
+  z-index: 1000;
+  max-width: 80vw;
+}
+
+.app-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
