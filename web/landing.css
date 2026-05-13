@@ -764,3 +764,126 @@ a:hover { text-decoration: underline; }
   .gallery-item { width: 200px; }
   .example-pair { grid-template-columns: 1fr; }
 }
+
+/* =====================================================
+   4-mode grid (新主页布局，v8) — 2x2 平铺
+   每张卡同等地位，状态徽章区分形态
+   ===================================================== */
+
+.modes-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 0 auto;
+  max-width: 1100px;
+}
+
+.mode4-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px;
+  background: var(--card, #fbf6e8);
+  border: 1px solid var(--card-edge, #e7dcc1);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--ink, #1d1612);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  min-height: 240px;
+}
+.mode4-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--madder, #a4302a);
+  box-shadow: 0 6px 22px rgba(28, 22, 18, 0.08);
+}
+
+.mode4-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mode4-card .mode-num {
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  font-size: 13px;
+  color: var(--ink-mute, #6c5b48);
+  letter-spacing: 0.05em;
+}
+.mode4-card h2 {
+  font-size: 18px;
+  margin: 0;
+  line-height: 1.3;
+  font-weight: 700;
+}
+.mode4-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft, #3a2f25);
+  margin: 0;
+  flex-grow: 1;
+}
+.mode4-card .mode4-meta {
+  font-size: 12px;
+  color: var(--ink-mute, #6c5b48);
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  flex-grow: 0;
+  border-top: 1px dashed var(--rule, #c8b994);
+  padding-top: 8px;
+  margin-top: auto;
+}
+.mode4-preview-img {
+  margin: 6px 0;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper, #f3ecdc);
+  border: 1px solid var(--rule, #c8b994);
+  border-radius: 6px;
+  padding: 8px;
+  min-height: 80px;
+}
+.mode4-preview-img img {
+  max-height: 100px;
+  width: auto;
+  border-radius: 3px;
+}
+
+/* 状态徽章 */
+.mode4-card .badge {
+  display: inline-block;
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.mode4-card .badge.live { background: var(--evergreen-mute, rgba(47, 82, 64, 0.12)); color: var(--evergreen, #2f5240); }
+.mode4-card .badge.preview { background: var(--ochre-mute, rgba(176, 120, 32, 0.16)); color: var(--ochre, #b07820); }
+.mode4-card .badge.skill { background: var(--madder-mute, rgba(164, 48, 42, 0.14)); color: var(--madder, #a4302a); }
+.mode4-card .badge.planned { background: rgba(108, 91, 72, 0.14); color: var(--ink-mute, #6c5b48); }
+
+.mode4-card .mode-cta,
+.mode4-card .mode-cta-link {
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  font-size: 13px;
+  color: var(--madder, #a4302a);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.modes-foot {
+  text-align: center;
+  margin: 22px auto 0;
+  max-width: 700px;
+}
+
+@media (max-width: 760px) {
+  .modes-grid-4 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .mode4-card { min-height: auto; padding: 18px 18px; }
+  .mode4-card h2 { font-size: 16px; }
+}
