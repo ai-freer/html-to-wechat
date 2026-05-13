@@ -65,23 +65,57 @@ export function transform(rawHtml, planArg = {}) {
   // === 1. 决定文档标题 ===
   const title = pickTitle($, plan) || 'Untitled';
 
-  // === 2. 剥掉黑名单标签 ===
+  // === 1.5 应用 plan.boundaryAnnotations（v0.2：视觉理解 plan 驱动容器映射）===
+  // 必须在黑名单剥除之前——否则 `<aside class="margin-note">` 这种"在 banned 容器里
+  // 但被 agent 视觉理解为 callout" 的节点会被先剥掉、找不到。
+  //
+  // 实现见后面（先 hoist 一份 reference）。这里只标记顺序意图。
+  applyBoundaryAnnotations($, plan, warnings, stats);
+
+  // === 2. 剥掉黑名单标签（但保留有 data-mode4-as 标注的节点 + 其子树）===
   const banned = new Set([...ALWAYS_DROP, ...plan.bannedTags]);
   $('*').each((_, el) => {
-    if (banned.has(el.tagName?.toLowerCase())) {
-      stats.droppedTags[el.tagName.toLowerCase()] = (stats.droppedTags[el.tagName.toLowerCase()] || 0) + 1;
-      $(el).remove();
-    }
+    if (!banned.has(el.tagName?.toLowerCase())) return;
+    // 自己有 mode4 标注 → 保留
+    if ($(el).attr('data-mode4-as')) return;
+    // 子树里有 mode4 标注 → 也保留（agent 可能标注了内层节点）
+    if ($(el).find('[data-mode4-as]').length > 0) return;
+    stats.droppedTags[el.tagName.toLowerCase()] = (stats.droppedTags[el.tagName.toLowerCase()] || 0) + 1;
+    $(el).remove();
   });
 
-  // === 2.5 应用 plan.boundaryAnnotations（v0.2：视觉理解 plan 驱动容器映射）===
-  // schema:  { [cssSelector]: { type: 'grid'|'column'|'callout'|'whiteboard-mermaid', ...attrs } }
-  //   attrs（按 type 解释）：
-  //     callout: emoji / backgroundColor / borderColor
-  //     column:  ratio
-  //     whiteboard-mermaid: dsl
-  //     grid:    无（子项 column 各自带 ratio）
-  // 实现：用 cheerio selector 找节点 → 加 data-mode4-as 等属性，emit 阶段消费
+  // === 3. 取正文容器 ===
+  // 优先 <main> > <article> > <body>。bench/full-report 都是 body 直接含内容。
+  let root = $('main').first();
+  if (root.length === 0) root = $('article').first();
+  if (root.length === 0) root = $('body').first();
+  if (root.length === 0) root = $.root();
+
+  // === 4. 递归 emit ===
+  const ctx = { $, plan, warnings, stats };
+  const body = emitChildren(root[0], ctx);
+
+  // === 5. 拼最终 DocxXML（含 <title>）===
+  const docxxml = `<title>${escapeText(title)}</title>\n${body}`;
+
+  return { docxxml, title, warnings, stats };
+}
+
+// ===========================================================================
+// plan.boundaryAnnotations 应用 — 在黑名单剥除前做
+// ===========================================================================
+
+/**
+ * 把 plan.boundaryAnnotations 里的 CSS selector 命中节点，附加 data-mode4-as 等属性。
+ *
+ * schema: { [cssSelector]: { type: 'grid'|'column'|'callout'|'whiteboard-mermaid', ...attrs } }
+ * attrs（按 type 解释）：
+ *   callout: emoji / backgroundColor / borderColor
+ *   column:  ratio
+ *   whiteboard-mermaid: dsl
+ *   grid:    无（子项 column 各自带 ratio）
+ */
+function applyBoundaryAnnotations($, plan, warnings, stats) {
   let annotationCount = 0;
   for (const [selector, ann] of Object.entries(plan.boundaryAnnotations || {})) {
     try {
@@ -100,22 +134,6 @@ export function transform(rawHtml, planArg = {}) {
     }
   }
   stats.annotationsApplied = annotationCount;
-
-  // === 3. 取正文容器 ===
-  // 优先 <main> > <article> > <body>。bench/full-report 都是 body 直接含内容。
-  let root = $('main').first();
-  if (root.length === 0) root = $('article').first();
-  if (root.length === 0) root = $('body').first();
-  if (root.length === 0) root = $.root();
-
-  // === 4. 递归 emit ===
-  const ctx = { $, plan, warnings, stats };
-  const body = emitChildren(root[0], ctx);
-
-  // === 5. 拼最终 DocxXML（含 <title>）===
-  const docxxml = `<title>${escapeText(title)}</title>\n${body}`;
-
-  return { docxxml, title, warnings, stats };
 }
 
 // ===========================================================================
