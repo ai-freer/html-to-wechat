@@ -1,0 +1,20 @@
+{
+  "name": "@html-to-wechat/mode-04-feishu",
+  "private": true,
+  "version": "0.1.0-dev",
+  "type": "module",
+  "description": "Mode 4 v0.1 — HTML Artifact → 飞书云文档（DocxXML 直转）",
+  "bin": {
+    "html-to-feishu": "./index.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.0.0"
+  },
+  "scripts": {
+    "test:bench": "node index.mjs --input ../../../../samples/bench-standalone.html --dry-run",
+    "test:bench-real": "node index.mjs --input ../../../../samples/bench-standalone.html"
+  }
+}

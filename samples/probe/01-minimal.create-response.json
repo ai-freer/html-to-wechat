@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "identity": "user",
+  "data": {
+    "document": {
+      "document_id": "syntheticDocumentId000000001",
+      "new_blocks": [
+        {
+          "block_id": "syntheticBlockId00000000001",
+          "block_token": "syntheticWhiteboardToken0001",
+          "block_type": "whiteboard"
+        }
+      ],
+      "revision_id": 3,
+      "url": "https://example.feishu.cn/docx/syntheticDocumentId000000001"
+    },
+    "log_id": "synthetic-log-id",
+    "warnings": []
+  }
+}

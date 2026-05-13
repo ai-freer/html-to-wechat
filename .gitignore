@@ -30,6 +30,14 @@ Thumbs.db
 *.swp
 *.swo
 
+# Third-party agent skills (installed locally via `npx skills add ...`).
+# These are NOT bundled in this repo — end users install them themselves
+# alongside lark-cli as part of their own environment setup.
+.agents/
+skills/
+skills-lock.json
+.claude/
+
 # Logs
 *.log
 
