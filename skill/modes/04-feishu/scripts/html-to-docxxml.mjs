@@ -337,10 +337,73 @@ function pickAttrs(tag, node, ctx) {
     if (attribs.width) keep.push(['width', attribs.width]);
   }
 
-  // <span> 不带任何属性时 v0.5 才支持 text-color / background-color，v0.1 跳过
-  // 如果 HTML 源用 <span style="..."> 表达颜色，v0.1 阶段全部丢失（这是计划内）
+  // v0.5b: <span> 解析 style 的 color / background-color
+  // DocxXML §3.2 接受命名色 (red/blue/...) / light-X / medium-X / rgb(r,g,b)
+  if (tag === 'span') {
+    const style = attribs.style || '';
+    const textColor = pickStyleColor(style, 'color');
+    const bgColor = pickStyleColor(style, 'background-color');
+    if (textColor) {
+      keep.push(['text-color', textColor]);
+      ctx.stats.spansColored = (ctx.stats.spansColored || 0) + 1;
+    }
+    if (bgColor) {
+      keep.push(['background-color', bgColor]);
+      ctx.stats.spansBgColored = (ctx.stats.spansBgColored || 0) + 1;
+    }
+  }
 
   return keep.length === 0 ? '' : ' ' + keep.map(([k, v]) => `${k}="${escapeAttr(String(v))}"`).join(' ');
+}
+
+/**
+ * v0.5b: 从 inline style 抽取颜色值，归一化为 DocxXML 接受的格式。
+ *
+ * DocxXML §3.2 接受三种 color 写法：
+ *   - 命名色：red / orange / yellow / green / blue / purple / gray
+ *     + 派生：light-red / medium-blue / 等
+ *   - rgb(r, g, b) 三元组
+ *
+ * HTML 源里常见：#hex / rgb()/rgba() / 命名色 / var()/hsl()/oklch()。
+ * 简化策略：
+ *   - 命名色（CSS 标准颜色名）→ 优先映射到 DocxXML 命名色集合，找不到映射时回退 rgb()
+ *   - #hex（3/6 位）→ 解析为 rgb(r, g, b)
+ *   - rgb()/rgba() → 重新格式化（去 alpha；DocxXML 不支持透明）
+ *   - 其他（var/hsl/oklch/calc）→ 返回 null 跳过
+ */
+function pickStyleColor(style, prop) {
+  if (!style) return null;
+  const re = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;]+)`, 'i');
+  const m = re.exec(style);
+  if (!m) return null;
+  const v = m[1].trim();
+  if (!v || v === 'inherit' || v === 'initial' || v === 'unset' || v === 'transparent' || v === 'currentColor') return null;
+  // #hex
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+  if (hex) {
+    const h = hex[1];
+    const r = parseInt(h.length === 3 ? h[0] + h[0] : h.slice(0, 2), 16);
+    const g = parseInt(h.length === 3 ? h[1] + h[1] : h.slice(2, 4), 16);
+    const b = parseInt(h.length === 3 ? h[2] + h[2] : h.slice(4, 6), 16);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  // rgb() / rgba()
+  const rgb = /^rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)(?:\s*[,\/]\s*[\d.]+%?)?\s*\)$/i.exec(v);
+  if (rgb) {
+    return `rgb(${rgb[1]}, ${rgb[2]}, ${rgb[3]})`;
+  }
+  // 命名色
+  const named = /^[a-z]+$/i.exec(v);
+  if (named) {
+    const lower = v.toLowerCase();
+    const docxxmlNamed = new Set(['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'gray', 'black', 'white']);
+    if (docxxmlNamed.has(lower)) return lower;
+    // CSS 标准命名色 → 近似 rgb 兜底（只覆盖最常见几个）
+    const fallback = { darkred: 'rgb(139, 0, 0)', darkblue: 'rgb(0, 0, 139)', darkgreen: 'rgb(0, 100, 0)', crimson: 'rgb(220, 20, 60)' };
+    return fallback[lower] || null;
+  }
+  // var() / hsl() / oklch() / 其他 → 跳过
+  return null;
 }
 
 // ===========================================================================

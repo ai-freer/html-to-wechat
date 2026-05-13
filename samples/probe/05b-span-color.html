@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>V0.5b Span Color 探针</title></head>
+<body>
+<article>
+  <h1>V0.5b · &lt;span style="color: ..."&gt; 颜色映射</h1>
+  <p>本文档测试 inline CSS color / background-color → DocxXML span text-color / background-color 的映射。</p>
+
+  <h2>1. 命名色（DocxXML 原生支持）</h2>
+  <p>这段文字默认黑色，<span style="color: red">红色 red</span>、<span style="color: blue">蓝色 blue</span>、<span style="color: green">绿色 green</span>。</p>
+
+  <h2>2. #hex 转 rgb()</h2>
+  <p>三位 hex：<span style="color: #f00">#f00 → rgb(255, 0, 0)</span>。六位 hex：<span style="color: #a4302a">#a4302a → 砖红</span>、<span style="color: #1c5f3e">#1c5f3e → 墨绿</span>。</p>
+
+  <h2>3. rgb() / rgba() 兜底</h2>
+  <p>rgb：<span style="color: rgb(50, 100, 200)">蓝色 rgb 三元组</span>。rgba：<span style="color: rgba(200, 50, 50, 0.8)">半透明 rgba（alpha 被丢）</span>。</p>
+
+  <h2>4. background-color</h2>
+  <p>背景色：<span style="background-color: yellow">高亮黄底</span>、<span style="background-color: #ffe4b5">桃色背景</span>。</p>
+
+  <h2>5. color + background-color 组合</h2>
+  <p>同时：<span style="color: white; background-color: #a4302a">白字砖红底</span>、<span style="color: yellow; background-color: navy">黄字海军蓝底（navy 走 fallback null）</span>。</p>
+
+  <h2>6. 跳过的 case</h2>
+  <p>这些不映射：<span style="color: var(--brand)">var() 引用</span>、<span style="color: hsl(0,100%,50%)">hsl()</span>、<span style="color: transparent">透明</span>、<span style="color: inherit">继承</span>。</p>
+</article>
+</body>
+</html>
