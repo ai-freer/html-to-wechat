@@ -372,6 +372,10 @@ v0.3：
 13. **`<ol>` 直接包 `<callout>` 子节点 → 服务端整体丢弃（v0.3a 探针 A 实证）**：DocxXML 写 `<ol><callout/><callout/></ol>`，飞书前端**不**渲染那些 callout——既不合并为列表项也不显示，整体被吞。**修法**：plan 标注 `.card-lvl`-类视觉容器时，要让它们 emit 为 callout 平级兄弟，不能套在 ol 内。已 v0.3a 探针 A/B/C 三变体证实
 14. **`<callout>` 内多 inline 兄弟节点空白被吞 → 文本粘连（v0.3a bench 实证）**：源 HTML 是 `<span>Current</span><span>C2-C3</span>...`，cheerio + escapeText 输出后 docxxml 也保留了空白，但**飞书 callout 渲染时把 inline 元素间所有空白吃掉**，渲染出 `CurrentC2-C3PotentialC4EvidenceA` 粘连文本。**修法**：plan 在 `boundaryAnnotations` 里给 callout 类标注加 `joinWith: " · "`，emit 时用可见分隔符串联子元素。已落地 transform.mjs:`emitChildrenJoined()` + bench-plan v0.2-demo
 15. **Mermaid 画板：v0.1 内联 DSL 路径足够稳（v0.3b 探针实证）**：3 变体（简单流程图 / sequence diagram / subgraph + 自定义样式）全部一次成功，无需 v0.3 原计划的 +fetch 验证 + rasterize 兜底。**结论**：仅当后续遇到真实失败 sample 再上 v0.3 的兜底分支，先不预防性写
+16. **`+update` 走 Lark-flavored Markdown，不是 DocxXML（v0.4 实证）**：`+create` 走 DocxXML、`+update` 走 markdown。同一份文档"创建用一种格式、精修用另一种"——这是飞书的协议设计，看起来不一致但是合理的——markdown 是飞书生态的通用编辑语言。**所以**：mode 4 高层流程里，agent 产精修指令时要直接生成 Lark-flavored Markdown，不要尝试转 DocxXML 片段
+17. **`lark-cli --file / --content / --markdown` 类参数统一规则（v0.1/v0.2c/v0.4 三次踩到）**：所有这类参数都有 "must be relative path within current directory" 安全约束。**统一绕开方法**：
+    - `--content -` / `--markdown -` → 通过 stdin 灌内容（v0.1 +create / v0.4 +update 用法）
+    - `--file <basename>` + spawn `{ cwd: dirname(file) }` → 让 CLI 看到"相对路径"（v0.2c +media-insert 用法）
 
 ## 8. Skill 与前端的边界
 
