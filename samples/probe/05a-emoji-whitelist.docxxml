@@ -1,0 +1,53 @@
+<title>V0.5a 探针 · Emoji 白名单</title>
+<h1>V0.5a · 飞书 callout emoji 实测白名单</h1>
+<p>每个 callout 内容含 emoji 名 + 输入字符。文档创建后，肉眼比对 emoji 图标和文字描述是否一致。一致 = 白名单内；不一致（变成 💡 等其他）= 静默 fallback。</p>
+
+<h2>Group 1: docs/04 §3.2 推荐表</h2>
+<callout emoji="💡" background-color="light-yellow">[💡 light-bulb] 灯泡 — 提示/灵感</callout>
+<callout emoji="📌" background-color="light-blue">[📌 push-pin] 图钉 — 重点标记</callout>
+<callout emoji="⚠️" background-color="light-red">[⚠️ warning] 警告</callout>
+<callout emoji="ℹ️" background-color="light-blue">[ℹ️ info] 信息</callout>
+<callout emoji="✅" background-color="light-green">[✅ check] 完成/通过</callout>
+<callout emoji="❌" background-color="light-red">[❌ cross] 失败/禁止</callout>
+
+<h2>Group 2: 文字/笔记类</h2>
+<callout emoji="📝" background-color="light-yellow">[📝 memo] 备注</callout>
+<callout emoji="📋" background-color="light-yellow">[📋 clipboard] 清单</callout>
+<callout emoji="📄" background-color="light-gray">[📄 page] 文档</callout>
+<callout emoji="📑" background-color="light-gray">[📑 bookmark-tabs] 章节</callout>
+
+<h2>Group 3: 警示/状态类</h2>
+<callout emoji="❗" background-color="light-orange">[❗ exclamation] 强调</callout>
+<callout emoji="🔔" background-color="light-yellow">[🔔 bell] 提醒</callout>
+<callout emoji="🚨" background-color="light-red">[🚨 siren] 警报</callout>
+<callout emoji="🛑" background-color="light-red">[🛑 stop] 停止</callout>
+
+<h2>Group 4: 工具/工作流类</h2>
+<callout emoji="⚙️" background-color="light-gray">[⚙️ gear] 配置</callout>
+<callout emoji="🛠" background-color="light-gray">[🛠 tools] 工具</callout>
+<callout emoji="🔍" background-color="light-blue">[🔍 magnifier] 搜索/检查</callout>
+<callout emoji="🔧" background-color="light-gray">[🔧 wrench] 修复</callout>
+
+<h2>Group 5: 数据/时间类</h2>
+<callout emoji="📊" background-color="light-blue">[📊 chart-bar] 统计</callout>
+<callout emoji="📈" background-color="light-green">[📈 chart-up] 增长</callout>
+<callout emoji="📉" background-color="light-red">[📉 chart-down] 下降</callout>
+<callout emoji="📅" background-color="light-yellow">[📅 calendar] 日期</callout>
+<callout emoji="🕐" background-color="light-yellow">[🕐 clock] 时间</callout>
+
+<h2>Group 6: 表情/反应</h2>
+<callout emoji="⭐" background-color="light-yellow">[⭐ star] 重要</callout>
+<callout emoji="🎯" background-color="light-red">[🎯 target] 目标</callout>
+<callout emoji="🔥" background-color="light-orange">[🔥 fire] 热点</callout>
+<callout emoji="🚀" background-color="light-blue">[🚀 rocket] 加速</callout>
+<callout emoji="🎉" background-color="light-yellow">[🎉 party] 庆祝</callout>
+<callout emoji="🆕" background-color="light-blue">[🆕 NEW] 新内容</callout>
+
+<h2>Group 7: 杂项</h2>
+<callout emoji="🌟" background-color="light-yellow">[🌟 sparkle-star] 闪耀</callout>
+<callout emoji="🤔" background-color="light-gray">[🤔 thinking] 思考</callout>
+<callout emoji="💬" background-color="light-blue">[💬 speech] 讨论</callout>
+<callout emoji="💼" background-color="light-gray">[💼 briefcase] 工作</callout>
+<callout emoji="📷" background-color="light-gray">[📷 camera] 图片</callout>
+
+<p>结尾：每个 callout 左侧图标如果与 [描述] 不符，说明该 emoji 被静默 fallback。</p>
