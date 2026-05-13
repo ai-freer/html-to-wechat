@@ -369,6 +369,9 @@ v0.3：
 10. **行内样式嵌套顺序硬约束**：`<a> → <b> → <em> → <del> → <u> → <code> → <span>` 外→内。HTML 源里顺序错乱必须重排；否则 DocxXML 解析失败或样式丢失
 11. **首次扫码授权后**：用户的 token 在 keychain，跨机器/重装系统会丢——文档要写清"换机器要重新扫码"
 12. **国际版 Lark vs 国内飞书**：base URL 不同（`open.feishu.cn` vs `open.larksuite.com`），CLI 的 `--brand feishu|lark` 控制。多账号场景要明确
+13. **`<ol>` 直接包 `<callout>` 子节点 → 服务端整体丢弃（v0.3a 探针 A 实证）**：DocxXML 写 `<ol><callout/><callout/></ol>`，飞书前端**不**渲染那些 callout——既不合并为列表项也不显示，整体被吞。**修法**：plan 标注 `.card-lvl`-类视觉容器时，要让它们 emit 为 callout 平级兄弟，不能套在 ol 内。已 v0.3a 探针 A/B/C 三变体证实
+14. **`<callout>` 内多 inline 兄弟节点空白被吞 → 文本粘连（v0.3a bench 实证）**：源 HTML 是 `<span>Current</span><span>C2-C3</span>...`，cheerio + escapeText 输出后 docxxml 也保留了空白，但**飞书 callout 渲染时把 inline 元素间所有空白吃掉**，渲染出 `CurrentC2-C3PotentialC4EvidenceA` 粘连文本。**修法**：plan 在 `boundaryAnnotations` 里给 callout 类标注加 `joinWith: " · "`，emit 时用可见分隔符串联子元素。已落地 transform.mjs:`emitChildrenJoined()` + bench-plan v0.2-demo
+15. **Mermaid 画板：v0.1 内联 DSL 路径足够稳（v0.3b 探针实证）**：3 变体（简单流程图 / sequence diagram / subgraph + 自定义样式）全部一次成功，无需 v0.3 原计划的 +fetch 验证 + rasterize 兜底。**结论**：仅当后续遇到真实失败 sample 再上 v0.3 的兜底分支，先不预防性写
 
 ## 8. Skill 与前端的边界
 

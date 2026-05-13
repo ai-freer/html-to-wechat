@@ -36,7 +36,8 @@
     ".card-lvl": {
       "type": "callout",
       "emoji": "📌",
-      "backgroundColor": "light-blue"
+      "backgroundColor": "light-blue",
+      "joinWith": " · "
     }
   }
 }

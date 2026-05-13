@@ -1,0 +1,15 @@
+<title>V0.3 探针 A · ol&gt;callout（callout 作为列表项）</title>
+<h1>V0.3 探针 A · ol &gt; callout 直接嵌套</h1>
+<p>本探针 A 测试：把多个 callout 放在 ol 的直接子节点，飞书前端是否会把 callout 合并为列表 item。</p>
+
+<h2>下方 ol 包含 6 个 callout（无 li 包裹）</h2>
+<ol seq="auto">
+  <callout emoji="📌" backgroundColor="light-blue">能力 1：基础任务执行（Tool calling 闭环）</callout>
+  <callout emoji="📌" backgroundColor="light-blue">能力 2：多模态融合理解（视觉 + 语音同步）</callout>
+  <callout emoji="📌" backgroundColor="light-blue">能力 3：长期记忆与情境保持</callout>
+  <callout emoji="📌" backgroundColor="light-blue">能力 4：多 Agent 协作编排</callout>
+  <callout emoji="📌" backgroundColor="light-blue">能力 5：自我反思与错误修正</callout>
+  <callout emoji="📌" backgroundColor="light-blue">能力 6：知识图谱构建</callout>
+</ol>
+
+<p>结尾段落：用于验证 ol 闭合后 callout 是否真的被视为 ol 子项。</p>
