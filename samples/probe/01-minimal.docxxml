@@ -1,0 +1,62 @@
+<h1>Mode 4 v0.1 探针：DocxXML 能力实测</h1>
+<p>这份文档由 <code>lark-cli docs +create --api-version v2 --content @01-minimal.docxxml</code> 创建。</p>
+<p>用于验证 audit 报告里 5 个开放问题中可用 CLI 实测的 4 项。</p>
+
+<h2>开放问题 1：嵌套深度（context-tower 9 层结构）</h2>
+<grid>
+  <column width-ratio="0.5">
+    <callout emoji="💡" background-color="light-yellow">
+      <h3>第二层：callout in column</h3>
+      <p>这是 grid > column > callout 嵌套，验证三层是否解析成功。</p>
+      <ul>
+        <li>第四层：callout 内的 list
+          <ul>
+            <li>第五层：嵌套 list</li>
+          </ul>
+        </li>
+      </ul>
+    </callout>
+  </column>
+  <column width-ratio="0.5">
+    <callout emoji="⚠️" background-color="light-red">
+      <h3>飞书独家 block 测试</h3>
+      <p>callout + grid + emoji Unicode 直接写——audit 说不需要 emoji_id 字典。</p>
+    </callout>
+  </column>
+</grid>
+
+<h2>开放问题 3：&lt;img href&gt; 远程 URL 拉取</h2>
+<p>下面这张图用远程公网 URL，看服务端能否自动拉取并入库：</p>
+<img href="https://www.feishu.cn/favicon.ico"/>
+
+<h2>开放问题 5：callout 内嵌 img 是否生效</h2>
+<callout emoji="📷" background-color="light-blue">
+  <p>callout 里塞图片——skill 说"子块限文本/标题/列表/待办/引用"未列 img，需要实测。</p>
+  <img href="https://www.feishu.cn/favicon.ico"/>
+</callout>
+
+<h2>画板内联（mode 4 v0.3 能力前置探）</h2>
+<whiteboard type="mermaid">
+graph TD;
+  A[HTML Artifact] --> B[DocxXML];
+  B --> C[lark-cli docs +create];
+  C --> D[飞书文档];
+</whiteboard>
+
+<h2>表格</h2>
+<table>
+  <thead>
+    <tr><th>路径</th><th>能力</th><th>v0.1 选用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>HTML → batch_create</td><td>全自建</td><td>否</td></tr>
+    <tr><td>HTML → convert 端点</td><td>服务端解析</td><td>否</td></tr>
+    <tr><td>HTML → DocxXML</td><td>覆盖飞书独家 block</td><td>是</td></tr>
+  </tbody>
+</table>
+
+<h2>代码块（语种识别）</h2>
+<pre lang="bash"><code>lark-cli docs +create --api-version v2 --content @01-minimal.docxxml --doc-format xml</code></pre>
+
+<h2>结论占位</h2>
+<p>如果你能看到这一行，说明 DocxXML 至少把这份探针完整跑通了。开放问题 2「<code>--content</code> 长度上限」需要另一份大型探针测试。</p>

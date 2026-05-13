@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "identity": "user",
+  "data": {
+    "document": {
+      "document_id": "UIK5dqHfRolu61xED12cmbdlnub",
+      "new_blocks": [
+        {
+          "block_id": "doxcnAcM2PnvyFTXkBMxMyBxOWc",
+          "block_token": "FWUFw0S2lh0CP6bHpdVcs2H9nGd",
+          "block_type": "whiteboard"
+        }
+      ],
+      "revision_id": 3,
+      "url": "https://xcnstdjabsyi.feishu.cn/docx/UIK5dqHfRolu61xED12cmbdlnub"
+    },
+    "log_id": "20260513154619CAA2991F2FE4EB063AED",
+    "warnings": []
+  }
+}
