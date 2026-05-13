@@ -1,0 +1,12 @@
+<title>V0.3 探针 B · callout 与 ol/li 平级</title>
+<h1>V0.3 探针 B · callout 在 ol 之外（兄弟节点）</h1>
+<p>对照 A：callout 不再放在 ol 内部，而是与 ol 平级（兄弟）。期望飞书把它们渲染成独立 callout 块。</p>
+
+<callout emoji="📌" backgroundColor="light-blue">能力 1：基础任务执行</callout>
+<callout emoji="📌" backgroundColor="light-blue">能力 2：多模态融合理解</callout>
+<callout emoji="📌" backgroundColor="light-blue">能力 3：长期记忆与情境保持</callout>
+<callout emoji="📌" backgroundColor="light-blue">能力 4：多 Agent 协作编排</callout>
+<callout emoji="📌" backgroundColor="light-blue">能力 5：自我反思与错误修正</callout>
+<callout emoji="📌" backgroundColor="light-blue">能力 6：知识图谱构建</callout>
+
+<p>结尾段落：上方应为 6 个独立 callout 块（无编号），与 A 的视觉对比明显。</p>

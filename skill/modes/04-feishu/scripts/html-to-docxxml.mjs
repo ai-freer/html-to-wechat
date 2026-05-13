@@ -128,6 +128,8 @@ function applyBoundaryAnnotations($, plan, warnings, stats) {
         if (ann.borderColor) $el.attr('data-mode4-bordercolor', ann.borderColor);
         if (ann.ratio != null) $el.attr('data-mode4-ratio', String(ann.ratio));
         if (ann.dsl) $el.attr('data-mode4-dsl', ann.dsl);
+        // v0.3a: joinWith — callout 内多 inline 兄弟节点用可见分隔符串联（飞书吃掉 inline 间空白）
+        if (ann.joinWith) $el.attr('data-mode4-joinwith', ann.joinWith);
         annotationCount++;
       });
     } catch (e) {
@@ -221,12 +223,35 @@ function emitChildren(node, ctx) {
 }
 
 /**
+ * v0.3a: 用可见分隔符串联子元素 emit 结果。
+ *
+ * 解决 callout 内多 inline 兄弟节点（如 `.card-lvl` 内 6 个 <span class="lab">）
+ * 被飞书吃掉空白后粘连成 "CurrentC2-C3PotentialC4EvidenceA" 的问题。
+ *
+ * 行为：
+ * - 只对 tag 类型子节点（element）插入分隔，跳过 text/comment
+ * - 每个 tag 子节点 emit 后，如果下一个非空白兄弟也是 tag，则插入分隔符
+ */
+function emitChildrenJoined(node, ctx, sep) {
+  if (!node || !node.children) return '';
+  const parts = [];
+  const tagChildren = node.children.filter(c => c.type === 'tag');
+  for (let i = 0; i < tagChildren.length; i++) {
+    parts.push(emit(tagChildren[i], ctx));
+  }
+  return parts.join(escapeText(sep));
+}
+
+/**
  * v0.2: 处理 plan.boundaryAnnotations 覆盖的节点。
  * 节点的 data-mode4-as 属性指示要变成什么 DocxXML 容器。
  */
 function emitAnnotated(node, mode4As, ctx) {
   const a = node.attribs || {};
-  const children = emitChildren(node, ctx);
+  const joinWith = a['data-mode4-joinwith'];  // v0.3a: 节点级分隔符（callout/grid 等容器内用）
+  const children = joinWith
+    ? emitChildrenJoined(node, ctx, joinWith)
+    : emitChildren(node, ctx);
 
   switch (mode4As) {
     case 'callout': {

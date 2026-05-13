@@ -1,0 +1,54 @@
+<title>V0.3b 探针 · Mermaid 画板</title>
+<h1>V0.3b · 内联 Mermaid DSL 创建画板探针</h1>
+<p>本探针测试 DocxXML <code>&lt;whiteboard type="mermaid"&gt;DSL&lt;/whiteboard&gt;</code> 服务端解析能力。3 个变体：</p>
+
+<h2>1. 简单流程图（5 节点 + 1 决策菱形）</h2>
+<whiteboard type="mermaid">graph TD
+    A[用户提需求] --&gt; B{需求清晰?}
+    B --&gt;|是| C[Agent 规划]
+    B --&gt;|否| D[反问澄清]
+    C --&gt; E[执行任务]
+    D --&gt; A
+    E --&gt; F[返回结果]</whiteboard>
+
+<h2>2. 时序图（4 角色 5 交互）</h2>
+<whiteboard type="mermaid">sequenceDiagram
+    participant U as 用户
+    participant A as Agent
+    participant T as 工具
+    participant L as LLM
+    U-&gt;&gt;A: 我要订下周一去上海的高铁
+    A-&gt;&gt;L: 解析意图、需要哪些参数？
+    L--&gt;&gt;A: 出发地/到达地/日期/班次偏好
+    A-&gt;&gt;T: query 12306 票务
+    T--&gt;&gt;A: 返回班次列表
+    A-&gt;&gt;U: 推荐 G7 班次，确认订票？</whiteboard>
+
+<h2>3. subgraph + 自定义样式（复杂结构）</h2>
+<whiteboard type="mermaid">graph LR
+    subgraph "感知层 Perception"
+        S1[语音输入]
+        S2[屏幕状态]
+        S3[车辆 CAN]
+    end
+    subgraph "决策层 Cognition"
+        C1[意图识别]
+        C2[规划]
+        C3[安全校验]
+    end
+    subgraph "执行层 Action"
+        A1[语音回复]
+        A2[App 调用]
+        A3[车控指令]
+    end
+    S1 --&gt; C1
+    S2 --&gt; C1
+    S3 --&gt; C3
+    C1 --&gt; C2
+    C2 --&gt; C3
+    C3 --&gt; A1
+    C3 --&gt; A2
+    C3 --&gt; A3
+    style C3 fill:#a4302a,color:#fff</whiteboard>
+
+<p>结尾：上方 3 个 whiteboard 块应全部被解析为可编辑的飞书画板。</p>

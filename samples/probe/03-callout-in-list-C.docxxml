@@ -1,0 +1,17 @@
+<title>V0.3 探针 C · callout 内嵌 ol/li（list 在 callout 里）</title>
+<h1>V0.3 探针 C · callout 包含 ol（颠倒嵌套）</h1>
+<p>反向嵌套：把 ol 放进 callout 里。期望 callout 仍是 callout 容器，里面是一个完整 list。</p>
+
+<callout emoji="📋" backgroundColor="light-yellow">
+  <h3>能力清单 C0-C5</h3>
+  <ol seq="auto">
+    <li>能力 0：基础任务执行</li>
+    <li>能力 1：多模态融合理解</li>
+    <li>能力 2：长期记忆与情境保持</li>
+    <li>能力 3：多 Agent 协作编排</li>
+    <li>能力 4：自我反思与错误修正</li>
+    <li>能力 5：知识图谱构建</li>
+  </ol>
+</callout>
+
+<p>结尾段落：上方应为 1 个 callout 容器，内含 1 个 ol 列表。</p>
