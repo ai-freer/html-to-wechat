@@ -1,0 +1,39 @@
+{
+  "_comment": "Mode 01 v0.1 1C demo plan — agent 看了 puppeteer 截图（/tmp/bench-m1-{top,mid,bot}.png）后产出。bench 是个有 37 个 article 的合成压力测试，default plan 的 extractMain 只能抓单卡，需关闭 + 用 directives 清理装饰。",
+
+  "extractMain": false,
+
+  "directives": [
+    {
+      "_why": "左侧 .rail（导航 + 章节锚 + DNA项目组 logo）在公众号是纯装饰，剥",
+      "selector": ".rail",
+      "action": "remove"
+    },
+    {
+      "_why": ".final-quote 是黑底白字大段标语（'豆包上车，AI 替你动手'），公众号默认浅色主题里黑底大块视觉刺眼，统一调亮",
+      "selector": ".final-quote",
+      "action": "lighten-bg"
+    },
+    {
+      "_why": ".brand-caveat 是品牌警告，加 ⚠️ 前缀提升可读性（公众号读者扫到能立刻识别）",
+      "selector": ".brand-caveat",
+      "action": "prepend-text",
+      "content": "⚠️ 品牌说明：",
+      "format": "strong"
+    },
+    {
+      "_why": ".obs-note 是 observation 散点（3 处），在每条前补 📌 让结构更清晰",
+      "selector": ".obs-note",
+      "action": "prepend-text",
+      "content": "📌 观察 {{index}}：",
+      "format": "strong"
+    },
+    {
+      "_why": ".margin-note 是页边注（3 处），margin-note 公众号没空间侧排，在前面加📝标记后正文流式",
+      "selector": ".margin-note",
+      "action": "prepend-text",
+      "content": "📝 ",
+      "format": "strong"
+    }
+  ]
+}
