@@ -1,0 +1,17 @@
+{
+  "name": "@html-to-wechat/mode-03-script",
+  "private": true,
+  "version": "0.1.0-dev",
+  "type": "module",
+  "description": "Mode 3 v0.1 — HTML Artifact → 口播稿（cheerio + turndown 抽文本 + 字数/时长/段/句长分析）",
+  "bin": {
+    "html-to-script": "./index.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "turndown": "^7.2.0"
+  },
+  "scripts": {
+    "test:bench": "node index.mjs --input ../../../../samples/bench-standalone.html --output /tmp/bench-script.md"
+  }
+}
