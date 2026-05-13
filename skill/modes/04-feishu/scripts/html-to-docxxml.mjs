@@ -164,8 +164,12 @@ function emit(node, ctx) {
 
   ctx.stats.tagCounts[tag] = (ctx.stats.tagCounts[tag] || 0) + 1;
 
-  // === 黑名单（双重保险）===
+  // === 黑名单（双重保险，但 plan 标注 escape）===
+  // 如果是 banned tag 但子树里含 data-mode4-as 标注，穿透 children；不输出自己的 tag。
+  // 否则真丢。
   if (ALWAYS_DROP.has(tag) || ctx.plan.bannedTags.includes(tag)) {
+    const hasAnnotation = ctx.$(node).find('[data-mode4-as]').length > 0;
+    if (hasAnnotation) return emitChildren(node, ctx);
     return '';
   }
 
