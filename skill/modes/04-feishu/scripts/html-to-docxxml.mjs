@@ -60,7 +60,8 @@ export function transform(rawHtml, planArg = {}) {
   const plan = mergePlan(planArg);
   const $ = cheerio.load(rawHtml, { decodeEntities: false });
   const warnings = [];
-  const stats = { tagCounts: {}, droppedTags: {}, imgRemote: 0, imgPlaceholder: 0 };
+  const stats = { tagCounts: {}, droppedTags: {}, imgRemote: 0, imgPlaceholder: 0, imgLocal: 0, imgBase64: 0 };
+  const mediaTasks = [];  // v0.2c: local/base64 imgs 边信道，后置 +media-insert
 
   // === 1. 决定文档标题 ===
   const title = pickTitle($, plan) || 'Untitled';
@@ -92,13 +93,13 @@ export function transform(rawHtml, planArg = {}) {
   if (root.length === 0) root = $.root();
 
   // === 4. 递归 emit ===
-  const ctx = { $, plan, warnings, stats };
+  const ctx = { $, plan, warnings, stats, mediaTasks };
   const body = emitChildren(root[0], ctx);
 
   // === 5. 拼最终 DocxXML（含 <title>）===
   const docxxml = `<title>${escapeText(title)}</title>\n${body}`;
 
-  return { docxxml, title, warnings, stats };
+  return { docxxml, title, warnings, stats, mediaTasks };
 }
 
 // ===========================================================================
@@ -336,11 +337,34 @@ function emitImg(node, ctx) {
     return `<img ${attrs.map(([k, v]) => `${k}="${escapeAttr(v)}"`).join(' ')}/>`;
   }
 
-  // base64 / 本地路径 / 其他：v0.1 占位（v0.2 走 +media-insert）
-  ctx.stats.imgPlaceholder += 1;
+  // base64 / 本地路径：v0.2c 走 +media-insert 后置处理
+  // 这里 emit 一个**唯一编号 placeholder** paragraph，后续 index.mjs 通过
+  // selection-with-ellipsis 匹配 marker 完成插图 + 删占位两步。
   const alt = node.attribs?.alt || '图片';
-  ctx.warnings.push(`local/base64 img placeholder: ${alt}`);
-  return `<p>[图片：${escapeText(alt)}]</p>`;
+  const { width, height } = pickImgDimensions(node, ctx);
+  const id = (ctx.mediaTasks.length + 1).toString().padStart(3, '0');
+  // marker 设计：用窄宽字符 + ID 唯一；后跟可读描述方便 lark-cli 抓 full block 文本删除
+  const marker = `「IMG_PLACEHOLDER_${id}」`;
+  const placeholderText = `${marker} [图片：${alt}]`;
+
+  // src 分类：data: URI vs 本地路径
+  const isBase64 = /^data:image\//i.test(src);
+  if (isBase64) ctx.stats.imgBase64 += 1; else ctx.stats.imgLocal += 1;
+
+  ctx.mediaTasks.push({
+    id,
+    marker,
+    placeholderText,
+    src,
+    alt,
+    width,
+    height,
+    type: isBase64 ? 'base64' : 'local',
+  });
+
+  // p 块：上层 phase 4（index.mjs）会 +media-insert --before --selection-with-ellipsis marker，
+  // 然后 +update --mode delete_range --selection-with-ellipsis placeholderText 删此 paragraph
+  return `<p>${escapeText(placeholderText)}</p>`;
 }
 
 function pickImgDimensions(node, ctx) {

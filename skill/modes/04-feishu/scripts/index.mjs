@@ -11,9 +11,10 @@
 // 退出码：0 成功 / 1 失败
 
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { transform } from './html-to-docxxml.mjs';
 import { createDoc } from './create-doc.mjs';
+import { uploadMedia } from './upload-media.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -36,10 +37,13 @@ Options:
 try {
   // === 1. 读 HTML ===
   let rawHtml;
+  let inputDir = process.cwd();  // 默认；v0.2c 本地图片相对路径基准
   if (argv.stdin) {
     rawHtml = await readStdin();
   } else {
-    rawHtml = await readFile(resolve(argv.input), 'utf8');
+    const abs = resolve(argv.input);
+    rawHtml = await readFile(abs, 'utf8');
+    inputDir = dirname(abs);
   }
 
   // === 2. 读可选 plan ===
@@ -65,6 +69,7 @@ try {
   const summary = {
     title: result.title,
     docxxmlLength: result.docxxml.length,
+    mediaTaskCount: result.mediaTasks?.length || 0,
     warningCount: result.warnings.length,
     stats: result.stats,
   };
@@ -87,10 +92,30 @@ try {
   if (created.dryRun) {
     console.error('[mode-4] dry-run OK. Request body inspected:');
     console.error(JSON.stringify(created.raw, null, 2).slice(0, 2000));
+    if (result.mediaTasks?.length) {
+      console.error(`[mode-4] (dry-run) ${result.mediaTasks.length} media task(s) would be uploaded:`);
+      result.mediaTasks.forEach(t => console.error(`  - id=${t.id} type=${t.type} alt=${t.alt} src=${t.src.slice(0, 60)}...`));
+    }
     process.exit(0);
   }
 
-  // === 7. 输出 URL ===
+  // === 7. v0.2c: 本地/base64 图后置上传 ===
+  if (result.mediaTasks && result.mediaTasks.length > 0) {
+    console.error(`[mode-4] uploading ${result.mediaTasks.length} local/base64 image(s) via +media-insert...`);
+    const mediaRes = await uploadMedia(result.mediaTasks, {
+      documentId: created.documentId,
+      inputDir,
+      dryRun: false,
+    });
+    console.error(`[mode-4] media phase: uploaded=${mediaRes.uploaded} failed=${mediaRes.failed}`);
+    if (mediaRes.failed > 0) {
+      console.error('[mode-4] media failures (placeholder text left in document):');
+      mediaRes.results.filter(r => r.status === 'fail').forEach(r =>
+        console.error(`  - id=${r.id}: ${r.error?.slice(0, 200)}`));
+    }
+  }
+
+  // === 8. 输出 URL ===
   console.error(`[mode-4] created: document_id=${created.documentId}, new_blocks=${created.newBlocks.length}`);
   console.log(created.url);
   process.exit(0);
