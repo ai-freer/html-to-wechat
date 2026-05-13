@@ -1,7 +1,9 @@
 {
-  "_comment": "v0.2 demo plan for samples/bench-standalone.html — 4C agent 视觉理解输出形态示例。选 5 类明显的'引文/边注'容器升级为 callout，验证 plan 机制端到端工作。完整版需 puppeteer 截图 + agent 看图后产更全的 annotations。",
+  "_comment": "v0.2b plan for samples/bench-standalone.html — 由 4C agent 看 puppeteer 截图（/tmp/bench-{top,mid,bot}.png）后产出。比 v0.2a demo 多了：装饰 drop（.rail 整块）+ C0-C6 能力卡 callout。完整覆盖度仍未到——bench 有 251 个 unique class，v0.2 demo 只标关键 10 类。",
 
   "boundaryAnnotations": {
+    ".rail": { "type": "drop" },
+
     ".lede-quote": {
       "type": "callout",
       "emoji": "💡",
@@ -30,6 +32,11 @@
       "emoji": "⚠️",
       "backgroundColor": "light-red",
       "borderColor": "red"
+    },
+    ".card-lvl": {
+      "type": "callout",
+      "emoji": "📌",
+      "backgroundColor": "light-blue"
     }
   }
 }
