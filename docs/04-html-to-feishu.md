@@ -61,9 +61,12 @@ DocxXML 是飞书定义的"HTML 子集 + 扩展标签"格式。**所有标准 HT
 
 **颜色命名色（基础 7 色）**：`red / orange / yellow / green / blue / purple / gray`，可加前缀派生 `light-{色}` / `medium-{色}`。也支持 `rgb(...)`。
 
-**官方 emoji 推荐表**：`💡(默认) ✅ ❌ ⚠️ 📝 ❓ ❗ 👍 ❤️ 📌 🏁 ⭐`
+**官方 emoji 推荐表**：`💡(默认) ✅ ❌ ⚠️ 📝 ❓ ❗ 👍 ❤️ 📌 🏁 ⭐`——其中 ⚠️ 实测 fallback。
 
-⚠️ **但实测发现**：`⚠️` 和 `📷` 等 emoji **会被静默 fallback 为 💡**，文档列表 ≠ 实际生效集（详见 §7 坑 A）。**v0.1 转换器统一用 💡 兜底**，v0.5 才单独跑 emoji 白名单探针确定生效集。
+✅ **v0.5a 实证白名单（probe W6Y6dEImAo5cUFxbFlRcb0hBnvf, 30 个保留）**：
+`💡 📌 ✅ ❌  📝 📋 📄 📑  ❗ 🔔 🚨 🛑  🔍 🔧  📊 📈 📉 📅 🕐  ⭐ 🎯 🔥 🚀 🎉 🆕  🌟 🤔 💬 💼 📷`
+
+❌ **实证 fallback 名单（4 个）**：`⚠️ ℹ️ ⚙️ 🛠`（普遍带 U+FE0F 变体选择符）。转换器自动替换：⚠️→❗ / ℹ️→💡 / ⚙️→🔧 / 🛠→🔧（`emojiFallbackSubstitutes` 表可覆盖）。详见 §7 坑 A 更新条目。
 
 ### 3.3 行内样式硬嵌套顺序
 
@@ -361,7 +364,7 @@ v0.3：
 2. **API rate limit**：飞书有 QPS 限制——单文档 mode 4 只 ≤ 3 次 API 不会触发；批处理多文档时加 p-limit 控制（≤ 5 并发）
 3. **token 过期**：UAT access token 2 小时 / refresh token 7 天，CLI 自动续期。**长流程（如批转 100 份 Artifact）中途可能踩到 refresh 失败**——监控 CLI 退出码，非 0 时单独重试 auth 流程
 4. **嵌套深度 ≤ 5 层视觉无压力**：实测 grid > column > callout > h3 > ul > nested-ul 五层渲染正常。超过 5 层未实测，谨慎
-5. **emoji 静默 fallback（坑 A）**：原 XML 写 `emoji="⚠️"` 或 `emoji="📷"` 等，服务端**不报错**，静默替换成默认 💡。即使在官方推荐表里也可能失效（⚠️ 实测失效）。**v0.1 转换器统一 emoji="💡"**；v0.5 跑一份专门的 emoji 探针定生效集
+5. **emoji 静默 fallback（坑 A）**：原 XML 写 `emoji="⚠️"` 服务端**不报错**，静默替换成默认 💡。**v0.5a 探针实证白名单已固定**（probe W6Y6dEImAo5cUFxbFlRcb0hBnvf）：30 个保留、4 个 fallback（⚠️ ℹ️ ⚙️ 🛠，普遍带 U+FE0F 变体选择符）。**v0.5a 起转换器自动替换**：⚠️→❗ / ℹ️→💡 / ⚙️→🔧 / 🛠→🔧，并 push 一条 warning 让调用方知道。完整白名单见 §3.2；plan.emojiFallbackSubstitutes 可覆盖默认替换
 6. **fetch 输出不含样式属性 ≠ 创建丢失（撤销原坑 B）**：原以为 `background-color` 丢了——实际**视觉渲染完全正确**，只是 `docs +fetch` 输出的 XML 不回显样式属性。是 fetch 协议的事，不是创建丢失。**这条不是坑，作为提醒**：v0.4 用 fetch + str_replace 做精修时，不能用 fetch 输出当唯一真实来源，样式靠创建时写入
 7. **img 默认尺寸放大失真（坑 C）**：原 XML `<img href="..."/>` 无 width/height，飞书默认放大到容器宽度。**16x16 favicon 拉到 700+ 像素严重模糊**。**必须**：从 HTML 源 attr / CSS 计算值取尺寸；HTML 没标尺寸时由 §6.2 视觉理解给一个合理值（默认 800x600 兜底）
 8. **Code 块 caption 异常自吃换行**（已**撤销**担忧）：探针时见 `caption="&#xA;"`，担心污染显示——视觉质检看到代码块显示正常（"Code block" 标签 + 行号 + 代码内容），caption 换行被 CLI 自动处理。**不是坑**

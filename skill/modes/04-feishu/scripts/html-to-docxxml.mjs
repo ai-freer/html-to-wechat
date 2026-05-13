@@ -255,7 +255,13 @@ function emitAnnotated(node, mode4As, ctx) {
 
   switch (mode4As) {
     case 'callout': {
-      const emoji = a['data-mode4-emoji'] || ctx.plan.defaultCalloutEmoji;
+      const rawEmoji = a['data-mode4-emoji'] || ctx.plan.defaultCalloutEmoji;
+      // v0.5a：自动替换已知 fallback emoji（探针 W6Y6dEImAo5cUFxbFlRcb0hBnvf 实证）
+      const substitutes = ctx.plan.emojiFallbackSubstitutes || {};
+      const emoji = substitutes[rawEmoji] || rawEmoji;
+      if (emoji !== rawEmoji) {
+        ctx.warnings.push(`emoji "${rawEmoji}" 已知被服务端 fallback 为 💡，自动替换为 "${emoji}"（plan.emojiFallbackSubstitutes 覆盖）`);
+      }
       const bg = a['data-mode4-bgcolor'] || ctx.plan.defaultCalloutBackgroundColor;
       const border = a['data-mode4-bordercolor'];
       const attrs = [['emoji', emoji], ['background-color', bg]];

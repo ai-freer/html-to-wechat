@@ -45,6 +45,29 @@ export const DEFAULT_PLAN = Object.freeze({
   // 探针证实 ⚠️ 等会被静默 fallback 为 💡。v0.1 统一用 💡
   defaultCalloutEmoji: '💡',
 
+  // === v0.5a Emoji 白名单（实证）===
+  // probe 05a (W6Y6dEImAo5cUFxbFlRcb0hBnvf) 实测 33 个 callout emoji，
+  // 4 个被静默 fallback 为 💡（带 U+FE0F variation selector 的多偏向失败）。
+  // 规则：emit 时遇到已知 fallback emoji，**自动替换**为推荐替代 + 记 warning。
+  // 这样 v0.5 之后默认 plan 行为里再无静默 fallback。
+  emojiFallbackSubstitutes: {
+    '⚠️': '❗',  // warning → exclamation（同语义、不 fallback）
+    'ℹ️': '💡',  // info → light-bulb（飞书 default 也是它，至少明确）
+    '⚙️': '🔧',  // gear → wrench（工具语义近）
+    '🛠': '🔧',   // tools → wrench（同上）
+    '🛠️': '🔧',  // tools-vs16 → wrench
+  },
+  // 完整白名单（实证保留）——agent 写 plan 时优先选这些
+  safeCalloutEmojis: [
+    '💡', '📌', '✅', '❌',
+    '📝', '📋', '📄', '📑',
+    '❗', '🔔', '🚨', '🛑',
+    '🔍', '🔧',
+    '📊', '📈', '📉', '📅', '🕐',
+    '⭐', '🎯', '🔥', '🚀', '🎉', '🆕',
+    '🌟', '🤔', '💬', '💼', '📷',
+  ],
+
   // === Callout 颜色兜底 ===
   defaultCalloutBackgroundColor: 'light-yellow',
 
