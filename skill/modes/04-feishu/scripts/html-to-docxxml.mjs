@@ -74,6 +74,33 @@ export function transform(rawHtml, planArg = {}) {
     }
   });
 
+  // === 2.5 应用 plan.boundaryAnnotations（v0.2：视觉理解 plan 驱动容器映射）===
+  // schema:  { [cssSelector]: { type: 'grid'|'column'|'callout'|'whiteboard-mermaid', ...attrs } }
+  //   attrs（按 type 解释）：
+  //     callout: emoji / backgroundColor / borderColor
+  //     column:  ratio
+  //     whiteboard-mermaid: dsl
+  //     grid:    无（子项 column 各自带 ratio）
+  // 实现：用 cheerio selector 找节点 → 加 data-mode4-as 等属性，emit 阶段消费
+  let annotationCount = 0;
+  for (const [selector, ann] of Object.entries(plan.boundaryAnnotations || {})) {
+    try {
+      $(selector).each((_, el) => {
+        const $el = $(el);
+        $el.attr('data-mode4-as', ann.type);
+        if (ann.emoji) $el.attr('data-mode4-emoji', ann.emoji);
+        if (ann.backgroundColor) $el.attr('data-mode4-bgcolor', ann.backgroundColor);
+        if (ann.borderColor) $el.attr('data-mode4-bordercolor', ann.borderColor);
+        if (ann.ratio != null) $el.attr('data-mode4-ratio', String(ann.ratio));
+        if (ann.dsl) $el.attr('data-mode4-dsl', ann.dsl);
+        annotationCount++;
+      });
+    } catch (e) {
+      warnings.push(`boundaryAnnotations selector failed: ${selector} (${e.message})`);
+    }
+  }
+  stats.annotationsApplied = annotationCount;
+
   // === 3. 取正文容器 ===
   // 优先 <main> > <article> > <body>。bench/full-report 都是 body 直接含内容。
   let root = $('main').first();
@@ -124,6 +151,13 @@ function emit(node, ctx) {
     return '';
   }
 
+  // === v0.2: data-mode4-as 视觉理解标注覆盖 ===
+  // plan.boundaryAnnotations 阶段已把 selector 命中的节点加了 data-mode4-as
+  const mode4As = node.attribs?.['data-mode4-as'];
+  if (mode4As) {
+    return emitAnnotated(node, mode4As, ctx);
+  }
+
   // === 容器穿透 ===
   if (PASS_THROUGH.has(tag)) {
     return emitChildren(node, ctx);
@@ -161,6 +195,48 @@ function emit(node, ctx) {
 function emitChildren(node, ctx) {
   if (!node || !node.children) return '';
   return node.children.map(c => emit(c, ctx)).join('');
+}
+
+/**
+ * v0.2: 处理 plan.boundaryAnnotations 覆盖的节点。
+ * 节点的 data-mode4-as 属性指示要变成什么 DocxXML 容器。
+ */
+function emitAnnotated(node, mode4As, ctx) {
+  const a = node.attribs || {};
+  const children = emitChildren(node, ctx);
+
+  switch (mode4As) {
+    case 'callout': {
+      const emoji = a['data-mode4-emoji'] || ctx.plan.defaultCalloutEmoji;
+      const bg = a['data-mode4-bgcolor'] || ctx.plan.defaultCalloutBackgroundColor;
+      const border = a['data-mode4-bordercolor'];
+      const attrs = [['emoji', emoji], ['background-color', bg]];
+      if (border) attrs.push(['border-color', border]);
+      return `<callout ${attrs.map(([k, v]) => `${k}="${escapeAttr(v)}"`).join(' ')}>${children}</callout>`;
+    }
+    case 'grid': {
+      return `<grid>${children}</grid>`;
+    }
+    case 'column': {
+      const ratio = a['data-mode4-ratio'] || '0.5';
+      return `<column width-ratio="${escapeAttr(ratio)}">${children}</column>`;
+    }
+    case 'whiteboard-mermaid':
+    case 'whiteboard-plantuml': {
+      const type = mode4As === 'whiteboard-mermaid' ? 'mermaid' : 'plantuml';
+      // DSL 来源优先级：data-mode4-dsl > 子节点纯文本（pre/code 的内容）
+      const dsl = a['data-mode4-dsl'] || cheerioTextOf(node).trim();
+      return `<whiteboard type="${type}">${escapeText(dsl).replace(/<br\/>/g, '\n')}</whiteboard>`;
+    }
+    case 'drop': {
+      // 显式丢弃（agent 标记"这块装饰丢就行"）
+      return '';
+    }
+    default: {
+      ctx.warnings.push(`unknown data-mode4-as value "${mode4As}", treated as pass-through`);
+      return children;
+    }
+  }
 }
 
 function wrapTag(tag, node, ctx) {

@@ -1,0 +1,35 @@
+{
+  "_comment": "v0.2 demo plan for samples/bench-standalone.html — 4C agent 视觉理解输出形态示例。选 5 类明显的'引文/边注'容器升级为 callout，验证 plan 机制端到端工作。完整版需 puppeteer 截图 + agent 看图后产更全的 annotations。",
+
+  "boundaryAnnotations": {
+    ".lede-quote": {
+      "type": "callout",
+      "emoji": "💡",
+      "backgroundColor": "light-yellow",
+      "borderColor": "yellow"
+    },
+    ".final-quote": {
+      "type": "callout",
+      "emoji": "🏁",
+      "backgroundColor": "light-green",
+      "borderColor": "green"
+    },
+    ".margin-note": {
+      "type": "callout",
+      "emoji": "📝",
+      "backgroundColor": "light-gray"
+    },
+    ".obs-note": {
+      "type": "callout",
+      "emoji": "❗",
+      "backgroundColor": "light-orange",
+      "borderColor": "orange"
+    },
+    ".brand-caveat": {
+      "type": "callout",
+      "emoji": "⚠️",
+      "backgroundColor": "light-red",
+      "borderColor": "red"
+    }
+  }
+}
