@@ -1,0 +1,21 @@
+{
+  "name": "@html-to-wechat/mode-01-richtext",
+  "private": true,
+  "version": "0.1.0-dev",
+  "type": "module",
+  "description": "Mode 1 v0.1 — HTML Artifact → 公众号富文本（1C agent 看图产 plan → 1A juice + DOM 清理纯函数）",
+  "bin": {
+    "html-to-wechat-richtext": "./index.mjs"
+  },
+  "dependencies": {
+    "juice": "^10.0.0",
+    "jsdom": "^25.0.1"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.43.1"
+  },
+  "scripts": {
+    "test:bench": "node index.mjs --input ../../../../samples/bench-standalone.html --dry-run",
+    "test:bench-real": "node index.mjs --input ../../../../samples/bench-standalone.html --output /tmp/bench-mode1.html"
+  }
+}
