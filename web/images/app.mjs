@@ -101,7 +101,9 @@ function rebuildGallery(images) {
 
     const num = document.createElement('span');
     num.className = 'gallery-num';
-    num.textContent = `${item.dataset.idx} / ${img.alt || `第 ${i + 1} 张`}`;
+    const rawAlt = img.alt || `第 ${i + 1} 张`;
+    const altNoPrefix = rawAlt.replace(/^\d{1,3}\s*\/\s*/, '');
+    num.textContent = `${item.dataset.idx} / ${altNoPrefix}`;
     item.appendChild(num);
 
     const imgEl = document.createElement('img');
@@ -175,7 +177,8 @@ function renumber() {
 
 async function handleRegen(item, idx) {
   const prompt = item.dataset.prompt;
-  const alt = item.querySelector('img')?.alt || `第 ${idx + 1} 张`;
+  const rawAlt = item.querySelector('img')?.alt || `第 ${idx + 1} 张`;
+  const alt = rawAlt.replace(/^\d{1,3}\s*\/\s*/, '');
   const message = prompt
     ? `重做第 ${item.dataset.idx} 张「${alt}」。原始 prompt：\n\n${prompt}\n\n请直接调用 gpt-image-2 生成新图（保持同样 1024x1536 比例 / 风格），然后 update fragment payload。`
     : `重做第 ${item.dataset.idx} 张「${alt}」。这张图没有原始 prompt，请基于上下文重新构思 + 用 gpt-image-2 出图。`;
@@ -255,7 +258,8 @@ async function downloadZip(payload) {
     const img = item.querySelector('img');
     if (!img) continue;
     const idx = String(i + 1).padStart(2, '0');
-    const alt = img.alt || `第 ${i + 1} 张`;
+    const rawAlt = img.alt || `第 ${i + 1} 张`;
+    const alt = rawAlt.replace(/^\d{1,3}\s*\/\s*/, '');
     const safeAlt = alt.replace(/[^\w一-龥-]/g, '_').slice(0, 40);
     const fname = `${idx}-${safeAlt}.png`;
     try {

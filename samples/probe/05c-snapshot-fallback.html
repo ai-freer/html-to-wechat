@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>v0.5c 装饰块截图兜底探针</title>
+<style>
+body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #222; }
+h1 { border-bottom: 2px solid #444; padding-bottom: 8px; }
+.decoration-strip {
+  background: linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #f59e0b 100%);
+  border-radius: 16px;
+  padding: 32px 24px;
+  margin: 24px 0;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.decoration-strip::before {
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 120px; height: 120px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 50%;
+}
+.decoration-strip h2 { margin: 0 0 12px; font-size: 22px; color: white; }
+.decoration-strip .big-num { font-size: 64px; font-weight: 900; line-height: 1; margin: 8px 0; }
+.decoration-strip .sub { opacity: 0.9; font-size: 14px; }
+.nested-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+.nested-cards > div {
+  background: #fef3c7;
+  border: 2px dashed #d97706;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #92400e;
+}
+.nested-cards > div .num {
+  font-size: 24px;
+  font-weight: bold;
+  color: #d97706;
+  display: block;
+  margin-bottom: 4px;
+}
+</style>
+</head>
+<body>
+<article>
+  <h1>v0.5c 装饰块截图兜底探针</h1>
+  <p>这份探针验证 mode 4 plan directive <code>snapshot-fallback</code> 的端到端流程。下面两个块用 DocxXML 是表达不了的（嵌套渐变 + 伪元素 / 三列虚线纸卡），应该被 puppeteer 区块截图后通过 <code>+media-insert</code> 插回。</p>
+
+  <div class="decoration-strip">
+    <h2>关键指标</h2>
+    <div class="big-num">87.3%</div>
+    <div class="sub">活跃用户留存（30 天滚动）</div>
+  </div>
+
+  <p>下面这个分卡区也用嵌套 div + 虚线 + grid 布局做的装饰。</p>
+
+  <div class="nested-cards">
+    <div><span class="num">A</span>探索阶段</div>
+    <div><span class="num">B</span>校验阶段</div>
+    <div><span class="num">C</span>巩固阶段</div>
+  </div>
+
+  <p>普通段落继续走 DocxXML 直转。</p>
+</article>
+</body>
+</html>

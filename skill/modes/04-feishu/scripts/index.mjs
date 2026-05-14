@@ -12,9 +12,11 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 import { transform } from './html-to-docxxml.mjs';
 import { createDoc } from './create-doc.mjs';
 import { uploadMedia } from './upload-media.mjs';
+import { snapshotRegion } from './render-snapshot.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -38,12 +40,14 @@ try {
   // === 1. 读 HTML ===
   let rawHtml;
   let inputDir = process.cwd();  // 默认；v0.2c 本地图片相对路径基准
+  let inputAbsPath = null;  // v0.5c: snapshot 兜底要原文件路径喂 puppeteer
   if (argv.stdin) {
     rawHtml = await readStdin();
   } else {
     const abs = resolve(argv.input);
     rawHtml = await readFile(abs, 'utf8');
     inputDir = dirname(abs);
+    inputAbsPath = abs;
   }
 
   // === 2. 读可选 plan ===
@@ -94,9 +98,40 @@ try {
     console.error(JSON.stringify(created.raw, null, 2).slice(0, 2000));
     if (result.mediaTasks?.length) {
       console.error(`[mode-4] (dry-run) ${result.mediaTasks.length} media task(s) would be uploaded:`);
-      result.mediaTasks.forEach(t => console.error(`  - id=${t.id} type=${t.type} alt=${t.alt} src=${t.src.slice(0, 60)}...`));
+      result.mediaTasks.forEach(t => {
+        const where = t.type === 'snapshot' ? `selector="${t.selector}"` : `src=${(t.src || '').slice(0, 60)}...`;
+        console.error(`  - id=${t.id} type=${t.type} alt=${t.alt} ${where}`);
+      });
     }
     process.exit(0);
+  }
+
+  // === 7a. v0.5c: snapshot 兜底渲染（必须在 uploadMedia 前实化为 local PNG）===
+  const snapshotTasks = (result.mediaTasks || []).filter(t => t.type === 'snapshot');
+  if (snapshotTasks.length > 0) {
+    if (!inputAbsPath) {
+      console.error(`[mode-4] WARNING: ${snapshotTasks.length} snapshot task(s) skipped — --stdin mode 没有 HTML 文件路径喂 puppeteer。请用 --input <file>。`);
+      // 把 snapshot 任务从 mediaTasks 移除，避免 uploadMedia 后续误判
+      result.mediaTasks = result.mediaTasks.filter(t => t.type !== 'snapshot');
+    } else {
+      console.error(`[mode-4] rendering ${snapshotTasks.length} snapshot region(s) via puppeteer...`);
+      for (const task of snapshotTasks) {
+        const pngPath = `${tmpdir()}/mode4-snapshot-${task.id}-${Date.now()}.png`;
+        try {
+          const { width, height } = await snapshotRegion(inputAbsPath, task.selector, pngPath);
+          task.type = 'local';
+          task.src = pngPath;
+          task.width = width;
+          task.height = height;
+          console.error(`  - id=${task.id} selector="${task.selector}" → ${width}×${height}px`);
+        } catch (e) {
+          console.error(`  - id=${task.id} selector="${task.selector}" FAILED: ${e.message} (留 placeholder)`);
+          // 标记成失败，从 mediaTasks 移除，避免 uploadMedia 报"找不到文件"
+          task._snapshotFailed = true;
+        }
+      }
+      result.mediaTasks = result.mediaTasks.filter(t => !t._snapshotFailed);
+    }
   }
 
   // === 7. v0.2c: 本地/base64 图后置上传 ===

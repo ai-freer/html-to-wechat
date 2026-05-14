@@ -45,14 +45,59 @@ export async function renderSnapshot(inputHtmlPath, outputPngPath, opts = {}) {
   }
 }
 
-// CLI 入口：node render-snapshot.mjs <input.html> <output.png>
+/**
+ * v0.5c: 截取一个 selector 命中元素的 bounding box 区域。
+ *
+ * 给"嵌套 div 套娃 / 复杂渐变背景"这类 DocxXML 表达不了的装饰块兜底用。
+ *
+ * @param {string} inputHtmlPath
+ * @param {string} selector - 必须命中至少一个元素；命中多个时取第一个
+ * @param {string} outputPngPath
+ * @param {object} opts - 同 renderSnapshot 的 viewport / scale
+ * @returns {Promise<{ pngPath: string, width: number, height: number }>}
+ */
+export async function snapshotRegion(inputHtmlPath, selector, outputPngPath, opts = {}) {
+  const { default: puppeteer } = await import('puppeteer');
+  const viewportWidth = opts.viewportWidth || 1280;
+  const viewportHeight = opts.viewportHeight || 800;
+  const deviceScaleFactor = opts.deviceScaleFactor || 2;
+
+  const absInput = resolve(inputHtmlPath);
+  await stat(absInput);
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor });
+    await page.goto(`file://${absInput}`, { waitUntil: 'networkidle0', timeout: 60000 });
+    const el = await page.$(selector);
+    if (!el) throw new Error(`selector "${selector}" matched 0 elements`);
+    const box = await el.boundingBox();
+    if (!box || box.width === 0 || box.height === 0) {
+      throw new Error(`selector "${selector}" has 0-size bounding box (display:none?)`);
+    }
+    await el.screenshot({ path: outputPngPath });
+    return { pngPath: outputPngPath, width: Math.round(box.width), height: Math.round(box.height) };
+  } finally {
+    await browser.close();
+  }
+}
+
+// CLI 入口：node render-snapshot.mjs <input.html> <output.png> [selector]
+//   省略 selector → 整页 / 给 selector → 区块截图
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [, , inputHtml, outputPng] = process.argv;
+  const [, , inputHtml, outputPng, selector] = process.argv;
   if (!inputHtml || !outputPng) {
-    console.error('Usage: node render-snapshot.mjs <input.html> <output.png>');
+    console.error('Usage: node render-snapshot.mjs <input.html> <output.png> [selector]');
     process.exit(1);
   }
-  renderSnapshot(inputHtml, outputPng).then(
+  const job = selector
+    ? snapshotRegion(inputHtml, selector, outputPng)
+    : renderSnapshot(inputHtml, outputPng);
+  job.then(
     (r) => console.log(JSON.stringify(r)),
     (err) => { console.error('render-snapshot failed:', err.message); process.exit(1); },
   );
