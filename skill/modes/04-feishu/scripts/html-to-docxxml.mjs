@@ -99,6 +99,18 @@ export function transform(rawHtml, planArg = {}) {
   // === 5. 拼最终 DocxXML（含 <title>）===
   const docxxml = `<title>${escapeText(title)}</title>\n${body}`;
 
+  // === 6. v0.5d 触发条件预警：DocxXML 体积接近服务端解析上限 ===
+  // 飞书 docs +create 服务端经验阈值：~200KB DocxXML 解析稳定，500KB+ 可能卡。
+  // 真碰到 400 错误时记下 sample，触发 v0.5d 全自建 IR + batch_create fallback 实现。
+  const sizeLimit = plan.v05dWarnAtBytes || 200_000;
+  if (docxxml.length > sizeLimit) {
+    warnings.push(
+      `DocxXML 体积 ${(docxxml.length / 1024).toFixed(1)}KB 超过 ${(sizeLimit / 1024).toFixed(0)}KB 阈值 — ` +
+      `若 +create 失败需考虑 v0.5d 全自建 IR + batch_create fallback（ROADMAP §v0.5d）`
+    );
+    stats.dx_size_warning = true;
+  }
+
   return { docxxml, title, warnings, stats, mediaTasks };
 }
 
@@ -130,6 +142,11 @@ function applyBoundaryAnnotations($, plan, warnings, stats) {
         if (ann.dsl) $el.attr('data-mode4-dsl', ann.dsl);
         // v0.3a: joinWith — callout 内多 inline 兄弟节点用可见分隔符串联（飞书吃掉 inline 间空白）
         if (ann.joinWith) $el.attr('data-mode4-joinwith', ann.joinWith);
+        // v0.5c: snapshot-fallback 需要记原 selector，index.mjs 据此区块截图
+        if (ann.type === 'snapshot-fallback') {
+          $el.attr('data-mode4-selector', selector);
+          if (ann.alt) $el.attr('data-mode4-alt', ann.alt);
+        }
         annotationCount++;
       });
     } catch (e) {
@@ -285,6 +302,26 @@ function emitAnnotated(node, mode4As, ctx) {
     case 'drop': {
       // 显式丢弃（agent 标记"这块装饰丢就行"）
       return '';
+    }
+    case 'snapshot-fallback': {
+      // v0.5c: emit placeholder + 排个 type=snapshot 的 mediaTask；
+      // index.mjs 在 +create 之前/之后调 snapshotRegion 把 selector 区块截成 PNG，
+      // 然后 upload-media.mjs 走和 v0.2c 本地 PNG 同样的 +media-insert 路径。
+      const selector = a['data-mode4-selector'] || '';
+      const alt = a['data-mode4-alt'] || '装饰区块（截图兜底）';
+      const id = (ctx.mediaTasks.length + 1).toString().padStart(3, '0');
+      const marker = `「IMG_PLACEHOLDER_${id}」`;
+      const placeholderText = `${marker} [图片：${alt}]`;
+      ctx.mediaTasks.push({
+        id,
+        marker,
+        placeholderText,
+        type: 'snapshot',
+        selector,
+        alt,
+      });
+      ctx.stats.snapshotFallbacks = (ctx.stats.snapshotFallbacks || 0) + 1;
+      return `<p>${escapeText(placeholderText)}</p>`;
     }
     default: {
       ctx.warnings.push(`unknown data-mode4-as value "${mode4As}", treated as pass-through`);

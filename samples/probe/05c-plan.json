@@ -1,0 +1,12 @@
+{
+  "boundaryAnnotations": {
+    ".decoration-strip": {
+      "type": "snapshot-fallback",
+      "alt": "关键指标 hero（渐变背景 + 大数字）"
+    },
+    ".nested-cards": {
+      "type": "snapshot-fallback",
+      "alt": "探索/校验/巩固三阶段卡片"
+    }
+  }
+}
