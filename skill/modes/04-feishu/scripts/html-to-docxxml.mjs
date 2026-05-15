@@ -52,7 +52,7 @@ const PASS_THROUGH = new Set([
  * @param {Partial<typeof DEFAULT_PLAN>} planArg
  * @returns {{ docxxml: string, title: string, warnings: string[], stats: object }}
  */
-export function transform(rawHtml, planArg = {}) {
+export function transform(rawHtml, planArg = {}, opts = {}) {
   if (!rawHtml || !rawHtml.trim()) {
     return { docxxml: '', title: 'Untitled', warnings: ['empty input'], stats: {} };
   }
@@ -62,6 +62,29 @@ export function transform(rawHtml, planArg = {}) {
   const warnings = [];
   const stats = { tagCounts: {}, droppedTags: {}, imgRemote: 0, imgPlaceholder: 0, imgLocal: 0, imgBase64: 0 };
   const mediaTasks = [];  // v0.2c: local/base64 imgs 边信道，后置 +media-insert
+
+  // v0.5e: puppeteer 实测的 <img> 渲染宽度 → 注入 data-render-width/height 属性，
+  // 让 pickImgDimensions 优先采用（而不是兜底 800×600）。索引按 DOM 树深度优先序对齐。
+  if (Array.isArray(opts.renderedWidths) && opts.renderedWidths.length > 0) {
+    const imgs = $('img').toArray();
+    let matched = 0;
+    imgs.forEach((el, i) => {
+      const m = opts.renderedWidths[i];
+      if (!m) return;
+      const elSrc = (el.attribs?.src || '').slice(0, 80);
+      // 校验：srcPrefix 一致才注入（防止 cheerio 与 chrome DOM 顺序不一致导致错配）
+      if (elSrc === m.srcPrefix && m.width > 0) {
+        el.attribs['data-render-width'] = String(m.width);
+        el.attribs['data-render-height'] = String(m.height);
+        matched++;
+      }
+    });
+    stats.renderedWidthsMatched = matched;
+    stats.renderedWidthsTotal = imgs.length;
+    if (matched < imgs.length) {
+      warnings.push(`renderedWidths: ${matched}/${imgs.length} imgs matched by srcPrefix（其余走 fallback：HTML width attr / plan default）`);
+    }
+  }
 
   // === 1. 决定文档标题 ===
   const title = pickTitle($, plan) || 'Untitled';
@@ -476,6 +499,8 @@ function emitImg(node, ctx) {
   // selection-with-ellipsis 匹配 marker 完成插图 + 删占位两步。
   const alt = node.attribs?.alt || '图片';
   const { width, height } = pickImgDimensions(node, ctx);
+  // v0.5e: 标记 width 是否来自 puppeteer 实测，让 upload-media 知道是否信任此值做 resize
+  const widthIsRendered = !!node.attribs?.['data-render-width'];
   const id = (ctx.mediaTasks.length + 1).toString().padStart(3, '0');
   // marker 设计：用窄宽字符 + ID 唯一；后跟可读描述方便 lark-cli 抓 full block 文本删除
   const marker = `「IMG_PLACEHOLDER_${id}」`;
@@ -493,6 +518,7 @@ function emitImg(node, ctx) {
     alt,
     width,
     height,
+    widthIsRendered,
     type: isBase64 ? 'base64' : 'local',
   });
 
@@ -503,6 +529,11 @@ function emitImg(node, ctx) {
 
 function pickImgDimensions(node, ctx) {
   const { imageDefaultWidth, imageDefaultHeight } = ctx.plan;
+
+  // 0. v0.5e: puppeteer 实测的 layout 渲染宽度（最高优先级）
+  const renderW = parseInt(node.attribs?.['data-render-width'], 10);
+  const renderH = parseInt(node.attribs?.['data-render-height'], 10);
+  if (renderW > 0 && renderH > 0) return { width: renderW, height: renderH };
 
   // 1. 显式 width/height 属性
   const w = parseInt(node.attribs?.width, 10);
