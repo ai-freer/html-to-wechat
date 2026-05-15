@@ -14,6 +14,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { transform } from './transform.mjs';
+import { measureImageWidths } from './render-snapshot.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -42,10 +43,13 @@ Notes:
 try {
   // === 1. 读 HTML ===
   let rawHtml;
+  let inputAbsPath = null;  // v0.5e: 用于 puppeteer 实测 layout 宽度
   if (argv.stdin) {
     rawHtml = await readStdin();
   } else {
-    rawHtml = await readFile(resolve(argv.input), 'utf8');
+    const abs = resolve(argv.input);
+    rawHtml = await readFile(abs, 'utf8');
+    inputAbsPath = abs;
   }
 
   // === 2. 读可选 plan ===
@@ -57,8 +61,23 @@ try {
     console.error('[mode-1] using DEFAULT_PLAN (no LLM, browser-version parity)');
   }
 
+  // === 2.5 v0.5e (mode 1): puppeteer 实测每个 <img> 的渲染宽度 ===
+  // 给 transform 注入到 <img width/height> 属性，让公众号编辑器粘贴后按原 layout 显示，
+  // 而不是按图自身分辨率渲染。--stdin / --no-measure / puppeteer 缺失时优雅降级。
+  let renderedWidths = [];
+  if (inputAbsPath && !argv['no-measure']) {
+    try {
+      console.error('[mode-1] measuring image widths via puppeteer...');
+      renderedWidths = await measureImageWidths(inputAbsPath);
+      const nonZero = renderedWidths.filter(m => m.width > 0).length;
+      console.error(`[mode-1] measured ${nonZero}/${renderedWidths.length} imgs`);
+    } catch (e) {
+      console.error(`[mode-1] measure-widths skipped: ${e.message}（fallback：保留 img 原 layout 由公众号渲染）`);
+    }
+  }
+
   // === 3. 转换（纯函数）===
-  const result = transform(rawHtml, plan);
+  const result = transform(rawHtml, plan, { renderedWidths });
 
   if (result.error) {
     console.error('[mode-1] transform error:', result.error);
