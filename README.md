@@ -57,12 +57,11 @@ html-to-wechat/
 │   ├── 02-html-to-images.md
 │   ├── 03-html-to-script.md
 │   └── 04-html-to-feishu.md
-├── samples/                                   # 测试样本
-│   ├── bench-standalone.html                  # 多 article 压力测试样本
-│   ├── full-report-standalone.html            # 2.2MB 14-article 报告
-│   ├── context-tower-9layers/                 # mode 2 真实图集 demo（8 张 + caption + plan）
-│   ├── probe/                                 # mode 4 各 v0.X 探针样本
-│   └── *.json                                 # bench plan demo
+├── samples/                                   # 测试样本（详见 samples/README.md）
+│   ├── README.md                              # 公开/私有约定
+│   ├── probe/                                 # mode 4 各 v0.X 探针 fixture（公开）
+│   ├── bench-plan-*.json                      # mode 1/4 plan schema demo（公开）
+│   └── [内容样本走 .gitignore，本地落盘 / 不进 public]
 ├── web/                                       # GitHub Pages 静态前端
 │   ├── index.html                             # Landing：项目门面 + 4 模式入口卡
 │   ├── landing.css                            # Landing 样式
@@ -84,10 +83,16 @@ GitHub Pages 从 `main` 分支 `/web` 子目录发布。HTTPS 自动开启，Cli
 
 ## 测试样本
 
-- **`samples/bench-standalone.html`** — 多 article 压力测试样本（mode 1/4 用）
-- **`samples/full-report-standalone.html`** — 2.2MB 14-article 报告（mode 3 必须传 `--plan {"extractMain":false}`）
-- **`samples/context-tower-9layers/`** — mode 2 真实图集 demo（8 张 AI 卡 + caption + prompts + plan + style_sheet）
-- **`samples/probe/05*.html`** + **`samples/probe/05c-plan.json`** — mode 4 v0.5a/b/c 各探针样本
+`samples/` 默认 **.gitignore**（内部驱动测试用，可能含 PRD / 未发布内容）。仅 `samples/probe/`（合成 DocxXML/HTML 测试 fixture）和 `samples/bench-plan-*.json`（plan schema demo）公开追踪作为测试基础设施，详见 [`samples/README.md`](samples/README.md)。
+
+5 个内部驱动 sample：
+- `bench-standalone.html` 车载 AI 评测（mode 1/4 多 article 压测）
+- `full-report-standalone.html` 车展报告 2.3 MB（mode 3 多 article 兜底）
+- `context-tower-9layers/` 上下文管理九层塔（mode 2 真实图集 demo）
+- `saic-prd-ai-travel-guide-standalone.html` 出行攻略 PRD（mode 4 飞书）
+- `saic-prd-trip-planning-flow-standalone.html` 行程流程 PRD 5.6 MB（mode 4 飞书 + v0.5d 体积压测）
+
+外部用户跑 skill 用自己的 HTML 即可，本仓库不需要也不应提供真实内容样本。
 
 ## 项目演进史
 

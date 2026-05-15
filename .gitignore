@@ -48,3 +48,13 @@ tmp/
 *.flat.html
 *.wechat.html
 output/
+
+# Internal-only test samples — drive mode 1/2/3/4 testing locally but
+# may carry proprietary / pre-publication content (PRDs, market reports,
+# unreleased articles). Synthetic test fixtures (probe/) and plan-demo
+# JSON schemas stay public as testing infrastructure.
+samples/*
+!samples/probe/
+!samples/bench-plan-*.json
+!samples/README.md
+!samples/.gitkeep
