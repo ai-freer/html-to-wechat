@@ -44,8 +44,15 @@ export async function uploadMedia(mediaTasks, opts) {
 
   for (const task of mediaTasks) {
     try {
-      const localPath = await resolveTaskFile(task, inputDir);
-      const cleanup = task.type === 'base64' ? localPath : null;
+      const localPathOriginal = await resolveTaskFile(task, inputDir);
+      const cleanupOriginal = task.type === 'base64' ? localPathOriginal : null;
+
+      // **portrait phone-mockup 缩放**：用户痛点 — 高分辨率手机截图（如 853×1844）
+      // 在飞书文档里铺满全宽。原 HTML CSS 约束在我们这丢失，飞书按图自身分辨率
+      // 渲染。这里检测竖屏 + 大宽度 → resize 到合理显示宽度（默认 400px）。
+      // 实际上传用 resized 文件；横屏/正方形 / 小图 / icon 不动。
+      const localPath = await maybeResizePortrait(localPathOriginal, task);
+      const cleanupResized = localPath !== localPathOriginal ? localPath : null;
 
       // lark-cli 安全约束："--file must be a relative path within the current directory"
       // 同 +create 的 --content 限制（v0.1 改 stdin 绕开；这里只能改 cwd + basename）
@@ -77,8 +84,9 @@ export async function uploadMedia(mediaTasks, opts) {
 
       const deleteOut = await spawnLark(deleteArgs);
 
-      // 清理临时 base64 文件
-      if (cleanup) await unlink(cleanup).catch(() => {});
+      // 清理临时 base64 文件 + resize 副本
+      if (cleanupOriginal) await unlink(cleanupOriginal).catch(() => {});
+      if (cleanupResized) await unlink(cleanupResized).catch(() => {});
 
       uploaded += 1;
       results.push({
@@ -98,6 +106,60 @@ export async function uploadMedia(mediaTasks, opts) {
 // ===========================================================================
 // 文件路径解析
 // ===========================================================================
+
+/**
+ * 检测竖屏 + 高分辨率图片（典型：手机截图 mockup），resize 到合理显示宽度。
+ *
+ * 阈值（可由 task 字段覆盖，未来加 plan 接管）：
+ *   - 触发：aspect ratio (w/h) < 0.75 且原宽 > 600px
+ *   - 目标宽度：400px（保持宽高比）
+ *
+ * 横屏图 / 正方形 / 小图 / 已经 ≤ 600px 的不动。
+ *
+ * 实现：用 sharp（optionalDependencies，未装则回退原文件 + warn）。
+ *
+ * @param {string} localPath 原图本地路径
+ * @param {object} task mediaTask（含 alt 用于日志）
+ * @returns {Promise<string>} 实际要上传的文件路径
+ */
+async function maybeResizePortrait(localPath, task) {
+  const PORTRAIT_RATIO_THRESHOLD = 0.75;  // w/h < 0.75 算 portrait
+  const ORIG_WIDTH_TRIGGER = 600;          // 原宽 > 600 才考虑 resize
+  const TARGET_WIDTH = 400;                // resize 到的目标宽度
+
+  let sharp;
+  try {
+    sharp = (await import('sharp')).default;
+  } catch {
+    // sharp 不可用（optionalDependencies 装失败）→ 原样上传，不致命
+    return localPath;
+  }
+
+  try {
+    const meta = await sharp(localPath).metadata();
+    const { width, height, format } = meta;
+    if (!width || !height) return localPath;
+
+    const ratio = width / height;
+    if (ratio >= PORTRAIT_RATIO_THRESHOLD || width <= ORIG_WIDTH_TRIGGER) {
+      return localPath;  // 横屏 / 正方形 / 已经小，不动
+    }
+
+    // 触发 resize
+    const ext = format === 'jpeg' ? 'jpg' : (format || 'png');
+    const out = pathResolve(tmpdir(), `mode4-resized-${task.id}-${Date.now()}.${ext}`);
+    const newHeight = Math.round(height * (TARGET_WIDTH / width));
+    await sharp(localPath)
+      .resize({ width: TARGET_WIDTH, withoutEnlargement: true })
+      .toFile(out);
+    console.error(`  [resize] id=${task.id} portrait ${width}×${height} → ${TARGET_WIDTH}×${newHeight} (${task.alt || ''})`);
+    return out;
+  } catch (e) {
+    // sharp 解码失败（罕见格式 / 损坏）→ 原样上传，加 warning
+    console.error(`  [resize-skip] id=${task.id}: ${e.message}`);
+    return localPath;
+  }
+}
 
 async function resolveTaskFile(task, inputDir) {
   if (task.type === 'base64') {
