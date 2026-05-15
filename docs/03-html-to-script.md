@@ -1,6 +1,8 @@
 # 模式 3：HTML → 口播稿 Markdown
 
 > 目标：把一篇 HTML 文章改写成可直接喂给 AI 视频生成软件（剪映 AI、Runway、可灵、Sora 类工具）的口播稿，输出 Markdown 文件。
+>
+> **X-C/X-A 范式归位**：本 mode 的 **X-A**（执行层）= `skill/modes/03-script/scripts/html-to-script.mjs` 纯函数（cheerio + turndown + analyze）；**X-C 通常退化为不需要** — plan 只有 4 个字段（extractMain / bannedTags / keepImages / turndownOptions），文本结构信息从 HTML DOM 直读就够。X-C 仍然有用的场景：多 article 报告 + 装饰性 chrome 干扰严重时，agent 截图后产 plan 比手填准。跨 mode 范式总论见 `skill/SKILL.md`。
 
 ## 1. 输入与输出
 

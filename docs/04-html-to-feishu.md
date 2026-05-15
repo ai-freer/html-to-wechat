@@ -1,6 +1,8 @@
 # 模式 4：HTML → 飞书云文档（DocxXML 直转）
 
 > 目标：把一份 standalone HTML Artifact 直接灌成一份**可协同编辑的飞书云文档**，画板可拖、嵌套结构正确、视觉接近原图。**HTML → DocxXML → `lark-cli docs +create`** 一步到位——服务端把 DocxXML 解析成原生 Block 树，飞书独家容器（grid / callout / whiteboard）全部原生支持。
+>
+> **X-C/X-A 范式归位**：本 mode 的 **X-A** = `skill/modes/04-feishu/scripts/html-to-docxxml.mjs` 纯函数；**X-C** = agent 看 puppeteer 截图 → 产 `boundaryAnnotations` plan（标 `.card-lvl` 为 callout、`.rail` 为 drop、嵌套渐变块为 snapshot-fallback 等）→ transform 应用。X-C 视觉理解强制（见 §6.2），跨 mode 范式总论见 `skill/SKILL.md`。本 mode 是 100% Skill-only，没有"纯网页入口"。
 
 ## 0. 决策演进史（开工前必读）
 

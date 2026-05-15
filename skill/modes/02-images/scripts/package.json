@@ -1,0 +1,14 @@
+{
+  "name": "@html-to-wechat/mode-02-images",
+  "private": true,
+  "version": "0.1.0-dev",
+  "type": "module",
+  "description": "Mode 2 v0.1 — HTML Artifact → 8-10 张 gpt-image-2 卡片 + caption + fragment URL（agent 主导编排，本目录只提供工具脚本）",
+  "scripts": {
+    "fragment": "node make-fragment.mjs",
+    "snapshot": "node render-snapshot.mjs"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}

@@ -17,10 +17,10 @@ metadata:
 
 | Mode | 目标平台 | 输入 | 输出 | 状态 |
 |---|---|---|---|---|
-| **01-richtext** | 公众号富文本 | HTML | 公众号可粘贴的 HTML（juice 内联 CSS + DOM 清理） | ✅ 阶段 2a |
-| **02-images** | 小红书图集 / 公众号图文号 | HTML | 8-10 张顶级生图模型卡片 + 文案 | ⏸ 阶段 5（前端 app 态 MVP 完成，agent 跑生图链路待续） |
-| **03-script** | 口播稿（视频/播客） | HTML | spoken.md（去格式 + 字数时长） | ✅ 阶段 2b |
-| **04-feishu** | 飞书云文档 | HTML | 飞书文档 URL（DocxXML 直转 → `docs +create`） | ✅ v0.1-v0.5b 全功能可用 |
+| **01-richtext** | 公众号富文本 | HTML | 公众号可粘贴的 HTML（juice 内联 CSS + DOM 清理 + directives） | ✅ 完整（web/skill 同源）|
+| **02-images** | 小红书图集 / 公众号图文号 | HTML | 8-10 张 gpt-image-2 卡片 + caption + fragment URL | ✅ skill 工具 + agent contract + 前端 app 态 MVP |
+| **03-script** | 口播稿（视频/播客）| HTML | spoken.md（HTML→md + 字数/时长/句长统计） | ✅ X-A 完整，X-C 退化为可选（X-C 仍可用于多 article 报告） |
+| **04-feishu** | 飞书云文档 | HTML | 飞书文档 URL（DocxXML 直转 → `docs +create` + media 后置 + 局部精修） | ✅ v0.5c 完整（v0.5d marker） |
 
 ## Mode 选择决策树（agent 用）
 
@@ -45,23 +45,34 @@ metadata:
 
 ## 跨模式工具
 
-- `render-snapshot.mjs`（puppeteer 截图，1280x800 dsf=2）：mode 04 / mode 01 共用，未来抽到 `lib/`
+- `render-snapshot.mjs`（puppeteer 截图，1280x800 dsf=2 fullPage + selector 区块截图）：mode 01/02/03/04 四份等价副本（第三次重复出现时正式抽到 `lib/`）
 - 各 mode 自带 `package.json` 管 Node 依赖（juice/jsdom/cheerio/turndown/puppeteer/lark-cli 等）
-- `make-fragment.mjs`（mode 02 web 投递工具）：agent 端生成 GH Pages app 态 URL
+- `make-fragment.mjs`（mode 02 投递工具）：agent 端生成 GH Pages app 态 URL；本 skill `skill/modes/02-images/scripts/make-fragment.mjs` 与 web 端 `web/images/make-fragment.mjs` 等价同源
 
 ## 安装与使用
 
 ```bash
-# 装单个 mode 的依赖
+# 装单个 mode 的依赖（按需）
 cd skill/modes/0X-XXX/scripts && npm install
 
-# 跑（每个 mode 的 CLI 用法略不同）
+# Mode 01: 公众号富文本（端到端 CLI）
 node skill/modes/01-richtext/scripts/index.mjs --help
-node skill/modes/03-script/scripts/index.mjs   --help
-node skill/modes/04-feishu/scripts/index.mjs   --help
+node skill/modes/01-richtext/scripts/index.mjs --input report.html --output wechat.html
 
-# mode 02 在前端 app 态运行；agent 端用 make-fragment 投递：
-node skill/.../web/images/make-fragment.mjs payload.json
+# Mode 02: 图集（agent 主导工作流，看 SKILL.md 6 步 contract）
+node skill/modes/02-images/scripts/render-snapshot.mjs report.html /tmp/snap.png
+# agent Read /tmp/snap.png → 写 plan → 调外部 anthropic-skills:gpt-image 出图
+node skill/modes/02-images/scripts/make-fragment.mjs payload.json
+# 出 https://ai-freer.github.io/html-to-wechat/images/#app=<base64>
+
+# Mode 03: 口播稿
+node skill/modes/03-script/scripts/index.mjs --input report.html --output spoken.md
+# 多 article 报告必须传 plan
+node skill/modes/03-script/scripts/index.mjs --input report.html --plan '{"extractMain":false}' --output spoken.md
+
+# Mode 04: 飞书云文档（端到端 CLI）
+node skill/modes/04-feishu/scripts/index.mjs --input report.html
+# 出飞书文档 URL
 ```
 
 ## 设计文档
