@@ -13,8 +13,9 @@ metadata:
 
 ## 设计范式
 
-- **X-A（执行层）**：HTML → cheerio 清洗 → turndown 转 markdown → analyze 统计
-- **X-C（决策层）**：可选 plan.json 覆盖默认行为（extractMain / bannedTags / keepImages / turndownOptions）
+- **X-A（执行层，纯函数）**：HTML → cheerio 清洗 → turndown 转 markdown → analyze 统计
+- **X-C（决策层）— 本 mode 通常退化为不需要**：mode 3 plan 只有 4 个字段（extractMain / bannedTags / keepImages / turndownOptions）—— 文本结构信息从 HTML DOM 直接读就够，**不强制要求 agent 看截图**
+- **X-C 仍然有用的场景**：多 article 报告 + 装饰性页面 chrome 干扰严重时（参考 bench 对比：单 article 用 default plan 够 / `samples/full-report-standalone.html` 14 个 article 必须 `{extractMain:false}` 兜底）；agent 截图看完后能更精准定 `bannedTags`
 - 250 字/分钟 = 4 字/秒 估时长；句长警告：平均 > 35 字、单句 > 50 字、>200 字未切段
 
 ## 前置
@@ -34,6 +35,10 @@ node scripts/index.mjs --input path/to/report.html --dry-run
 
 # 用 plan 覆盖默认（如保留图片占位、保留表格）
 node scripts/index.mjs --input report.html --plan plan.json --output spoken.md
+
+# 可选：先截图给 agent 看，再让 agent 写更精准的 plan（X-C 路径）
+node scripts/render-snapshot.mjs path/to/report.html /tmp/m3-snap.png
+# agent Read /tmp/m3-snap.png 后写 plan.json，再调上面 --plan 流程
 ```
 
 输出：markdown 到 stdout + stats/warnings/sections 到 stderr。
@@ -75,4 +80,5 @@ node scripts/index.mjs --input report.html --plan plan.json --output spoken.md
 ## 已知坑
 
 - 无 `<article>` / `<main>` 时启发式 `<body>` 兜底，可能保留过多页面装饰——这时用 plan 加 `bannedTags` 扩列
+- **多 `<article>` 报告（如 dashboard 类）启发式只取最长的一个**：会大幅丢内容（bench 实测 full-report 取出 130 chars / body 含 34863 chars）→ 必须 `--plan` 传 `{"extractMain": false}` 兜底
 - turndown 对超长 inline 元素（如 100+ 字 `<span>`）可能产生超长段落——长句警告会提示

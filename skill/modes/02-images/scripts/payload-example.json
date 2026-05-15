@@ -1,0 +1,23 @@
+{
+  "_comment": "Mode 2 fragment payload schema 示例。真实 payload 不要含 _comment 字段。agent 拆完卡片 + 调 gpt-image-2 出图后，写一份这样的 payload.json，然后 `node make-fragment.mjs payload.json` 出 GH Pages URL。",
+  "title": "示例图集标题（≤30 字，会显示在 hero）",
+  "captionText": "小红书 / 公众号图文号下方那段文案。\n\n第一段是钩子（≤30 字单独成段），\n第二段写核心价值（2-4 行），\n第三段引导互动（点赞/收藏/评论/关注）。",
+  "captionTags": [
+    "#泛领域大标签",
+    "#细分标签 1",
+    "#细分标签 2",
+    "#3-7 个为佳"
+  ],
+  "images": [
+    {
+      "src": "https://raw.githubusercontent.com/<user>/<repo>/main/path/01-cover.png",
+      "alt": "01 / 封面：一句话点题",
+      "prompt": "gpt-image-2 生成时用的完整 prompt，含全局风格前缀（agent 在 ↻ 重生单图时会复制本字段）"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/<user>/<repo>/main/path/02-thesis.png",
+      "alt": "02 / 核心论点",
+      "prompt": "..."
+    }
+  ]
+}

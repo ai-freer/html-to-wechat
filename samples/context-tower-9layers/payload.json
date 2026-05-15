@@ -1,0 +1,47 @@
+{
+  "title": "上下文管理九层塔",
+  "captionText": "🧱 大上下文窗口 ≠ 上下文管理\n\n窗口解决「能装多少」，但不解决：装什么、何时召回、如何压缩、跨会话怎么延续、多 Agent 怎么共享又隔离、错记忆怎么修、经验怎么变能力。\n\n我把 OpenClaw 多 Agent 跑了 3 个多月、近 1 个月集中整理后的架构整理成「九层塔」：\n\n▸ 基础层 L1-L3：身份 / 规则 / Markdown 记忆\n▸ 运行时层 L4-L6：检索 / 主动召回 / 会话生存\n▸ 进化层 L7-L9：后台整理 / 自我迭代 / 技能进化\n\n最容易「安静吃亏」的是 L6——contextEngine slot 不绑定不会报错，只会悄悄退化；摘要器不 redact secrets，sk-XXX 会经 FTS + vector 持续放大注入。\n\n✦ 好的 Agent 不是记得更多，是知道何时遗忘。✦",
+  "captionTags": ["#AIAgent", "#ChatGPT", "#LLM", "#ContextEngineering", "#AI工程化", "#PromptEngineering", "#AI编程", "#Agent架构"],
+  "images": [
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/01-cover.png",
+      "alt": "封面：上下文管理九层塔",
+      "prompt": "Late-night engineering blueprint aesthetic, 9-tier abstract tower viewed from below, 3 groups × 3 tiers, middle 3 tiers with warm-orange #FF6B35 accent (the dangerous runtime zone), thin cyan #4FD1C5 data-flow lines between tiers, deep midnight blue #0E1A2B bg with faint grid. Overlay title 「上下文管理九层塔」 in ivory #F5F1E8 bold 思源黑体, subtitle 「Context Engineering · 9 Layers」 in fog grey #A8B0BF. Aspect 3:4. Full STYLE 见 prompts.md。"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/02-thesis.png",
+      "alt": "核心论点：大窗口 ≠ 上下文管理",
+      "prompt": "Vertical magazine page, headline 「大上下文窗口 ≠ 上下文管理」 with prominent orange ≠ symbol, body 「窗口解决「能装多少」/ 不解决「装什么、何时召回、如何压缩、怎样进化」」 in ivory, lower third 小插图：a glowing window frame stuffed with chaotic cards spilling out (capacity ≠ organization). 3:4."
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/03-problems.png",
+      "alt": "三层架构不够用，会发生什么",
+      "prompt": "Vertical infographic, title 「三层架构不够用，会发生什么」, 5 numbered rows with minimalist flat geometric icons + cyan-circled numbers + ivory labels + fog-grey one-line desc: 1 记忆膨胀 / 2 噪声累积 / 3 召回失败 / 4 压缩丢失 / 5 重复劳动。Rows alternate #0E1A2B / #152238. 3:4."
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/04-overview.png",
+      "alt": "九层塔总览",
+      "prompt": "Vertical overview, 9 horizontal layers stacked (L1-L9 top to bottom or bottom to top), grouped into 3 sections of 3, each layer with small emoji icon + Chinese label + one-line desc. Middle L4-L6 group with orange accent. Title 「九层塔总览」 at top. 3:4."
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/05-l6-warning.png",
+      "alt": "L6 会话生存层 · Lossless Context Engine",
+      "prompt": "Vertical detail page for L6, title 「L6 会话生存层 · Lossless Context Engine」, central diagram showing DAG/搜索/外部召回 nodes converging into 「上下文」 node with warning labels 「⚠️ 工程上要避开的两个「安静吃亏」的坑」 + 2 bullet points: slot 不绑定 → 默默退化 legacy 截断 / 摘要前不 redact → sk-XXX 经 FTS 持续放大注入. Orange used sparingly for warnings. 3:4."
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/06-loop.png",
+      "alt": "九层不是流水线，是闭环",
+      "prompt": "Vertical diagram showing data flow as a linear pipeline transforming into a closed loop. Top: linear arrows 「探索 → 校验 → 巩固」. Middle: same nodes connected as a cycle with bidirectional arrows. Cyan #4FD1C5 lines for flow, orange #FF6B35 highlight on the loop-back arrow. Title 「九层不是流水线，是闭环」 at top. 3:4."
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/07-phases.png",
+      "alt": "不必一次搭满，分三阶段",
+      "prompt": "Vertical timeline with 3 phases, each phase a horizontal band showing which layers to build: Phase 1 「几小时上手」 → L1-L3 (foundation, no orange), Phase 2 「质变临界点」 → L4-L6 (orange accent on L6), Phase 3 「自愈」 → L7-L9 (cyan flourish). Title 「不必一次搭满九层」. 3:4."
+    },
+    {
+      "src": "https://raw.githubusercontent.com/ai-freer/html-to-wechat/main/samples/context-tower-9layers/images/08-closing.png",
+      "alt": "好的 Agent 不是记得更多，是知道何时遗忘",
+      "prompt": "Closing cover, large centered Chinese quote 「好的 Agent 不是记得更多，是知道何时遗忘」 in ivory bold on midnight bg, decorative ✦ symbols flanking the quote, small Latin subtitle 「Forgetting is a feature, not a bug」 in fog grey. Faint blueprint grid bg. Bottom: small CTA-style hashtag list 「#AIAgent #ContextEngineering」. 3:4."
+    }
+  ]
+}
