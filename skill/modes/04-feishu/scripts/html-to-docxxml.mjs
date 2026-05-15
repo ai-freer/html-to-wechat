@@ -43,6 +43,9 @@ const PASS_THROUGH = new Set([
   'header', 'footer', 'nav', 'aside',  // 这些通常 plan 里 banned，但万一漏网走穿透
   'figure', 'figcaption',
   'details', 'summary',
+  'dl',  // 定义列表容器：dt/dd 自己处理（见 emit() 中 dt/dd 特例）
+  // inline 文本格式（DocxXML 不支持但语义可丢，children 继续）
+  'small', 'sub', 'sup', 'mark', 'abbr', 'kbd', 'samp', 'var', 'cite',
 ]);
 
 /**
@@ -236,6 +239,20 @@ function emit(node, ctx) {
   // === <pre><code> 代码块特殊处理 ===
   if (tag === 'pre') {
     return emitPre(node, ctx);
+  }
+
+  // === <dl> 定义列表 (dt + dd 对) ===
+  // dl 本身已经走 PASS_THROUGH（穿透）。这里处理 dt / dd 单独 emit：
+  //   dt → <p><b>term</b></p>      term 加粗成段
+  //   dd → <p>definition</p>       definition 普通段
+  // 在 callout 内被 joinWith 串联时也工作（每段独立 emit，joinWith 插入分隔符）。
+  if (tag === 'dt') {
+    const children = emitChildren(node, ctx);
+    return `<p><b>${children}</b></p>`;
+  }
+  if (tag === 'dd') {
+    const children = emitChildren(node, ctx);
+    return `<p>${children}</p>`;
   }
 
   // === 标签重命名 ===

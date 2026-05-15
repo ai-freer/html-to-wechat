@@ -17,6 +17,7 @@ import { transform } from './html-to-docxxml.mjs';
 import { createDoc } from './create-doc.mjs';
 import { uploadMedia } from './upload-media.mjs';
 import { snapshotRegion, measureImageWidths } from './render-snapshot.mjs';
+import { splitDocxXML, chunkedCreateDoc } from './chunk-doc.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -32,6 +33,8 @@ Options:
   --output-xml <path>  Write generated DocxXML to file (always done if specified)
   --parent-token <t>   Parent folder/wiki token (default: user space root)
   --plan <path>        Optional plan.json (4C agent output; default: built-in fallback)
+  --chunk-bytes <N>    v0.5d 实现层：DocxXML > N 字节时分块（首块走 +create，后续走 +update append）
+                       默认不分块；典型触发值 200000 / 500000；分块边界在顶层 block
 `);
   process.exit(argv.help ? 0 : 1);
 }
@@ -101,12 +104,29 @@ try {
     result.warnings.slice(0, 5).forEach(w => console.error('  -', w));
   }
 
-  // === 6. 调 lark-cli 创建文档 ===
-  console.error(`[mode-4] calling lark-cli docs +create${argv['dry-run'] ? ' (dry-run)' : ''}...`);
-  const created = await createDoc(result.docxxml, {
-    dryRun: !!argv['dry-run'],
-    parentToken: argv['parent-token'],
-  });
+  // === 6. 调 lark-cli 创建文档（v0.5d 可选分块）===
+  // 触发分块条件：用户传 --chunk-bytes <N>（手动） 或 docxxml 长度 > N（自动）。
+  // 当前自动检测是 stats.dx_size_warning（v0.5d marker），不会自动触发分块——
+  // 仅在用户显式 --chunk-bytes 时才走 chunked 路径。
+  const chunkBytes = parseInt(argv['chunk-bytes'], 10);
+  const willChunk = chunkBytes > 0 && result.docxxml.length > chunkBytes;
+  let created;
+  if (willChunk) {
+    const chunks = splitDocxXML(result.docxxml, chunkBytes);
+    console.error(`[mode-4] v0.5d chunked path: docxxml ${result.docxxml.length}B → ${chunks.length} chunks (≤${chunkBytes}B each)${argv['dry-run'] ? ' (dry-run)' : ''}...`);
+    chunks.forEach((c, i) => console.error(`  - chunk[${i}] ${c.length}B`));
+    if (argv['dry-run']) {
+      created = { dryRun: true, raw: { chunks: chunks.length, sizes: chunks.map(c => c.length) } };
+    } else {
+      created = await chunkedCreateDoc(chunks, { parentToken: argv['parent-token'] });
+    }
+  } else {
+    console.error(`[mode-4] calling lark-cli docs +create${argv['dry-run'] ? ' (dry-run)' : ''}...`);
+    created = await createDoc(result.docxxml, {
+      dryRun: !!argv['dry-run'],
+      parentToken: argv['parent-token'],
+    });
+  }
 
   if (created.dryRun) {
     console.error('[mode-4] dry-run OK. Request body inspected:');

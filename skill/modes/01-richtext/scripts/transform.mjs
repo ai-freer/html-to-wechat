@@ -28,7 +28,7 @@ const { DOMParser } = new JSDOM('').window;
  * @param {Partial<typeof DEFAULT_PLAN>} planArg — 可选 plan；缺省字段从 DEFAULT_PLAN 合并
  * @returns {{ html: string, text: string, stats: object|null, warnings: Array, error?: string }}
  */
-export function transform(rawHtml, planArg = {}) {
+export function transform(rawHtml, planArg = {}, opts = {}) {
   if (!rawHtml || !rawHtml.trim()) {
     return { html: '', text: '', stats: null, warnings: [] };
   }
@@ -253,8 +253,28 @@ export function transform(rawHtml, planArg = {}) {
     });
   }
 
-  // 11. 统计图片
-  doc.querySelectorAll('img').forEach(() => counters.images++);
+  // 11. 统计图片 + v0.5e 注入 layout 实测宽度作 width/height 属性
+  // 让公众号编辑器粘贴后按原 layout 显示（而不是按图自身分辨率撑全宽）。
+  // 用 srcPrefix → measurement 的 Map 查（不按索引对齐——mode 1 的 extract_main
+  // 会让 doc 内 imgs 是原 HTML 的子集，索引不可靠）。
+  const imgs = doc.querySelectorAll('img');
+  const widths = Array.isArray(opts.renderedWidths) ? opts.renderedWidths : null;
+  const widthMap = widths
+    ? new Map(widths.filter(m => m.width > 0).map(m => [m.srcPrefix, m]))
+    : null;
+  let widthsApplied = 0;
+  imgs.forEach((img) => {
+    counters.images++;
+    if (!widthMap) return;
+    const elSrc = (img.getAttribute('src') || '').slice(0, 80);
+    const m = widthMap.get(elSrc);
+    if (!m) return;
+    // 已有显式 width/height 不覆盖（尊重源文档作者意图）
+    if (!img.getAttribute('width')) img.setAttribute('width', String(m.width));
+    if (!img.getAttribute('height')) img.setAttribute('height', String(m.height));
+    widthsApplied++;
+  });
+  counters.imageWidthsApplied = widthsApplied;
   doc.querySelectorAll('svg image').forEach(() => counters.svgImages++);
 
   // 12. 提取 body 内容
