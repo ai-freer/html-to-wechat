@@ -297,7 +297,10 @@ function emitAnnotated(node, mode4As, ctx) {
       const type = mode4As === 'whiteboard-mermaid' ? 'mermaid' : 'plantuml';
       // DSL 来源优先级：data-mode4-dsl > 子节点纯文本（pre/code 的内容）
       const dsl = a['data-mode4-dsl'] || cheerioTextOf(node).trim();
-      return `<whiteboard type="${type}">${escapeText(dsl).replace(/<br\/>/g, '\n')}</whiteboard>`;
+      // **保留换行**：mermaid/plantuml DSL 节点边界靠 \n 切分；
+      // escapeText 会把换行 collapse 成空格（适用于 paragraph 内文本），
+      // 这里必须用保留换行的版本。
+      return `<whiteboard type="${type}">${escapeXmlPreserveLines(dsl)}</whiteboard>`;
     }
     case 'drop': {
       // 显式丢弃（agent 标记"这块装饰丢就行"）
@@ -582,6 +585,17 @@ function escapeText(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/[\s\n\r]+/g, ' ');  // 关键：连续空白 → 单空格，不输出 <br/>
+}
+
+/**
+ * XML 转义但保留换行 — 给 whiteboard mermaid/plantuml DSL 用，
+ * DSL 节点边界靠 \n 切分，不能 collapse。
+ */
+function escapeXmlPreserveLines(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /**
