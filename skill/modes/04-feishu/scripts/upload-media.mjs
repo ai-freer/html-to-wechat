@@ -108,54 +108,63 @@ export async function uploadMedia(mediaTasks, opts) {
 // ===========================================================================
 
 /**
- * 检测竖屏 + 高分辨率图片（典型：手机截图 mockup），resize 到合理显示宽度。
+ * 把图 resize 到目标显示宽度。
  *
- * 阈值（可由 task 字段覆盖，未来加 plan 接管）：
- *   - 触发：aspect ratio (w/h) < 0.75 且原宽 > 600px
- *   - 目标宽度：400px（保持宽高比）
+ * 优先级（自高到低）：
+ *   1. **task.width**（puppeteer 实测的 layout 渲染宽度，v0.5e 注入；最准）
+ *   2. **portrait 启发式**：aspect ratio < 0.75 且原宽 > 600px → 400px
+ *      （v0.5d 兜底，针对 stdin / no-measure 路径）
+ *   3. 不动（横屏 / 已经小 / measure 失败 + 启发式不匹配）
  *
- * 横屏图 / 正方形 / 小图 / 已经 ≤ 600px 的不动。
+ * **不上采样**：目标宽度 ≥ 自然宽度时不动，避免拉伸糊化。
  *
- * 实现：用 sharp（optionalDependencies，未装则回退原文件 + warn）。
+ * 实现：用 sharp（optionalDependencies，装失败则回退原文件 + warn）。
  *
  * @param {string} localPath 原图本地路径
- * @param {object} task mediaTask（含 alt 用于日志）
+ * @param {object} task mediaTask（含 width / alt）
  * @returns {Promise<string>} 实际要上传的文件路径
  */
 async function maybeResizePortrait(localPath, task) {
-  const PORTRAIT_RATIO_THRESHOLD = 0.75;  // w/h < 0.75 算 portrait
-  const ORIG_WIDTH_TRIGGER = 600;          // 原宽 > 600 才考虑 resize
-  const TARGET_WIDTH = 400;                // resize 到的目标宽度
-
   let sharp;
   try {
     sharp = (await import('sharp')).default;
   } catch {
-    // sharp 不可用（optionalDependencies 装失败）→ 原样上传，不致命
-    return localPath;
+    return localPath;  // sharp 不可用 → 原样上传，不致命
   }
 
   try {
     const meta = await sharp(localPath).metadata();
-    const { width, height, format } = meta;
-    if (!width || !height) return localPath;
+    const { width: naturalW, height: naturalH, format } = meta;
+    if (!naturalW || !naturalH) return localPath;
 
-    const ratio = width / height;
-    if (ratio >= PORTRAIT_RATIO_THRESHOLD || width <= ORIG_WIDTH_TRIGGER) {
-      return localPath;  // 横屏 / 正方形 / 已经小，不动
+    // 决策：目标显示宽度从何来？
+    let targetWidth = null;
+    let source = null;
+
+    // 优先：v0.5e puppeteer 实测（task.widthIsRendered 显式标记）
+    if (task.widthIsRendered && task.width > 0 && task.width < naturalW) {
+      targetWidth = task.width;
+      source = 'rendered';
+    }
+    // Fallback: portrait 启发式
+    else if (naturalW > 600 && naturalW / naturalH < 0.75) {
+      targetWidth = 400;
+      source = 'portrait-heuristic';
     }
 
-    // 触发 resize
+    if (!targetWidth || targetWidth >= naturalW) {
+      return localPath;  // 不需要 resize
+    }
+
     const ext = format === 'jpeg' ? 'jpg' : (format || 'png');
     const out = pathResolve(tmpdir(), `mode4-resized-${task.id}-${Date.now()}.${ext}`);
-    const newHeight = Math.round(height * (TARGET_WIDTH / width));
+    const newHeight = Math.round(naturalH * (targetWidth / naturalW));
     await sharp(localPath)
-      .resize({ width: TARGET_WIDTH, withoutEnlargement: true })
+      .resize({ width: targetWidth, withoutEnlargement: true })
       .toFile(out);
-    console.error(`  [resize] id=${task.id} portrait ${width}×${height} → ${TARGET_WIDTH}×${newHeight} (${task.alt || ''})`);
+    console.error(`  [resize:${source}] id=${task.id} ${naturalW}×${naturalH} → ${targetWidth}×${newHeight} (${task.alt || ''})`);
     return out;
   } catch (e) {
-    // sharp 解码失败（罕见格式 / 损坏）→ 原样上传，加 warning
     console.error(`  [resize-skip] id=${task.id}: ${e.message}`);
     return localPath;
   }

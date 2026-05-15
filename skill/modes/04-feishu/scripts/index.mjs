@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { transform } from './html-to-docxxml.mjs';
 import { createDoc } from './create-doc.mjs';
 import { uploadMedia } from './upload-media.mjs';
-import { snapshotRegion } from './render-snapshot.mjs';
+import { snapshotRegion, measureImageWidths } from './render-snapshot.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -56,8 +56,23 @@ try {
     plan = JSON.parse(await readFile(resolve(argv.plan), 'utf8'));
   }
 
+  // === 2.5 v0.5e: puppeteer 实测每个 <img> 的渲染宽度（用 file 路径才能跑）
+  // 让 transform 用真实 layout 宽度，避免飞书按图自身分辨率撑满文档全宽。
+  // --stdin / --no-measure / puppeteer 缺失时优雅降级。
+  let renderedWidths = [];
+  if (inputAbsPath && !argv['no-measure']) {
+    try {
+      console.error('[mode-4] measuring image widths via puppeteer...');
+      renderedWidths = await measureImageWidths(inputAbsPath);
+      const nonZero = renderedWidths.filter(m => m.width > 0).length;
+      console.error(`[mode-4] measured ${nonZero}/${renderedWidths.length} imgs`);
+    } catch (e) {
+      console.error(`[mode-4] measure-widths skipped: ${e.message}（fallback to default sizes）`);
+    }
+  }
+
   // === 3. 转换 ===
-  const result = transform(rawHtml, plan);
+  const result = transform(rawHtml, plan, { renderedWidths });
   if (!result.docxxml) {
     console.error('[mode-4] empty docxxml output. Input may be empty.');
     process.exit(1);

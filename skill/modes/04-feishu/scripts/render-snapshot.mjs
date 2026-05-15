@@ -46,6 +46,60 @@ export async function renderSnapshot(inputHtmlPath, outputPngPath, opts = {}) {
 }
 
 /**
+ * v0.5e: 用 puppeteer 渲染原 HTML，测量每个 <img> 的实际**显示宽度**。
+ *
+ * 解决的痛点：原 HTML 里的图（手机 mockup / 架构图 / 装饰小图）通过 CSS
+ * （max-width / grid 布局 / flex 比例 / `<img class="..." width:100%`）
+ * 被压缩成"该显示的宽度"，但 DOM 树本身没有这个宽度信息——cheerio 看到的
+ * img 没有 layout 维度。puppeteer 跑一次 layout 就拿到真实 px 宽度，
+ * 据此 resize 实际文件再上传到飞书，让飞书文档里的图自动跟原文档同款宽度。
+ *
+ * 返回数组顺序与 document.querySelectorAll('img') 一致（DOM 树深度优先序），
+ * cheerio 在 transform.mjs 中以同样顺序枚举 imgs → 用 index 对齐 + srcPrefix
+ * 校验防止漏对。
+ *
+ * @param {string} inputHtmlPath HTML 文件绝对路径
+ * @param {object} opts viewportWidth/viewportHeight/deviceScaleFactor，同 renderSnapshot
+ * @returns {Promise<Array<{ width: number, height: number, srcPrefix: string, naturalWidth: number, naturalHeight: number }>>}
+ */
+export async function measureImageWidths(inputHtmlPath, opts = {}) {
+  const { default: puppeteer } = await import('puppeteer');
+  const viewportWidth = opts.viewportWidth || 1280;
+  const viewportHeight = opts.viewportHeight || 800;
+  const deviceScaleFactor = opts.deviceScaleFactor || 1;  // measurement 不需要 retina
+
+  const absInput = resolve(inputHtmlPath);
+  await stat(absInput);
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor });
+    await page.goto(`file://${absInput}`, { waitUntil: 'networkidle0', timeout: 60000 });
+
+    // 测量每个 <img> 的 layout 宽度 + 自然分辨率 + src 前缀（安全校验）
+    const measurements = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('img')).map(img => {
+        const rect = img.getBoundingClientRect();
+        return {
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          srcPrefix: (img.src || '').slice(0, 80),
+          naturalWidth: img.naturalWidth || 0,
+          naturalHeight: img.naturalHeight || 0,
+        };
+      });
+    });
+    return measurements;
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
  * v0.5c: 截取一个 selector 命中元素的 bounding box 区域。
  *
  * 给"嵌套 div 套娃 / 复杂渐变背景"这类 DocxXML 表达不了的装饰块兜底用。
