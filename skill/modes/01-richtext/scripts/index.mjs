@@ -29,6 +29,7 @@ Options:
   --plan <path>         Optional plan.json (1C agent output; default: built-in DEFAULT_PLAN)
   --output <path>       Write converted HTML to file (also written to stdout)
   --output-text <path>  Write plain text version to file (for "text/plain" clipboard fallback)
+  --no-measure          Skip optional browser image-width measurement
   --dry-run             Conversion only; do NOT write any output file (stats to stderr)
   --help                Show this help
 

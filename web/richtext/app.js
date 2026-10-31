@@ -12,7 +12,7 @@
 // 注意：import 路径必须带 ?v= cache buster；否则浏览器 ES module map
 // 把 './transform.mjs' 作为 URL key 缓存，永远拿不到新版本。
 // index.html 的 app.js?v=XX 和此处的版本号必须同步更新。
-import { transform, DEFAULT_PLAN } from './transform.mjs?v=24';
+import { transform, DEFAULT_PLAN } from './transform.mjs?v=27';
 
 const $ = (id) => document.getElementById(id);
 const editor = $('editor');
@@ -105,6 +105,7 @@ function preRender(rawHtml, timeoutMs = 2500) {
 
 // ---------- UI ----------
 
+let previewBlobUrl = null;
 function renderPreview(html) {
   const wrapStyle = `
     *{box-sizing:border-box}
@@ -115,9 +116,22 @@ function renderPreview(html) {
     .preview-card>:first-child{margin-top:0}
     .preview-card>:last-child{margin-bottom:0}
   `.replace(/\s+/g, ' ');
-  preview.srcdoc = html
+  const markup = html
     ? `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>${wrapStyle}</style></head><body><div class="preview-card">${html}</div></body></html>`
     : `<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#fafaf9}body{display:flex;align-items:center;justify-content:center;font-family:-apple-system,sans-serif;color:#a8a29e;font-size:13px}</style></head><body>在左侧输入 HTML 后预览出现在这里</body></html>`;
+  const previousBlob = previewBlobUrl;
+  previewBlobUrl = null;
+  // srcdoc resolves #fragments against the editor URL. A blob document has its
+  // own URL, so :target links stay inside the preview without enabling scripts.
+  if (html && /<svg\b[\s\S]*?<style\b/i.test(html) && /\b(?:xlink:)?href\s*=\s*["']#/i.test(html)) {
+    previewBlobUrl = URL.createObjectURL(new Blob([markup], { type: 'text/html' }));
+    preview.removeAttribute('srcdoc');
+    preview.src = previewBlobUrl;
+  } else {
+    preview.removeAttribute('src');
+    preview.srcdoc = markup;
+  }
+  if (previousBlob) URL.revokeObjectURL(previousBlob);
 }
 
 function renderWarnings(warns) {

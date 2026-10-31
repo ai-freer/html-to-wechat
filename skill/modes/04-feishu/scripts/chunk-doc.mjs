@@ -8,16 +8,14 @@
 //   - chunk[0]: <title>...</title>\n + 前 K 个顶层块
 //   - chunk[1..]: 续余顶层块（无 <title>）
 // 然后：
-//   - chunk[0] 走 lark-cli docs +create --api-version v2 --content -
-//   - chunk[1..] 走 lark-cli docs +update --api-version v2 --command append
+//   - chunk[0] 走 lark-cli docs +create --content -
+//   - chunk[1..] 走 lark-cli docs +update --command append
 //                          --doc <id> --content - --doc-format xml
 //
 // 见 ROADMAP §「Mode 4 v0.5d」
 
-import { spawn } from 'node:child_process';
+import { updateDoc } from './update-doc.mjs';
 import { createDoc } from './create-doc.mjs';
-
-const LARK_CLI = process.env.LARK_CLI_BIN || 'lark-cli';
 
 /**
  * 把 DocxXML 切成 ≤ maxBytes 的若干 chunk，**按顶层 block 边界**。
@@ -33,7 +31,7 @@ const LARK_CLI = process.env.LARK_CLI_BIN || 'lark-cli';
  * @returns {Array<string>} chunks
  */
 export function splitDocxXML(docxxml, maxBytes) {
-  if (!docxxml || docxxml.length <= maxBytes) return [docxxml];
+  if (!docxxml || Buffer.byteLength(docxxml) <= maxBytes) return [docxxml];
 
   // 找所有顶层 block 关闭点（depth 从 1 回到 0 的位置）
   const cuts = findTopLevelCutPoints(docxxml);
@@ -47,8 +45,10 @@ export function splitDocxXML(docxxml, maxBytes) {
   const chunks = [];
   let start = titleEnd;
   while (start < docxxml.length) {
-    const target = start + maxBytes - (chunks.length === 0 ? titlePrefix.length : 0);
-    let end = pickNextCut(cuts, start, target);
+    const prefixBytes = chunks.length === 0 ? Buffer.byteLength(titlePrefix) : 0;
+    const eligible = cuts.filter(c => c > start);
+    const fitting = eligible.filter(c => prefixBytes + Buffer.byteLength(docxxml.slice(start, c)) <= maxBytes);
+    let end = fitting.at(-1) ?? eligible[0] ?? -1;
     // 没有合适的切割点（剩余内容无顶层 block 边界）→ 取到末尾
     if (end === -1 || end <= start) end = docxxml.length;
     const body = docxxml.slice(start, end).trim();
@@ -88,21 +88,6 @@ function findTopLevelCutPoints(s) {
   return cuts;
 }
 
-function pickNextCut(cuts, start, target) {
-  // 返回 > start 的最佳切割点：优先 ≤ target 的最大；没有则取 > start 的最近
-  let best = -1;
-  for (const c of cuts) {
-    if (c <= start) continue;
-    if (c <= target) {
-      best = c;  // 在 target 内继续找更大的
-    } else {
-      if (best === -1) best = c;  // 没有 ≤ target 的，取首个超过 target 的
-      return best;
-    }
-  }
-  return best;  // 可能 -1（无 > start 的 cut）；caller 负责处理
-}
-
 /**
  * 分块创建文档：chunk[0] 走 +create，chunk[1..] 走 +update --command append。
  *
@@ -124,6 +109,7 @@ export async function chunkedCreateDoc(chunks, opts = {}) {
   }
 
   return {
+    warnings: created.warnings, tips: created.tips,
     url: created.url,
     documentId: created.documentId,
     newBlocks: created.newBlocks,
@@ -133,48 +119,8 @@ export async function chunkedCreateDoc(chunks, opts = {}) {
 
 /**
  * 追加一段 DocxXML 到现有文档末尾。
- * 用 lark-cli docs +update --api-version v2 --command append --doc-format xml。
+ * 用 lark-cli docs +update --command append --doc-format xml。
  */
 async function appendDocxXML(documentId, docxxml, opts = {}) {
-  const args = [
-    'docs', '+update',
-    '--api-version', 'v2',
-    '--doc', documentId,
-    '--command', 'append',
-    '--doc-format', 'xml',
-    '--content', '-',
-  ];
-  if (opts.dryRun) args.push('--dry-run');
-
-  const stdout = await spawnLark(args, docxxml);
-  let json;
-  try { json = JSON.parse(stdout); } catch { json = { ok: 'unknown', raw: stdout.slice(0, 200) }; }
-  if (json.ok === false) {
-    throw new Error(`append failed: ${JSON.stringify(json)}`);
-  }
-  return json;
-}
-
-function spawnLark(args, stdinData) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(LARK_CLI, args, { stdio: ['pipe', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d) => { stdout += d.toString('utf8'); });
-    proc.stderr.on('data', (d) => { stderr += d.toString('utf8'); });
-    proc.on('error', (err) => reject(new Error(`lark-cli spawn failed: ${err.message}`)));
-    proc.on('exit', (code) => {
-      if (code !== 0) {
-        reject(new Error(`lark-cli exited ${code}\nstderr: ${stderr.slice(0, 500)}\nstdout: ${stdout.slice(0, 200)}`));
-      } else {
-        resolve(stdout);
-      }
-    });
-    if (stdinData != null) {
-      proc.stdin.write(stdinData, 'utf8');
-      proc.stdin.end();
-    } else {
-      proc.stdin.end();
-    }
-  });
+  return updateDoc(documentId, 'append', docxxml, { ...opts, format: 'xml' });
 }

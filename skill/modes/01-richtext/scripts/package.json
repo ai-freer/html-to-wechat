@@ -1,7 +1,7 @@
 {
   "name": "@html-to-wechat/mode-01-richtext",
   "private": true,
-  "version": "0.1.0-dev",
+  "version": "0.2.0-dev",
   "type": "module",
   "description": "Mode 1 v0.1 — HTML Artifact → 公众号富文本（1C agent 看图产 plan → 1A juice + DOM 清理纯函数）",
   "bin": {

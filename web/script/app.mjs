@@ -14,6 +14,8 @@
 // 见 docs/03-html-to-script.md §4。
 
 import { marked } from 'https://esm.sh/marked@13?bundle';
+import { analyze, mdToPlain } from './analyze.mjs';
+import { sanitizePreview } from './preview.mjs';
 
 // ===== marked 配置 =====
 marked.setOptions({
@@ -77,6 +79,15 @@ async function init() {
     rerender();
   }
 
+  // An already-open preview must also accept the next Agent result link.
+  window.addEventListener('hashchange', () => {
+    const next = parseFragment();
+    if (next !== null) {
+      refs.src.value = next;
+      rerender();
+    }
+  });
+
   // 2. 绑事件
   refs.src.addEventListener('input', rerender);
   refs.btnSample.addEventListener('click', () => {
@@ -113,7 +124,7 @@ function rerender() {
     html = '<div class="empty">空。粘贴 markdown / 上传 .md / 点击 [载入示例] 试试。</div>';
     refs.body.dataset.state = 'empty';
   }
-  refs.preview.innerHTML = html;
+  refs.preview.replaceChildren(sanitizePreview(html, document));
 
   // 更新元信息
   refs.chars.textContent = stats.chars;
@@ -130,100 +141,12 @@ function rerender() {
   refs.btnTxt.disabled = !hasContent;
 }
 
-// ===== 分析 =====
-function analyze(md) {
-  // 去除 markdown 后的纯文本（用于字数 / 句数统计）
-  const plain = mdToPlain(md);
-  const chars = countChars(plain);
-  const sentences = splitSentences(plain);
-  const sentenceCount = sentences.length;
-  const avgSentenceChars = sentenceCount > 0 ? Math.round(chars / sentenceCount) : 0;
-
-  // 段落：按 `^## ` 切（一级标题 # 视为整篇标题，不算段落）
-  const sections = splitSections(md);
-
-  // 时长：250 字/分钟 → 4 字/秒
-  const durationSec = Math.round(chars / 4);
-
-  // 警告
-  const warnings = [];
-  if (sentenceCount > 0 && avgSentenceChars > 35) {
-    warnings.push(`平均句长 ${avgSentenceChars} 字，偏长（建议 ≤ 30 字）`);
-  }
-  const longSentences = sentences.filter(s => s.length > 50).length;
-  if (longSentences > 0) {
-    warnings.push(`${longSentences} 句超 50 字`);
-  }
-  if (sections.length === 0 && chars > 200) {
-    warnings.push(`无 ## 段落切分（>200 字建议切段）`);
-  }
-
-  return { chars, durationSec, sections, sentenceCount, avgSentenceChars, warnings };
-}
-
-function countChars(plain) {
-  // 中文字符 + 英文 word 都按 1 计；空白和标点不算
-  // 简化：去空白后字符数
-  return plain.replace(/\s+/g, '').length;
-}
-
-function splitSentences(plain) {
-  // 中文句末标点：。！？；
-  // 英文：. ! ? ; （后跟空格或行尾）
-  return plain
-    .split(/[。！？；]|[.!?;](?=\s|$)/)
-    .map(s => s.trim())
-    .filter(Boolean);
-}
-
-function splitSections(md) {
-  const lines = md.split('\n');
-  const sections = [];
-  let cur = null;
-  for (const line of lines) {
-    const m = line.match(/^##\s+(.+?)(?:\s+\((\d+(?:\.\d+)?)\s*s?\))?\s*$/i);
-    if (m) {
-      if (cur) sections.push(cur);
-      cur = {
-        title: m[1].trim(),
-        durationHint: m[2] ? parseFloat(m[2]) : null,
-        body: '',
-      };
-    } else if (cur && !line.match(/^#\s/)) {
-      cur.body += line + '\n';
-    }
-  }
-  if (cur) sections.push(cur);
-
-  // 为每个 section 算字数 + 时长
-  for (const s of sections) {
-    s.chars = countChars(mdToPlain(s.body));
-    s.computedDurationSec = Math.round(s.chars / 4);
-  }
-  return sections;
-}
-
-function mdToPlain(md) {
-  return md
-    .replace(/<!--[\s\S]*?-->/g, ' ')           // 移除 HTML 注释（含 scene: 标记）
-    .replace(/```[\s\S]*?```/g, ' ')             // 移除代码块
-    .replace(/`([^`]+)`/g, '$1')                 // 内联代码 → 纯文本
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')       // 图片
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')     // 链接 → 文字
-    .replace(/^#{1,6}\s+/gm, '')                  // 标题 #
-    .replace(/^[-*+]\s+/gm, '')                   // 列表
-    .replace(/^\d+\.\s+/gm, '')                   // 有序列表
-    .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1') // 加粗 / 斜体
-    .replace(/^\s*>\s?/gm, '')                    // 引用
-    .replace(/\s+/g, ' ');
-}
-
 function annotateSectionMeta(html, sections) {
   // 给每个 <h2>...</h2> 加 data-section-meta 属性
-  const titles = new Map(sections.map(s => [s.title, s]));
+  let sectionIndex = 0;
   return html.replace(/<h2(\s[^>]*)?>([^<]+)<\/h2>/g, (_, attrs, inner) => {
     const title = inner.trim();
-    const sec = titles.get(title);
+    const sec = sections[sectionIndex++];
     if (!sec) return `<h2${attrs || ''}>${inner}</h2>`;
     const hint = sec.durationHint ? `${sec.durationHint}s` : `~${sec.computedDurationSec}s`;
     const meta = `${sec.chars} 字 · ${hint}`;
@@ -233,7 +156,7 @@ function annotateSectionMeta(html, sections) {
 
 function expandSceneComments(html) {
   // <!-- scene: 城市夜景 + 霓虹灯 --> → <span class="scene-comment">🎬 城市夜景 + 霓虹灯</span>
-  return html.replace(/&lt;!--\s*scene:\s*([^-]+?)\s*--&gt;/gi,
+  return html.replace(/<!--\s*scene:\s*([\s\S]*?)\s*-->/gi,
     (_, content) => `<span class="scene-comment">🎬 ${escapeHtml(content.trim())}</span>`);
 }
 

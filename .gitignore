@@ -58,3 +58,6 @@ samples/*
 !samples/bench-plan-*.json
 !samples/README.md
 !samples/.gitkeep
+
+# Version-pinned, MIT-licensed public upstream examples and recipes.
+!samples/svg-motion-upstream/

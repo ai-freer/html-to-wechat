@@ -106,15 +106,17 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
     // 自己有 mode4 标注 → 保留
     if ($(el).attr('data-mode4-as')) return;
     // 子树里有 mode4 标注 → 也保留（agent 可能标注了内层节点）
-    if ($(el).find('[data-mode4-as]').length > 0) return;
+    if ($(el).find('[data-mode4-as]:not([data-mode4-as="drop"])').length > 0) return;
     stats.droppedTags[el.tagName.toLowerCase()] = (stats.droppedTags[el.tagName.toLowerCase()] || 0) + 1;
     $(el).remove();
   });
 
+  if (stats.droppedTags.svg) warnings.push(`省略 ${stats.droppedTags.svg} 个未映射 SVG；请由 Agent 补述或显式选择截图/画板，不能把零警告当作内容完整。`);
+
   // === 3. 取正文容器 ===
   // 优先 <main> > <article> > <body>。bench/full-report 都是 body 直接含内容。
   let root = $('main').first();
-  if (root.length === 0) root = $('article').first();
+  if (root.length === 0 && $('article').length === 1) root = $('article').first();
   if (root.length === 0) root = $('body').first();
   if (root.length === 0) root = $.root();
 
@@ -129,7 +131,7 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
   // 飞书 docs +create 服务端经验阈值：~200KB DocxXML 解析稳定，500KB+ 可能卡。
   // 真碰到 400 错误时记下 sample，触发 v0.5d 全自建 IR + batch_create fallback 实现。
   const sizeLimit = plan.v05dWarnAtBytes || 200_000;
-  if (docxxml.length > sizeLimit) {
+  if (Buffer.byteLength(docxxml, 'utf8') > sizeLimit) {
     warnings.push(
       `DocxXML 体积 ${(docxxml.length / 1024).toFixed(1)}KB 超过 ${(sizeLimit / 1024).toFixed(0)}KB 阈值 — ` +
       `若 +create 失败需考虑 v0.5d 全自建 IR + batch_create fallback（ROADMAP §v0.5d）`
@@ -213,8 +215,8 @@ function emit(node, ctx) {
   // === 黑名单（双重保险，但 plan 标注 escape）===
   // 如果是 banned tag 但子树里含 data-mode4-as 标注，穿透 children；不输出自己的 tag。
   // 否则真丢。
-  if (ALWAYS_DROP.has(tag) || ctx.plan.bannedTags.includes(tag)) {
-    const hasAnnotation = ctx.$(node).find('[data-mode4-as]').length > 0;
+  if (ALWAYS_DROP.has(tag) || (ctx.plan.bannedTags.includes(tag) && !node.attribs?.['data-mode4-as'])) {
+    const hasAnnotation = ctx.$(node).find('[data-mode4-as]:not([data-mode4-as="drop"])').length > 0;
     if (hasAnnotation) return emitChildren(node, ctx);
     return '';
   }

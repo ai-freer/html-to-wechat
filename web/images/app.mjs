@@ -18,28 +18,37 @@
 // 见 docs/02-html-to-images.md §5 fragment 协议（待补 v0.2 章节）
 
 import JSZip from 'https://esm.sh/jszip@3.10.1';
+import { normalizePayload, encodePayload } from './payload.mjs';
+
+let currentPayload = null;
 
 const url = new URL(window.location.href);
 const hash = window.location.hash || '';
-const fragMatch = /#app=([A-Za-z0-9+/=_-]+)/.exec(hash);
-const isAppMode = !!fragMatch || url.searchParams.get('app') === 'true';
+const fragMatch = /^#app=([A-Za-z0-9+/=_-]+)$/.exec(hash);
+const isAppMode = hash.startsWith('#app=') || url.searchParams.get('app') === 'true';
 
 if (isAppMode) {
   document.body.dataset.mode = 'app';
 
   let payload = null;
+  if (hash.startsWith('#app=') && !fragMatch) {
+    document.querySelector('.subpage-hero .lede').textContent = '图集链接无效：缺少或损坏的 payload。请让 Agent 重新生成链接。';
+    throw new Error('invalid app fragment');
+  }
   if (fragMatch) {
     try {
       const b64 = fragMatch[1].replace(/-/g, '+').replace(/_/g, '/');
       const json = decodeURIComponent(escape(atob(b64)));
-      payload = JSON.parse(json);
+      payload = normalizePayload(JSON.parse(json));
     } catch (e) {
       console.error('[mode-2 app] fragment 解析失败:', e);
-      payload = null;
+      document.querySelector('.subpage-hero .lede').textContent = `图集链接无效：${e.message}。请让 Agent 重新生成链接。`;
+      throw e;
     }
   }
 
   initAppMode(payload);
+  window.addEventListener('hashchange', () => { if (location.hash.startsWith('#app=')) location.reload(); });
 }
 
 // ===========================================================================
@@ -47,6 +56,7 @@ if (isAppMode) {
 // ===========================================================================
 
 function initAppMode(payload) {
+  currentPayload = payload;
   // 1) 替换 hero 文案为 app-mode 提示
   const lede = document.querySelector('.subpage-hero .lede');
   if (lede) {
@@ -63,14 +73,25 @@ function initAppMode(payload) {
     document.querySelector('.subpage-hero h1').textContent = payload.title;
     document.title = `${payload.title} · HTML-to-WeChat 图集 app`;
   }
-  if (payload?.captionText) {
+  if (payload && Object.hasOwn(payload, 'captionText')) {
     const body = document.querySelector('.caption-body');
     if (body) body.textContent = payload.captionText;
   }
-  if (payload?.captionTags) {
+  if (payload && Object.hasOwn(payload, 'captionTags')) {
     const tags = document.querySelector('.caption-tags');
-    if (tags) tags.textContent = payload.captionTags;
+    if (tags) tags.textContent = payload.captionTags.join(' ');
   }
+
+  if (payload) {
+    document.querySelector('#gallery h2').textContent = payload.title || '图集';
+    document.querySelector('#gallery .section-head p')?.replaceChildren(document.createTextNode('Agent 生成图集 · 请核对文字、顺序和图片内容。'));
+    document.querySelector('.gallery-hint').textContent = `共 ${payload.images.length} 张 · 可拖排 · 点击单图放大`;
+    document.querySelector('.caption-sample h3').textContent = payload.captionTitle || payload.title || '配套文案';
+  }
+  // Page anchors must not replace the fragment carrying the delivered content.
+  document.querySelectorAll('a[href="#gallery"], a[href="#how"]').forEach(a => {
+    a.addEventListener('click', e => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView(); });
+  });
 
   // 3) 改造 gallery：drag 排序 + 每图加重生按钮
   enhanceGallery();
@@ -173,6 +194,17 @@ function renumber() {
       num.textContent = `${idx} / ${after || '图集'}`;
     }
   });
+  persistOrder();
+}
+
+function persistOrder() {
+  const images = [...document.querySelectorAll('.gallery-item')].map(item => ({
+    src: item.querySelector('img').src, alt: item.querySelector('img').alt, prompt: item.dataset.prompt || '',
+  }));
+  currentPayload = { ...(currentPayload || { title: document.querySelector('h1').textContent, captionText: document.querySelector('.caption-body')?.textContent || '', captionTags: (document.querySelector('.caption-tags')?.textContent || '').split(/\s+/).filter(Boolean) }), images };
+  const next = new URL(location.href);
+  next.hash = `app=${encodePayload(currentPayload)}`;
+  history.replaceState(null, '', next);
 }
 
 async function handleRegen(item, idx) {
@@ -180,7 +212,7 @@ async function handleRegen(item, idx) {
   const rawAlt = item.querySelector('img')?.alt || `第 ${idx + 1} 张`;
   const alt = rawAlt.replace(/^\d{1,3}\s*\/\s*/, '');
   const message = prompt
-    ? `重做第 ${item.dataset.idx} 张「${alt}」。原始 prompt：\n\n${prompt}\n\n请直接调用 gpt-image-2 生成新图（保持同样 1024x1536 比例 / 风格），然后 update fragment payload。`
+    ? `重做第 ${item.dataset.idx} 张「${alt}」。原始 prompt：\n\n${prompt}\n\n请直接调用 gpt-image-2 生成新图（保持原图比例、同组风格和文字内容），然后 update fragment payload。`
     : `重做第 ${item.dataset.idx} 张「${alt}」。这张图没有原始 prompt，请基于上下文重新构思 + 用 gpt-image-2 出图。`;
   try {
     await navigator.clipboard.writeText(message);
@@ -236,8 +268,11 @@ function injectToolbar(payload) {
   const gallerySection = document.querySelector('#gallery');
   gallerySection?.parentNode.insertBefore(bar, gallerySection.nextSibling);
 
-  bar.querySelector('.tb-zip').addEventListener('click', async () => {
-    await downloadZip(payload);
+  bar.querySelector('.tb-zip').addEventListener('click', async e => {
+    e.currentTarget.disabled = true;
+    try { await downloadZip(payload); }
+    catch (error) { flashToast(`打包失败：${error.message}`); }
+    finally { bar.querySelector('.tb-zip').disabled = false; }
   });
   bar.querySelector('.tb-copy-frag').addEventListener('click', async () => {
     await copyFragmentUrl();
@@ -263,10 +298,16 @@ async function downloadZip(payload) {
     const safeAlt = alt.replace(/[^\w一-龥-]/g, '_').slice(0, 40);
     const fname = `${idx}-${safeAlt}.png`;
     try {
-      const blob = await fetch(img.src).then(r => r.blob());
-      zip.file(fname, blob);
+      const response = await fetch(img.src);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      if (!/^image\/(png|jpeg|gif|webp)(?:;|$)/i.test(blob.type)) throw new Error('响应不是支持的图片');
+      const ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }[blob.type.split(';')[0].toLowerCase()];
+      zip.file(fname.replace(/\.png$/, '.' + ext), blob);
     } catch (e) {
-      console.warn('zip skip:', fname, e.message);
+      console.warn('zip failed:', fname, e.message);
+      flashToast(`打包失败：第 ${i + 1} 张图片不可下载（${e.message}）。未生成不完整 ZIP。`);
+      return;
     }
   }
 
@@ -287,6 +328,7 @@ async function downloadZip(payload) {
 }
 
 async function copyFragmentUrl() {
+  persistOrder();
   try {
     await navigator.clipboard.writeText(window.location.href);
     flashToast('已复制 app URL（含 fragment）');

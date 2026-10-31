@@ -1,5 +1,7 @@
 # 模式 2：HTML → 图文号 / 小红书图集
 
+> **2026-10-31 更新**：Codex/ChatGPT 使用宿主内置 GPT-Image 2，其他宿主遵循用户指定工具，不再依赖旧 `anthropic-skills:gpt-image`。图集排序写回链接，标签统一为空格，ZIP 任一图失败即停止；自定义图集不再残留示例说明。尚未重新跑付费生图/公网托管/平台发布。当前执行指南以 `skill/modes/02-images/SKILL.md` 为准，下文保留早期设计背景。
+
 > 目标：把一篇长 HTML 文章转成 8-10 张视觉一致的 AI 卡片图 + 配套文案，可发小红书、公众号图文号。
 
 > **核心方向调整（自 v0.1 起）**：图集卡片**一律走顶级文生图模型**（gpt-image-2 / DALL·E 3 / 即梦 等），**禁用** SVG / Canvas / satori / puppeteer 等代码渲染。
@@ -25,7 +27,7 @@
 **目标平台参数**：
 | 平台 | 图片数量 | 推荐尺寸 |
 |---|---|---|
-| 小红书 | 1-18 张（实务 8-10 张最佳）| 1024×1536（3:4） |
+| 小红书 | 1-18 张（实务 8-10 张最佳）| 1024×1536（2:3，既有示例尺寸） |
 | 公众号图文号 | 1-9 张 | 1024×1536 或 1024×1024 |
 
 ## 2. X-C / X-A 范式
@@ -34,7 +36,7 @@
 
 - **X-C（决策层，agent 主导）**：截图理解 → 拆 8-10 张卡片边界 → 为每张写完整 prompt（含全局风格前缀）→ 写 caption 与 tags
 - **X-A（执行层）**：
-  - `anthropic-skills:gpt-image`（**外部 skill**）跑生图，每张图独立调用
+  - 宿主当前生图工具（Codex/ChatGPT 内置 GPT-Image 2）跑生图，每张图独立调用
   - `skill/modes/02-images/scripts/make-fragment.mjs` 把最终 payload 编 base64 URL
   - `web/images/`（GH Pages app 态）做拖排序 / 重生指引 / zip 下载
 
@@ -56,7 +58,7 @@ input.html
    │     输出：内存里的 plan 对象（先没 src，图还没生）
    │
    ├─ ② 逐张调 gpt-image-2 生图（外部 skill）
-   │     用 anthropic-skills:gpt-image
+   │     用宿主当前生图工具
    │     推荐：--size 1024x1536 --quality high
    │     每张 Read 确认（CLAUDE.md memory: 生图后必须呈出图）
    │     中文糊字时不要压 prompt（CLAUDE.md memory: 禁压 prompt 救乱码）
@@ -109,7 +111,7 @@ node skill/modes/02-images/scripts/render-snapshot.mjs input.html /tmp/snap.png
 
 中文长文密度（一张图含 200-400 字）的处理：gpt-image-2 实测能扛，糊字时**重试原 prompt** 而不是压缩——这是 CLAUDE.md memory `feedback_no_prompt_shrinking.md` 的硬约束。
 
-**尺寸**：默认 `1024x1536`（3:4，小红书最优），图文号 `1024x1024` 也行。
+**尺寸**：默认 `1024x1536`（2:3，既有示例尺寸；按用户目标确定比例），图文号 `1024x1024` 也行。
 
 ### 4.2 Fragment 协议 + payload.json schema
 
@@ -166,7 +168,7 @@ app 态特性（commit `7c8ed17` MVP 完成 + `b886b18` bug 修复 + 视觉质�
 |---|---|---|
 | ⓪ 截图理解 | agent（Read 截图） | `node render-snapshot.mjs` 产 PNG |
 | ① 内容拆解（plan） | LLM | agent 进程内 |
-| ② gpt-image-2 生图 | 外部 skill `anthropic-skills:gpt-image` | agent 调用，API key 在外部 skill |
+| ② gpt-image-2 生图 | 宿主当前生图工具 | agent 调用，API key 在外部 skill |
 | ③ 图入仓库 / 图床 | agent + git/curl | agent 进程 + 远程 |
 | ④ caption + tags | LLM | agent 进程内 |
 | ⑤ make-fragment | Node 脚本 | 本 skill `make-fragment.mjs` |
@@ -186,4 +188,4 @@ app 态特性（commit `7c8ed17` MVP 完成 + `b886b18` bug 修复 + 视觉质�
 - 自动发布到小红书 / 公众号（两个平台都没有公开发图 API，且小红书反自动化严格）
 - 视频化（属于模式 3 的衍生）
 - **代码渲染图模板**（satori / Canvas / SVG / puppeteer 排版）—— 已确认不如顶级生图模型，**永久不做**
-- 自建 image_provider 抽象层 —— 用外部 skill `anthropic-skills:gpt-image` 即可，不重复造轮子
+- 自建 image_provider 抽象层 —— 用宿主当前生图工具 即可，不重复造轮子

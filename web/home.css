@@ -1,0 +1,114 @@
+/* Homepage only: retain the warm paper cards and rust-red accents. */
+.home { --accent: #a4302a; --accent-bg: #fbf6e8; --border: #e7dcc1; --muted: #6c6256; }
+.home .landing { max-width: 1080px; }
+.home .landing-nav, .home-actions, .card-actions { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+.home .landing-nav { gap:22px; }
+/* Sticky top bar: full-bleed paper background, content stays in the column. */
+.home .landing { padding-top:0; }
+.home .landing-head { position:sticky; top:0; z-index:30; padding:16px 0 14px; background:rgba(250,250,249,.94); box-shadow:0 0 0 100vmax rgba(250,250,249,.94); clip-path:inset(0 -100vmax -1px); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
+.home .hero { gap:32px; padding:30px 0 28px; margin-bottom:0; }
+.home .hero-text h1 { font-size:40px; line-height:1.3; margin-bottom:16px; }
+.home .hero-text .lede { font-size:16px; }
+.home .hero-art { min-height:0; }
+.home .hero-art-image { max-height:230px; }
+.eyebrow { color:var(--muted); font-size:12px; letter-spacing:.12em; margin:0 0 12px; }
+.home-actions { margin-top:26px; gap:12px; }
+.path-note { margin:14px 0 0; font-size:13px; line-height:1.7; color:var(--muted); }
+.path-label { color:var(--accent); font-weight:600; }
+.path-divider { display:flex; align-items:center; gap:18px; margin:72px 0 0; color:var(--muted); }
+.path-divider::before, .path-divider::after { content:""; flex:1; border-top:1px dashed #c8b994; }
+.path-divider-label { display:inline-flex; align-items:center; gap:10px; padding:8px 16px; font-size:14px; background:#fffdf8; border:1px solid var(--border); border-radius:999px; }
+.path-divider-label b { color:#fff; background:var(--accent); font-size:12px; font-weight:600; padding:2px 9px; border-radius:999px; }
+.path-divider + .agent-section { margin-top:28px; scroll-margin-top:150px; }
+.path-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.path-card { border-left:2px solid #c8b994; padding:4px 22px; }
+.path-card h2 { font-size:20px; margin:0 0 8px; }
+.path-card p { color:var(--muted); margin:0 0 12px; font-size:14px; }
+.path-card a { font-size:14px; font-weight:600; }
+.home-section { margin-top:58px; scroll-margin-top:84px; }
+.section-heading { margin-bottom:24px; }
+.section-heading h2 { font-size:26px; margin:0 0 10px; letter-spacing:-.4px; }
+.section-heading > p:last-child { color:var(--muted); margin:0; }
+.home .modes-grid-4 { width:100%; }
+.home .mode4-card { gap:16px; padding:26px; min-width:0; }
+.home .mode4-card:hover { transform:none; background:#fbf6e8; box-shadow:none; border-color:#c8b994; }
+.home .mode4-card h3 { font-size:22px; margin:0; }
+.home .mode4-card .mode4-meta { padding-top:14px; font-family:inherit; line-height:1.7; }
+.card-actions { gap:14px; margin-top:2px; }
+.card-actions > a:last-child { font-size:13px; }
+.home .mode-cta { white-space:normal; }
+.home .mode-cta:hover { background:var(--accent); color:white; text-decoration:none; }
+.flow-steps { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(3,1fr); gap:24px; counter-reset:steps; }
+.flow-steps li { counter-increment:steps; border-top:1px solid var(--border); padding:18px 0; }
+.flow-steps li::before { content:'0' counter(steps); color:var(--accent); font-family:monospace; display:block; margin-bottom:12px; }
+.flow-steps strong { display:block; margin-bottom:6px; }
+.flow-steps span,.quiet-note,.detail-note { color:var(--muted); font-size:14px; }
+.quiet-note { margin:0 0 24px; }
+.home details { border:1px solid var(--border); border-radius:8px; margin-top:10px; background:#fffdf8; scroll-margin-top:84px; }
+.home summary { padding:17px 20px; cursor:pointer; font-weight:600; }
+.home summary span { float:right; color:var(--muted); font-size:12px; font-weight:400; margin-left:12px; }
+.detail-body { padding:0 20px 20px; }
+.detail-body p { margin:10px 0 14px; }
+.home button { font:inherit; font-size:13px; padding:7px 12px; border:1px solid #c8b994; color:var(--accent); background:#fbf6e8; border-radius:6px; cursor:pointer; }
+.home button:hover { background:#f3ecdc; }
+.home pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#f3efe6; border:1px solid var(--border); border-radius:8px; padding:16px; font-size:13px; line-height:1.8; }
+.home code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+.release-note { border-left:3px solid #b07820; padding:14px 18px; background:#fbf6e8; color:var(--muted); font-size:14px; }
+.install-step { display:grid; grid-template-columns:32px minmax(0,1fr); gap:16px; padding:24px 0; border-bottom:1px solid var(--border); }
+.install-step h3 { margin:0 0 8px; font-size:18px; }
+.install-step p { margin:8px 0 14px; }
+.step-index { font:18px/32px monospace; color:var(--accent); }
+.copy-status { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); max-width:90vw; background:#2f5240; color:white; border-radius:8px; padding:10px 18px; z-index:10; box-shadow:0 3px 18px #0002; }
+.copy-status:empty { display:none; }
+.home a:focus-visible,.home button:focus-visible,.home summary:focus-visible { outline:3px solid #a4302a; outline-offset:4px; }
+.skip-link { position:absolute; left:16px; top:-80px; background:white; padding:12px; z-index:20; }
+.skip-link:focus { top:8px; }
+@media (max-width:760px) {
+ .home .landing-head { align-items:flex-start; gap:8px; flex-direction:column; padding:12px 0 10px; }
+ .home .landing-nav { gap:18px; }
+ .home-section, .home details, .agent-install { scroll-margin-top:96px; }
+ .path-divider + .agent-section { scroll-margin-top:170px; }
+ .home .landing-nav { gap:20px; }
+ .home .hero { grid-template-columns:1fr; padding:28px 0; gap:16px; }
+ .home .hero-art { order:0; }
+ .home .hero-art-image { max-height:170px; }
+ .home .hero-text h1 { font-size:34px; }
+ .path-grid,.flow-steps { grid-template-columns:1fr; gap:22px; }
+ .home-section { margin-top:42px; }
+ .path-divider { margin-top:52px; padding-top:24px; justify-content:center; border-top:1px dashed #c8b994; }
+ .path-divider::before, .path-divider::after { display:none; }
+ .path-divider-label { font-size:13px; padding:7px 12px; text-align:left; }
+ .section-heading h2 { font-size:23px; }
+ .home .mode4-card { padding:22px; }
+ .home .mode4-head { flex-wrap:wrap; }
+ .home summary span { float:none; display:block; margin:4px 0 0 20px; }
+ .flow-steps { gap:0; }
+ .install-step { gap:10px; grid-template-columns:24px minmax(0,1fr); }
+}
+
+.home .task-text { overflow-wrap:anywhere; }
+
+/* Agent installation is the second visual anchor, alongside the four cards. */
+.agent-install { display:grid; grid-template-columns:1fr 1.15fr; gap:40px; padding:38px; background:#f6eedb; border:1px solid #d9c6a5; border-top:4px solid var(--accent); border-radius:12px; scroll-margin-top:84px; }
+.agent-install-intro h2 { font-size:34px; line-height:1.35; letter-spacing:-.7px; margin:0 0 18px; }
+.agent-install-intro > p:not(.eyebrow) { font-size:15px; color:var(--muted); line-height:1.9; margin:0 0 22px; }
+.agent-install-intro .eyebrow { color:var(--accent); font-weight:600; }
+.agent-package { font-size:13px; color:var(--muted); }
+.agent-install-action { min-width:0; background:#fffdf8; padding:22px; border:1px solid var(--border); border-radius:8px; }
+.prompt-label { font-size:12px; color:var(--muted); margin:0 0 12px; }
+.agent-install-action .task-text { font-size:14px; line-height:1.9; margin:0 0 20px; }
+.home .install-copy { display:flex; justify-content:space-between; align-items:center; width:100%; padding:13px 18px; border-color:var(--accent); background:var(--accent); color:#fff; font-size:15px; font-weight:600; }
+.home .install-copy:hover { background:#862822; }
+.install-hint { font-size:12px; color:var(--muted); margin:12px 0 0; }
+.agent-usage-heading { margin:40px 0 18px; }
+.agent-usage-heading h3 { font-size:20px; margin:0 0 6px; }
+.agent-usage-heading p { font-size:14px; color:var(--muted); margin:0; }
+@media (max-width:760px) {
+ .home .hero { padding:22px 0; }
+ .home .hero-art-image { max-height:150px; }
+ .home-actions { margin-top:18px; }
+ .agent-install { grid-template-columns:1fr; padding:24px 20px; gap:22px; }
+ .agent-install-intro h2 { font-size:29px; }
+ .agent-install-intro > p:not(.eyebrow) { margin-bottom:12px; }
+ .agent-install-action { padding:18px; }
+}

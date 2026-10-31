@@ -34,10 +34,29 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
   }
   const plan = mergePlan(planArg);
 
+  // SVG-local styles may contain dynamic selectors such as :target. Keep them
+  // out of juice: inlining a static state would destroy the interaction.
+  const parser = new DOMParser();
+  const sourceDoc = parser.parseFromString(rawHtml, 'text/html');
+  const svgStyles = [...sourceDoc.querySelectorAll('svg style')];
+  let cssInput = rawHtml;
+  const protectedStyles = [];
+  if (svgStyles.length) {
+    const clone = sourceDoc.cloneNode(true);
+    let prefix = 'wechat-svg-style-';
+    while (rawHtml.includes(prefix)) prefix += 'x';
+    [...clone.querySelectorAll('svg style')].forEach((style, index) => {
+      const token = `${prefix}${index}`;
+      protectedStyles.push([`<!--${token}-->`, style.outerHTML]);
+      style.replaceWith(clone.createComment(token));
+    });
+    cssInput = clone.documentElement.outerHTML;
+  }
+
   // 1. CSS 内联（juice）
   let inlinedHtml;
   try {
-    inlinedHtml = juice(rawHtml, {
+    inlinedHtml = juice(cssInput, {
       removeStyleTags: true,
       preserveImportant: true,
       applyAttributesTableElements: true,
@@ -47,9 +66,12 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
     return { html: '', text: '', stats: null, error: 'CSS 内联失败：' + e.message, warnings: [] };
   }
 
+  // Restore only the SVG-local styles; ordinary document CSS stays inlined.
+  for (const [placeholder, original] of protectedStyles) {
+    inlinedHtml = inlinedHtml.replace(placeholder, () => original);
+  }
+
   // 2. 解析为 DOM
-  const parser = new DOMParser();
-  const sourceDoc = parser.parseFromString(rawHtml, 'text/html');
   const doc = parser.parseFromString(inlinedHtml, 'text/html');
 
   const counters = {
@@ -123,7 +145,7 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
   });
 
   // 3b. 删除残留 <style>（juice removeStyleTags 已处理大部分）
-  doc.querySelectorAll('style').forEach(el => el.remove());
+  doc.querySelectorAll('style').forEach(el => { if (!el.closest('svg')) el.remove(); });
 
   // 3c. <details> 静态化：公众号粘贴 <details> 默认 collapsed，内容隐藏。
   //     把 <details> 展开成 <div>，summary 改成 div（保留内部 h4/p 不变）。
@@ -215,6 +237,22 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
   doc.querySelectorAll('[style]').forEach(el => {
     const before = el.getAttribute('style') || '';
     let after = before;
+    // Short numeric labels inside percentage-width flex bars must remain legible
+    // when flex alignment is replaced by block flow. Do not change bar width.
+    if (!el.closest('svg') && !el.children.length &&
+        /display\s*:\s*(?:inline-)?flex\b/i.test(before) &&
+        /(?:^|;)\s*width\s*:\s*[\d.]+%/i.test(before) &&
+        /\d/.test(el.textContent) && Array.from(el.textContent.trim()).length <= 20 &&
+        /(?:^|;)\s*height\s*:/i.test(before)) {
+      after = after.replace(/(?:^|;)\s*white-space\s*:[^;]+;?/gi, ';');
+      after += '; white-space: nowrap;';
+      // A label can be wider than a very short bar. Carry its background with it
+      // so overflow remains readable without changing the encoded percentage.
+      const label = doc.createElement('span');
+      label.setAttribute('style', 'display: inline-block; white-space: nowrap; background-color: inherit; color: inherit;');
+      label.textContent = el.textContent;
+      el.replaceChildren(label);
+    }
     after = after.replace(
       /display\s*:\s*(inline-)?(flex|grid)\s*(!important)?\s*;?/gi,
       (_m, inline) => {
@@ -232,6 +270,11 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
       }
     );
     if (hasAbsPos) {
+      // Positioning transforms no longer refer to the original containing block.
+      // Keep SVG geometry untouched and preserve transforms on normal-flow nodes.
+      if (!el.closest('svg')) {
+        after = after.replace(/(?:^|;)\s*(?:-webkit-)?transform\s*:[^;]+;?/gi, ';');
+      }
       after = after.replace(/\b(top|right|bottom|left)\s*:[^;]+;?/gi, () => {
         counters.layoutNormalized++;
         return '';
@@ -298,9 +341,21 @@ export function transform(rawHtml, planArg = {}, opts = {}) {
 
   // 14. 警告（按级别排序：ok 在前，warn 在后；隐藏 0 计数）
   const svgFidelity = inspectSvgFidelity(sourceDoc, doc);
+  // Diagnose residual hidden prose without deciding which UI state is intended.
+  // SVG animation opacity is intentionally excluded from this document check.
+  const isHidden = el => /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?:\s*!important)?\s*(?:;|$))/i.test(el.getAttribute('style') || '');
+  counters.hiddenTextBlocks = [...doc.querySelectorAll('[style]')].filter(el => {
+    if (el.closest('svg') || el.textContent.trim().length < 10 || !isHidden(el)) return false;
+    for (let parent = el.parentElement; parent; parent = parent.parentElement) if (isHidden(parent)) return false;
+    return true;
+  }).length;
   const warnings = buildWarnings(counters);
+  if (counters.hiddenTextBlocks) warnings.push({ level: 'warn', text: `结果仍有 ${counters.hiddenTextBlocks} 处隐藏或完全透明的正文；若来自切页/入场动画，请由 Agent 判断展开范围后再转换` });
   if (svgFidelity.lost.length) warnings.push({level: 'warn', text: `SVG 转换后减少：${svgFidelity.lost.join('、')}；正文提取也可能造成此变化`});
   if (svgFidelity.changedAnimations) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.changedAnimations} 个动画元素或关键属性发生变化，请检查`});
+  if (svgFidelity.changedStyles) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.changedStyles} 个样式块丢失或变化，请检查`});
+  if (svgFidelity.source.style) warnings.push({level: 'warn', text: 'SVG 内含样式规则；公众号保存和手机预览可能改写或移除，请实际验证'});
+  if ([...sourceDoc.querySelectorAll('svg style')].some(el => /:target\b/i.test(el.textContent))) warnings.push({level: 'warn', text: 'SVG 使用 :target 片段状态；公众号草稿实测该写法保存后失效，可能遮挡内容，请勿直接发布'});
   if (svgFidelity.lostRefs.length) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.lostRefs.length} 个内部引用不再出现，请检查`});
   if (svgFidelity.brokenRefs.length) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.brokenRefs.length} 个内部引用未找到目标，请检查`});
 
@@ -703,19 +758,24 @@ function repairRoundedTables(doc, counters) {
 
 // A structural comparison, not a guarantee of rendering or WeChat persistence.
 function inspectSvgFidelity(before, after) {
-  const tags = ['svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan', 'image', 'defs', 'marker', 'clippath', 'mask', 'use', 'animate', 'animatetransform', 'animatemotion', 'set', 'mpath'];
+  const tags = ['svg', 'style', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan', 'image', 'defs', 'marker', 'clippath', 'mask', 'use', 'animate', 'animatetransform', 'animatemotion', 'set', 'mpath'];
   const animTags = new Set(['animate', 'animatetransform', 'animatemotion', 'set', 'mpath']);
   const critical = new Set(['attributename','attributetype','begin','dur','end','repeatcount','values','from','to','by','keytimes','keysplines','calcmode','fill','restart','type','additive','accumulate','href','xlink:href']);
   function snapshot(doc) {
     const nodes = [...doc.querySelectorAll('svg, svg *')];
     const counts = Object.fromEntries(tags.map(tag => [tag, 0]));
     const signatures = new Map();
+    const styles = new Map();
     const ids = new Set();
     const refs = [];
     for (const el of nodes) {
       const tag = el.localName.toLowerCase();
       if (tag in counts) counts[tag]++;
       if (el.id) ids.add(el.id);
+      if (tag === 'style') {
+        const key = el.textContent.trim();
+        styles.set(key, (styles.get(key) || 0) + 1);
+      }
       if (animTags.has(tag)) {
         const attrs = [...el.attributes].filter(a => critical.has(a.name.toLowerCase())).map(a => [a.name.toLowerCase(), a.value.trim()]).sort((a,b) => a[0].localeCompare(b[0]));
         const key = JSON.stringify([tag, attrs]);
@@ -733,15 +793,17 @@ function inspectSvgFidelity(before, after) {
         }
       }
     }
-    return { counts, signatures, ids, refs };
+    return { counts, signatures, styles, ids, refs };
   }
   const a = snapshot(before), b = snapshot(after);
   const lost = tags.filter(t => a.counts[t] > b.counts[t]).map(t => `${t} ${a.counts[t] - b.counts[t]} 个`);
   let changedAnimations = 0;
   for (const [key, count] of a.signatures) changedAnimations += Math.max(0, count - (b.signatures.get(key) || 0));
+  let changedStyles = 0;
+  for (const [key, count] of a.styles) changedStyles += Math.max(0, count - (b.styles.get(key) || 0));
   const brokenRefs = [...new Set(b.refs.filter(id => !b.ids.has(id)))];
   const lostRefs = [...new Set(a.refs.filter(id => !b.refs.includes(id)))];
-  return { source: a.counts, output: b.counts, lost, changedAnimations, lostRefs, brokenRefs };
+  return { source: a.counts, output: b.counts, lost, changedAnimations, changedStyles, lostRefs, brokenRefs };
 }
 
 function sizeAllTables(doc, cfg, counters) {

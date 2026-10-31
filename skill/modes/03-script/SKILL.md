@@ -1,84 +1,32 @@
 ---
 name: html-to-wechat-script
-version: 0.1.0-dev
-description: "把一份 standalone HTML Artifact 转成口播稿 markdown。输入 HTML → 输出可念出来的口播稿（去格式、去图、表格摘要化），附带字数/估时长/段落/句长统计。X-A 纯函数 transform(html, plan) — 可单跑也可配合 1C agent 看图后产 plan.json。"
-metadata:
-  requires:
-    bins: []
-    skills: []
-  cliHelp: "node scripts/index.mjs --help"
+version: 0.2.0-dev
+description: "从 HTML 提取结构化 Markdown，交给 Agent 改写为口播稿；提供预览、统计、逐句换行和 md/txt 下载。CLI 提取不是成品改写。"
 ---
 
-# html-to-wechat-script (mode 3)
+# HTML → 口播稿
 
-## 设计范式
+## 工作流程
 
-- **X-A（执行层，纯函数）**：HTML → cheerio 清洗 → turndown 转 markdown → analyze 统计
-- **X-C（决策层）— 本 mode 通常退化为不需要**：mode 3 plan 只有 4 个字段（extractMain / bannedTags / keepImages / turndownOptions）—— 文本结构信息从 HTML DOM 直接读就够，**不强制要求 agent 看截图**
-- **X-C 仍然有用的场景**：多 article 报告 + 装饰性页面 chrome 干扰严重时（参考 bench 对比：单 article 用 default plan 够 / `samples/full-report-standalone.html` 14 个 article 必须 `{extractMain:false}` 兜底）；agent 截图看完后能更精准定 `bannedTags`
-- 250 字/分钟 = 4 字/秒 估时长；句长警告：平均 > 35 字、单句 > 50 字、>200 字未切段
+1. 用脚本提取，输出命名为 `extracted.md`。多 article 自动保留完整 main/body 并警告，不再只选最长 article。
+2. Agent 阅读提取稿和原文；有图表、SVG、卡片对比时看原始截图，补述图中关键结论。表格占位必须处理，不把占位符或代码直接当旁白交付。
+3. 由当前宿主模型直接做口语化改写：短句、一句一行、每段一个意思；解释首次出现的术语，保留数字含义，不擅自删掉整节。标题/链接仅在适合口述时保留。
+4. 输出 `spoken.md`，用 `##` 分镜头；可加 `<!-- scene: 画面提示 -->`、`## 标题 (12s)` 时长提示。手工时长与按 250 字/分钟的估时分开，不承诺真实 TTS 时长。
+5. 对照原文核对章节、数字、结论；将成品 UTF-8 base64 编为网页 `#payload=...`，或由用户粘贴/上传 .md。网页不调用改写模型、不直接接收 HTML 做转换。
+6. 网页预览会清除事件、危险 URL 和活动标签；复制/TXT 保留换行。生成的 Markdown 依然按外部内容对待，不能把预览清理当作可执行任意附件的授权。
 
-## 前置
-
-```bash
-cd skill/modes/03-script/scripts && npm install
-```
-
-## 调用
+## 仓库内调用
 
 ```bash
-# 最简
-node scripts/index.mjs --input path/to/report.html --output spoken.md
-
-# 干跑（只看统计）
-node scripts/index.mjs --input path/to/report.html --dry-run
-
-# 用 plan 覆盖默认（如保留图片占位、保留表格）
-node scripts/index.mjs --input report.html --plan plan.json --output spoken.md
-
-# 可选：先截图给 agent 看，再让 agent 写更精准的 plan（X-C 路径）
-node scripts/render-snapshot.mjs path/to/report.html /tmp/m3-snap.png
-# agent Read /tmp/m3-snap.png 后写 plan.json，再调上面 --plan 流程
+npm install --prefix skill/modes/03-script/scripts
+node skill/modes/03-script/scripts/index.mjs --input report.html --output extracted.md
+node skill/modes/03-script/scripts/index.mjs --input report.html --plan plan.json --dry-run
+# 完成 Agent 改写后，将成品投递到指定的本地预览页
+node skill/modes/03-script/scripts/make-fragment.mjs spoken.md http://127.0.0.1:8772/web/script/
 ```
 
-输出：markdown 到 stdout + stats/warnings/sections 到 stderr。
+`--plan` 接受 JSON 文件路径，不接受内联 JSON。字段为 `extractMain`、`bannedTags`、`keepImages`、`turndownOptions`。`extractMain:false` 保留整个 body；默认多 article 也不丢整章。复杂导航可用 bannedTags 或由 Agent 在提取后核对。
 
-## 范围
+## 验证边界
 
-- ✅ HTML 黑名单剥除（script/style/nav/aside/header/footer/svg 等）
-- ✅ 正文抽取（`<article>` 选最长 / `<main>` / `<body>` 兜底）
-- ✅ 图片默认去除（口播稿不要图）
-- ✅ 表格 → "[此处原文是一张表格，口播时跳过或用 1-2 句话总结]"
-- ✅ markdown 转换（turndown，可定制 headingStyle / codeBlockStyle / 列表标记）
-- ✅ 字数 / 估时长 / 句数 / 平均句长 / 段落切分（按 `## H`）
-- ✅ 段落级时长 hint：`## 标题 (12s)` 支持人工标注
-- ✅ 警告：长句、超长段、无切段
-
-## plan.json schema（简）
-
-```json
-{
-  "extractMain": true,
-  "bannedTags": ["script","style","..."],
-  "keepImages": false,
-  "turndownOptions": {
-    "headingStyle": "atx",
-    "codeBlockStyle": "fenced",
-    "bulletListMarker": "-"
-  }
-}
-```
-
-完整 schema 见 `html-to-script.mjs` 顶部 `DEFAULT_PLAN`。
-
-## 与 web/script/ 关系
-
-- 浏览器版 `web/script/` 接收 fragment markdown 直接 analyze（不做 HTML→md，因为 fragment 协议已经传 md 进来）
-- skill 版本是「HTML → md → analyze」三步管线，给 agent 在本地端跑
-- 共享算法核心：`analyze.mjs`（与 `web/script/app.mjs` 的 analyze 部分行为等价；同步约定）
-
-## 已知坑
-
-- 无 `<article>` / `<main>` 时启发式 `<body>` 兜底，可能保留过多页面装饰——这时用 plan 加 `bannedTags` 扩列
-- **多 `<article>` 报告（如 dashboard 类）启发式只取最长的一个**：会大幅丢内容（bench 实测 full-report 取出 130 chars / body 含 34863 chars）→ 必须 `--plan` 传 `{"extractMain": false}` 兜底
-- turndown 对超长 inline 元素（如 100+ 字 `<span>`）可能产生超长段落——长句警告会提示
+本地脚本/预览回归不等于口语化质量验收，也不生成视频或音频。当前分析算法在网页和 Skill 各一份，通过内容一致性测试防止漂移。真实长报告的 Agent 改写质量与跨宿主安装另行验收。

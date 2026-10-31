@@ -1,7 +1,7 @@
 ---
 name: html-to-wechat-richtext
-version: 0.1.0-dev
-description: "把一份 standalone HTML Artifact 转成微信公众号兼容富文本。输入 HTML 文件路径或 stdin → 输出公众号粘贴即用的 HTML（CSS 已 inline、表格列宽估算、半透明背景压平、details 展开等）。X-A 1A 纯函数 transform(html, plan)，可单独跑（默认 DEFAULT_PLAN）或配合 1C agent 看图后产的 plan.json 提供节点级 directives。"
+version: 0.2.0-dev
+description: "将 HTML 转为公众号兼容富文本；复杂页面先检查正文和视觉状态，生成显式 plan，再调用现有转换器。输出本地 HTML/纯文本，不发布。"
 metadata:
   requires:
     bins: []
@@ -9,81 +9,45 @@ metadata:
   cliHelp: "node scripts/index.mjs --help"
 ---
 
-# html-to-wechat-richtext (mode 1)
+# HTML → 公众号富文本
 
-## 设计范式
+本文件所在目录是模式根，`scripts/` 相对模式根，不相对用户工作目录。总包中位于 `modes/01-richtext/`，独立包中就是包根。用绝对模式路径调用，输入/输出留在用户工作目录。依赖已安装就直接用，不先 npm install 或遍历源码。
 
-- **X-A（执行层，纯函数）**：`transform(html, plan)` 跑 juice CSS 内联 + DOM 清理 + 公众号兼容修复，无 LLM、无 IO、无 UI 副作用
-- **X-C（决策层，agent）**：用 `render-snapshot.mjs` puppeteer 截图后，让 multimodal LLM 看图 + 源码后产 `plan.json`（含节点级 directives）
-- 1C 是可选的——零依赖时直接跑 default plan，能处理"结构标准"的 HTML（juice + 内置启发式）；复杂报告需要 1C 标注
+## 从输入到产物
 
-## 前置（用户首次使用）
-
-```bash
-# 装本 skill 依赖（juice + jsdom；可选 puppeteer 用于 1C 视觉理解）
-cd skill/modes/01-richtext/scripts && npm install
-```
-
-## 调用
+1. 读原 HTML，核对章节、表格、隐藏面板与图形；复杂视觉结合必要截图。脚本默认规则不等于已理解所有视觉状态。
+2. 标准页面可使用默认 plan；需要展开/删界面/调整结构时先保存显式 plan JSON。
+3. 调用现有 CLI，核对正文、隐藏状态、图形与警告；只有具体失败或未知字段才查对应实现。
 
 ```bash
-# 最简：纯 1A，默认 plan
-node scripts/index.mjs --input path/to/report.html --output wechat-ready.html
-
-# 干跑（只看统计、不写文件）
-node scripts/index.mjs --input path/to/report.html --dry-run
-
-# 1C 流程（agent 视觉理解版）：
-# 1) 先截图给 agent 看
-node scripts/render-snapshot.mjs path/to/report.html /tmp/snapshot.png
-# 2) agent 看图后产 plan.json（直接由调用方/agent 完成；本 skill 不内置 LLM）
-# 3) 把 plan 喂给转换器
-node scripts/index.mjs --input path/to/report.html --plan plan.json --output wechat-ready.html
+# h2w_mode 设为本文件所在目录；从用户工作目录执行
+node "$h2w_mode/scripts/index.mjs" --input report.html \
+  --plan output/wechat-plan.json --output output/wechat.html \
+  --output-text output/wechat.txt --no-measure \
+  > output/wechat-stdout.html 2> output/wechat.log
 ```
 
-输出：公众号兼容 HTML（stdout，便于管道）；统计与警告（stderr）；`--output` 指定时同时落盘。
+不需要 plan 时省略 --plan；无图片或不需精确图片测宽时可用 --no-measure，否则去掉并准备浏览器。CLI 即使指定 --output 仍将 HTML 写到 stdout，长文应重定向。`--dry-run` 只看转换统计、不落盘。`--help` 可查看真实参数，`--input` 是文件路径，不支持 --url。
 
-## 范围
+## 常用 plan（有效 JSON）
 
-- ✅ CSS 内联（juice 10）+ unknown property 剥除（公众号"一条 declaration 不认就整条丢"）
-- ✅ CSS 函数展平（clamp/min/max → ideal value，避免连带丢 background-color）
-- ✅ viewport 单位换算（vw/vh → px，按 750×900 设计稿假设）
-- ✅ Gradient / `var()` 背景展平（提取第一个 color stop）
-- ✅ 半透明背景 alpha-blend 到不透明等效色（公众号渲染不可靠）
-- ✅ 正文抽取（`<main>` / `<article>` / 启发式 chrome 剥除）
-- ✅ 多列 flex/grid → `<table>`（公众号不认 flex/grid）
-- ✅ `<dl><div><dt><dd>` → `<table>`（公众号会给 dt/dd 加 bullet）
-- ✅ `<details>` 静态化展开（公众号 collapsed body 不显示）
-- ✅ 长文本卡片折叠（5 列 + 长字 → 2 列 N 行）
-- ✅ 同结构表合并（拖列宽改全部）
-- ✅ 表格列宽估算（基于单元格文本长度）
-- ✅ 节点级 directives（plan.json 来自 1C agent；selector + action）
-
-## plan.json schema（简）
+下例仅说明字段；选择器必须来自实际输入，不应直接套用到每篇文章：
 
 ```json
 {
-  "extractMain": true,
-  "bannedTags": ["script", "iframe", ...],
-  "multiColConversion": { "enabled": true, ... },
   "directives": [
-    { "selector": ".metric-strip", "action": "drop" },
-    { "selector": ".lede-quote", "action": "preserve" }
+    { "selector": ".toolbar", "action": "remove" },
+    { "selector": ".tab-panel", "action": "unwrap" }
   ]
 }
 ```
 
-完整 schema 见 `default-plan.mjs` 顶部注释 + `docs/01-html-to-wechat-html.md §3`。
-不传 plan 等同 DEFAULT_PLAN（兜底，行为与浏览器版 `web/richtext/` 一致）。
+`remove` 删除节点及后代，仅用于确认不要的界面；`unwrap` 去掉容器、保留全部子节点，可解除容器上的隐藏样式，但也失去该容器样式，需要核对。没有 `drop` / `preserve` 动作；无需修改的节点不写指令。隐藏状态有其他来源时不能仅靠 unwrap 宣称解决。
 
-## 已知坑
+`extractMain` 控制正文抽取；多列/表格等默认规则见 `scripts/default-plan.mjs`，只在需要覆盖时查对应字段。其他节点动作在 `scripts/transform.mjs` 的 `applyDirective`，有实际需求再查，不先读整条转换管线。
 
-- **图片**：公众号必须用素材库链接，`<img src>` 远程 URL 粘贴后会被剥成本地占位。本 skill 不处理图片重新上传——产物里的 `<img>` 需要用户手动在公众号编辑器换素材库链接
-- **SVG**：`<svg>` 内 `<image>` 同上，需手动换
-- **iframe / script**：剥除，公众号不支持
+## 截图与限制
 
-## 出现问题怎么办
+截图：`node "$h2w_mode/scripts/render-snapshot.mjs" report.html output/source.png [selector]`。需要该模式的可选 Puppeteer 与现有浏览器，可用 `PUPPETEER_EXECUTABLE_PATH` 显式指定；缺依赖须说明，不能空成功。截图和临时分析也写在工作目录。
 
-- `Cannot find module 'juice'` → 没装依赖。`cd scripts && npm install`
-- 转换出来正文丢失 → 检查 `<main>` / `<article>` 是否存在；不存在时启发式 chromeSelectors 会剥过头，可在 plan 里把 `extractMain: false`
-- 与浏览器版 `web/richtext/` 结果不一致 → 报 bug（应该 byte-identical；transform.mjs 主体是同源）
+CSS 内联、布局转表格、details 展开等均由既有转换器完成。图片仍可能需要在公众号替换为素材库资源；SVG/动画的本地诊断不能代替公众号粘贴、保存重开和手机验收。保留已有 SVG/MG 规则，不因局部探针通过就声称所有交互受支持。

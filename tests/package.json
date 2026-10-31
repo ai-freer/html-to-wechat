@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node script-compat.mjs && node images-compat.mjs && node feishu-compat.mjs && node snapshot-cli.mjs && node packaging-compat.mjs && node skill-routing-compat.mjs && node local-pair-compat.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}

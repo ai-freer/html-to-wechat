@@ -114,18 +114,18 @@
         <div class="step">
           <div class="step-num">2</div>
           <h3>跑一条命令</h3>
-          <p>把 HTML 文件丢给 agent，例如 <code>/h2w-images report.html</code>。agent 在本地完成内容拆解、生图、文案生成，输出到一个 session 目录。</p>
+          <p>把 HTML 文件交给 Agent，明确要求生成图集。agent 在本地完成内容拆解、生图、文案生成，输出到一个 session 目录。</p>
         </div>
         <div class="step">
           <div class="step-num">3</div>
           <h3>本页面预览 + 下载</h3>
-          <p>agent 跑完后给你一个本地 URL 自动打开本页面的 app 态：单图重生成、平台框预览、一键下载 zip、复制文案。</p>
+          <p>agent 跑完后给你一个本地 URL 自动打开本页面的 app 态：复制单图重生提示词、拖排、一键下载 zip、复制文案。</p>
         </div>
       </div>
 
       <div class="status-banner">
-        <strong>v0.1 还在开发：</strong>
-        Skill 包尚未发布，目前你看到的是"教育页"——示例图集和文案是真的，是用 gpt-image-2 实际跑出来的样本。Skill 接入、app 态（fragment 解析 / 单图重生成 / zip 打包）会在后续版本陆续上线。设计文档已开源，欢迎围观。
+        <strong>当前能力：</strong>
+        图集由 Agent 调用 Skill 生成，示例图集和文案是用 gpt-image-2 实际生成的样本。本页面负责接收结果、预览、排序与下载；单图重生成等功能会在后续版本上线。
       </div>
     </section>
 
@@ -151,15 +151,15 @@
       const lbImg = lb.querySelector('img');
       const lbClose = lb.querySelector('.lightbox-close');
 
-      document.querySelectorAll('.gallery-item').forEach(function (el) {
-        el.addEventListener('click', function (e) {
+      document.querySelector('.gallery').addEventListener('click', function (e) {
+          const el = e.target.closest('.gallery-item');
+          if (!el || e.target.closest('.regen-btn')) return;
           e.preventDefault();
           const img = el.querySelector('img');
           lbImg.src = img.src;
           lbImg.alt = img.alt;
           lb.classList.add('is-open');
           document.body.style.overflow = 'hidden';
-        });
       });
 
       function close() {
@@ -176,6 +176,6 @@
       });
     })();
   </script>
-  <script type="module" src="./app.mjs?v=1"></script>
+  <script type="module" src="./app.mjs?v=2"></script>
 </body>
 </html>

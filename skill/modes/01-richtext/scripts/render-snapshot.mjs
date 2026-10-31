@@ -14,3 +14,13 @@ export const snapshotRegion = (htmlPath, selector, output, opts = {}) =>
 
 export const measureImageWidths = (htmlPath, opts = {}) =>
   _lib.measureImageWidths(htmlPath, { ...opts, loadPuppeteer });
+
+// Run through the mode entrypoint too; exports alone silently did nothing as a CLI.
+import { pathToFileURL } from 'node:url';
+import { realpathSync } from 'node:fs';
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+  _lib.runSnapshotCLI(process.argv.slice(2), { loadPuppeteer }).then(
+    r => console.log(JSON.stringify(r)),
+    err => { console.error('render-snapshot failed:', err.message); process.exitCode = 1; },
+  );
+}

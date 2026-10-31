@@ -10,14 +10,32 @@
 
 agent（Claude / Codex 等）生成的 HTML artifact，排版/交互/视觉远强于裸 Markdown。但公众号编辑器对 HTML 有严格白名单，直接粘贴会丢样式；小红书要"上图下文"图集格式；AI 视频软件要纯文字口播稿；飞书云文档需要原生 Block 结构才能协同编辑。这个项目把"HTML 是源"的工作流跑通，针对不同发布形态分别做一套转换管线。
 
+## 当前状态（2026-10-31）
+
+`skill/` 是开发源。总包和四个独立模式包可从 GitHub 源码构建安装，依赖已锁定，并已完成隔离目录调用、Codex 项目级发现和同篇长文两轮冷启动验证。暂未发布 npm 包；公众号编辑器保存效果与飞书云端渲染仍待实测。当前结果、剩余 milestone 与工作量见 [本轮审计](docs/skill-roadmap-audit-2026-10-31.md)。
+
+## 使用路径与安装
+
+推荐把下面这句话复制给自己的 Agent：
+
+> 请帮我安装 https://github.com/ai-freer/html-to-wechat 的总包，先阅读仓库 docs/agent-install.md，完成安装和调用验证，再告诉我如何开始使用。
+
+Agent 请从 [安装入口](docs/agent-install.md) 开始，负责实际执行，不把逐步命令交回用户。
+
+首页定位为四种场景介绍、CLI/Skill 安装使用引导，以及基础网页工具入口。普通公众号转换可直接在网页完成；复杂版式可直接交给 Agent 看源码/截图、产 plan，再用同一转换器执行，不必先失败一次。图集与口播网页主要接收已有结果；飞书仍需本地工具与账号。
+
+- [两条业务路径及首页定位](docs/business-flow.md)
+- [Skill 独立安装与依赖闭合](docs/skill-installation.md)
+- [干净目录与真实长文验证](docs/local-e2e-2026-10-31.md)
+
 ## 四种投递形态
 
 | 模式 | 目标平台 | 不装 Skill 能用吗 | 实现状态 | 设计文档 |
 |---|---|---|---|---|
 | 1. HTML → 公众号兼容富文本 | 公众号长图文 | ✅ 完全可用 | ✅ web + skill 同源 | [docs/01](docs/01-html-to-wechat-html.md) |
-| 2. HTML → 图文号 / 小红书图集 | 小红书、公众号图文号 | ✅ app 态 + demo 可看，真出图需 Skill 调外部生图 | ✅ app 态 MVP + skill 工具 | [docs/02](docs/02-html-to-images.md) |
-| 3. HTML → 口播稿 Markdown | AI 视频生成软件 | ⚠️ web 端接收 fragment 预览；HTML→md 在 Skill 端 | ✅ skill X-A 完整，X-C 退化为可选 | [docs/03](docs/03-html-to-script.md) |
-| 4. HTML → 飞书云文档（Block 直转）| 飞书云文档 / 团队协同 | ❌ Skill-only（飞书 CLI + UAT） | ✅ v0.5c 完整（v0.5d marker） | [docs/04](docs/04-html-to-feishu.md) |
+| 2. HTML → 图文号 / 小红书图集 | 小红书、公众号图文号 | ✅ app 态 + demo 可看，真出图需 Skill 调外部生图 | 本地修复：排序持久化、payload 校验与 ZIP 失败处理 | [docs/02](docs/02-html-to-images.md) |
+| 3. HTML → 口播稿 Markdown | AI 视频生成软件 | ⚠️ web 端接收 fragment 预览；HTML→md 在 Skill 端 | 本地提取/预览可用；Agent 改写及质量验收仍必需 | [docs/03](docs/03-html-to-script.md) |
+| 4. HTML → 飞书云文档（Block 直转）| 飞书云文档 / 团队协同 | ❌ Skill-only（飞书 CLI + UAT） | 原生块 + HTML 内容块本地导出；CLI 1.0.98 dry-run，云端待验收 | [docs/04](docs/04-html-to-feishu.md) |
 
 四种模式共享：同一个输入（标准 HTML 文件）、**X-C/X-A 范式**（X-C = LLM 决策层产 plan / X-A = 纯函数执行层）、`render-snapshot.mjs` 视觉理解工具。产出形态完全不同。整体推进计划见 [ROADMAP.md](ROADMAP.md)；跨 mode 范式总论见 [skill/SKILL.md](skill/SKILL.md)。
 
@@ -26,7 +44,7 @@ agent（Claude / Codex 等）生成的 HTML artifact，排版/交互/视觉远�
 本质上是一个 **大 Skill**（`skill/SKILL.md` 跨模式总入口）+ **4 个独立模式 Skill**（每个模式都是一个独立工作状态，agent 选 mode 后进入对应 `skill/modes/0X-XXX/SKILL.md`）+ **公开静态前端**（GitHub Pages）：
 
 - **总入口 Skill** `skill/SKILL.md`：4 模式选择决策树、共享调用约定、X-C/X-A 范式说明
-- **4 个模式 Skill**：每个独立可调用，自带 contract 与依赖
+- **4 个模式 Skill**：每个有独立 contract 与依赖，但共享仓库根 `lib/`，不是可单目录复制的自包含安装包
   - `skill/modes/01-richtext/` — 公众号富文本（juice + DOM + plan directives）
   - `skill/modes/02-images/` — 图集（agent 主导 + 调外部生图 + fragment 投递）
   - `skill/modes/03-script/` — 口播稿（cheerio + turndown + analyze）
@@ -43,8 +61,8 @@ agent（Claude / Codex 等）生成的 HTML artifact，排版/交互/视觉远�
 - 模式 3 部分可用：网页接收 fragment markdown 渲染 + 字数/时长统计 + 下载
 - 模式 4 不可用（需飞书 token，纯前端无法承载）
 
-**情况 B：在 agent 里装了 Skill**
-- 四种模式全部可用：agent 在本地跑转换/生成，跑完后跳转到对应静态页面（模式 1/2/3）或直接输出飞书文档 URL（模式 4），由用户完成最后一步交付（粘贴 / 下载 / 上传 / 打开链接）
+**情况 B：Agent 从完整仓库读取 Skill 开发源**
+- 四种模式均已有开发实现；按对应 Skill 和授权完成转换/生成及验收。Agent 在本地跑转换/生成，跑完后跳转到对应静态页面（模式 1/2/3）或直接输出飞书文档 URL（模式 4），由用户完成最后一步交付（粘贴 / 下载 / 上传 / 打开链接）
 
 ## 仓库结构
 

@@ -47,9 +47,11 @@ export function transform(rawHtml, planArg = {}) {
   // 2. 抽正文
   let root = null;
   if (plan.extractMain) {
-    const article = $('article').toArray().sort((a, b) => $(b).text().length - $(a).text().length)[0];
+    const articles = $('article').toArray();
+    const article = articles.length === 1 ? articles[0] : null;
+    if (articles.length > 1) warnings.push(`检测到 ${articles.length} 个 article，保留完整正文容器；请由 Agent 核对章节与页面装饰。`);
     const main = $('main, [role="main"]').first()[0];
-    root = article || main || $('body')[0] || null;
+    root = main || article || $('body')[0] || null;
   } else {
     root = $('body')[0] || null;
   }
@@ -69,6 +71,8 @@ export function transform(rawHtml, planArg = {}) {
   td.addRule('skipSvg', { filter: 'svg', replacement: () => '' });
   td.addRule('skipTable', { filter: 'table', replacement: () => '\n[（此处原文是一张表格，口播时跳过或用 1-2 句话总结）]\n' });
   const md = td.turndown($.html(root)).trim();
+
+  warnings.push('当前输出是提取稿，尚未完成口语化改写；表格、图表与术语需由 Agent 核对并补述。');
 
   // 5. 分析
   const stats = analyze(md);

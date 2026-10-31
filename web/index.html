@@ -4,96 +4,101 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HTML-to-WeChat — 把 HTML artifact 投递到公众号、小红书、口播稿、飞书</title>
-  <meta name="description" content="把 Agent 生成的 HTML Artifact，转换为公众号富文本、小红书图集、AI 视频口播稿、飞书云文档的工具集。" />
+  <meta name="description" content="四种 HTML 内容交付场景：网页直接转换与预览，或通过 Agent 和 Skill 辅助处理。附本地安装与使用引导。" />
   <meta property="og:title" content="HTML-to-WeChat" />
   <meta property="og:description" content="把 Agent 生成的 HTML Artifact 投递到 4 种发布形态：公众号 / 小红书 / 口播稿 / 飞书" />
   <link rel="stylesheet" href="./landing.css?v=8" />
+  <link rel="stylesheet" href="./home.css?v=9" />
+  <script type="module" src="./home.mjs?v=1"></script>
 </head>
-<body>
+<body class="home">
+  <a class="skip-link" href="#paths">跳到使用路径</a>
   <main class="landing">
     <header class="landing-head">
       <a class="logo" href="./" aria-label="HTML-to-WeChat 首页">
         <span class="logo-mark">⌬</span>
         <span class="logo-text">HTML-to-WeChat</span>
       </a>
-      <nav class="landing-nav">
+      <nav class="landing-nav" aria-label="主导航">
+        <a href="#scenarios">四种场景</a>
+        <a href="#agent">Agent 安装</a>
         <a href="https://github.com/ai-freer/html-to-wechat" target="_blank" rel="noopener">GitHub</a>
       </nav>
     </header>
 
     <section class="hero">
       <div class="hero-text">
-        <h1>把 Agent 生成的 HTML Artifact 投递到 4 种发布形态</h1>
-        <p class="lede">
-          Claude / Codex 生成的 HTML 文章，排版和视觉远胜裸 Markdown，但公众号、小红书、视频软件、飞书各有自己的"语法"。
-          这里把"HTML 是源"的工作流跑通，针对每种发布形态做一套转换管线。
-        </p>
+        <p class="eyebrow">一份 HTML · 四种交付方式</p>
+        <h1>让好内容，<br>去到合适的地方。</h1>
+        <p class="lede">公众号、小红书、口播稿、飞书。可以在网页直接处理，也可以把完整能力装进你的 Agent。</p>
+        <div class="home-actions" id="paths" aria-label="两条使用路径"><a class="cta cta-primary" href="#scenarios">网页直接使用 ↓</a><a class="cta cta-secondary" href="#agent">安装到 Agent ↓</a></div>
+        <p class="path-note">网页：无需安装，按规则快速转换。Agent：先理解内容，再处理复杂页面和多平台交付。</p>
       </div>
       <div class="hero-art" aria-hidden="true">
         <img class="hero-art-image" src="./assets/hero.png" alt="" width="1536" height="1024" />
       </div>
     </section>
 
-    <section class="modes">
+    <section id="scenarios" class="home-section">
+      <div class="section-heading"><p class="eyebrow path-label">路径 A · 网页直接使用</p><h2>四种能力，各有合适的入口</h2><p>在浏览器里直接转换。内容复杂时，每张卡片都能跳到对应的 Agent 用法。</p></div>
       <div class="modes-grid-4">
-
-        <!-- 01 · 公众号富文本 — 浏览器即用 -->
-        <a class="mode-card mode4-card" href="./richtext/">
-          <div class="mode4-head">
-            <span class="mode-num">01</span>
-            <span class="badge live">浏览器即用</span>
-          </div>
-          <h2>HTML → 公众号富文本</h2>
-          <p>粘贴 / 输入 URL / 上传 HTML，浏览器内 CSS 内联、清理脚本、复制为富文本，直接粘到公众号后台编辑器。</p>
-          <p class="mode4-meta">无需安装 · 浏览器内 · 不上传服务器</p>
-          <div class="mode-cta">开始转换 →</div>
-        </a>
-
-        <!-- 02 · 小红书图集 — 示例可看 -->
-        <a class="mode-card mode4-card" href="./images/">
-          <div class="mode4-head">
-            <span class="mode-num">02</span>
-            <span class="badge preview">样例可看</span>
-          </div>
-          <h2>HTML → 小红书图集</h2>
-          <p>把长文章自动转成 8-10 张统一风格的卡片图集 + 配套文案。所有图由顶级文生图模型生成。</p>
-          <div class="mode4-preview-img" aria-hidden="true">
-            <img src="./images/demo/01-cover.png" alt="" loading="lazy" width="1024" height="1536" />
-          </div>
-          <div class="mode-cta-link">看示例图集 →</div>
-        </a>
-
-        <!-- 03 · 口播稿 — 浏览器即用（新上线） -->
-        <a class="mode-card mode4-card" href="./script/">
-          <div class="mode4-head">
-            <span class="mode-num">03</span>
-            <span class="badge live">浏览器即用</span>
-          </div>
-          <h2>HTML → AI 视频口播稿</h2>
-          <p>改写成 AI 视频生成软件（Sora / 即梦 / 海螺 / Pika）可直接喂的口播稿。短句、口语化、按节奏切段。</p>
-          <p class="mode4-meta">marked 预览 · 字数 / 时长 / 段落统计 · 下载 .md / .txt</p>
-          <div class="mode-cta">开始转换 →</div>
-        </a>
-
-        <!-- 04 · 飞书云文档 — Skill 跑（agent 装 lark-cli） -->
-        <a class="mode-card mode4-card" href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/04-html-to-feishu.md" target="_blank" rel="noopener">
-          <div class="mode4-head">
-            <span class="mode-num">04</span>
-            <span class="badge skill">Skill 可用</span>
-          </div>
-          <h2>HTML → 飞书云文档</h2>
-          <p>HTML 直转 DocxXML → <code>lark-cli docs +create</code>，飞书云文档原生 Block 输出。支持 grid / callout / 画板（Mermaid 可拖）/ 远程图自动入库。</p>
-          <p class="mode4-meta">需要 <code>@larksuite/cli</code> · agent 模式 · 文档作者归属用户</p>
-          <div class="mode-cta-link">看设计文档 ↗</div>
-        </a>
+        <article class="mode-card mode4-card">
+          <div class="mode4-head"><span class="mode-num">01 / WECHAT</span><span class="badge live">网页可转换</span></div>
+          <h3>公众号富文本</h3><p>粘贴、上传 HTML 或输入可访问的 URL，内联样式、清理脚本，预览后复制到公众号编辑器。</p>
+          <p class="mode4-meta">复杂页面：让 Agent 核对隐藏正文、图表和交互状态，再按明确方案转换。</p>
+          <div class="card-actions"><a class="mode-cta" href="./richtext/">开始基础转换 →</a><a href="#task-wechat">Agent 怎么用 ↘</a></div>
+        </article>
+        <article class="mode-card mode4-card">
+          <div class="mode4-head"><span class="mode-num">02 / IMAGES</span><span class="badge preview">网页整理成品</span></div>
+          <h3>小红书图集</h3><p>由 Agent 把长文章拆成卡片、组织文案并调用生图工具。网页接收图集结果，负责预览、排序与下载。</p>
+          <p class="mode4-meta">从文章生成图片需要 Agent 和生图工具；网页不直接生图。</p>
+          <div class="card-actions"><a class="mode-cta" href="./images/">查看示例图集 →</a><a href="#task-images">Agent 怎么用 ↘</a></div>
+        </article>
+        <article class="mode-card mode4-card">
+          <div class="mode4-head"><span class="mode-num">03 / SCRIPT</span><span class="badge preview">网页预览成稿</span></div>
+          <h3>AI 视频口播稿</h3><p>已有 Markdown 口播稿，可直接预览、查看字数与估时，下载 .md / .txt。HTML 长文的提取与改写交给 Agent。</p>
+          <p class="mode4-meta">先核对图表与事实，再改写为口语短句；此处不生成视频或语音。</p>
+          <div class="card-actions"><a class="mode-cta" href="./script/">预览已有口播稿 →</a><a href="#task-script">Agent 怎么用 ↘</a></div>
+        </article>
+        <article class="mode-card mode4-card">
+          <div class="mode4-head"><span class="mode-num">04 / FEISHU</span><span class="badge skill">本地 CLI 处理</span></div>
+          <h3>飞书云文档</h3><p>默认转为可协作编辑的原生文档块；需要保留网页表达时，可明确选择 HTML 内容块。先本地导出，再按授权创建文档。</p>
+          <p class="mode4-meta">本地转换已验证，云端效果待验收。网页不直接登录或创建飞书文档。</p>
+          <div class="card-actions"><a class="mode-cta" href="#feishu-cli">查看本地用法 ↓</a><a href="#task-feishu">Agent 怎么用 ↘</a></div>
+        </article>
       </div>
-
-      <p class="modes-foot muted small">
-        每个模式都对应 <code>docs/0X-...md</code> 里的设计文档 · 跨模式范式 X-C / X-A 见
-        <a href="https://github.com/ai-freer/html-to-wechat/blob/main/ROADMAP.md" target="_blank" rel="noopener">ROADMAP</a>
-      </p>
     </section>
 
+    <div class="path-divider" role="separator" aria-label="路径 A 结束，下面是路径 B：Agent 辅助处理">
+      <span class="path-divider-label"><b>或者</b>内容复杂、要多平台交付时，交给 Agent ↓</span>
+    </div>
+
+    <section id="agent" class="home-section agent-section">
+      <div class="agent-install" id="install">
+        <div class="agent-install-intro">
+          <p class="eyebrow">路径 B · Agent 辅助处理</p>
+          <h2>把四种能力，<br>装进你的 Agent。</h2>
+          <p>复制这段话，发给你正在使用的 Agent。<br>安装、依赖和验证，都交给它完成。</p>
+          <span class="agent-package">一个总包，四种场景</span>
+        </div>
+        <div class="agent-install-action">
+          <p class="prompt-label">发给你的 Agent</p>
+          <p class="task-text" id="install-prompt">请帮我安装 https://github.com/ai-freer/html-to-wechat 的总包，先阅读仓库 docs/agent-install.md，完成安装和调用验证，再告诉我如何开始使用。</p>
+          <button type="button" class="install-copy" data-copy="install-prompt">复制安装指令 <span aria-hidden="true">↗</span></button>
+          <p class="install-hint">只装一个场景？把“总包”换成对应模式即可。</p>
+        </div>
+      </div>
+      <div class="agent-usage-heading"><h3>装好之后，带上原文说目标。</h3><p>复杂版式、长文拆卡、口语化改写，交给 Agent 判断，再调用工具处理。</p></div>
+      <div class="task-list">
+        <details id="task-wechat"><summary>01 · 复杂 HTML → 公众号<span>任务示例</span></summary><div class="detail-body"><p class="task-text" id="prompt-wechat">请使用 html-to-wechat Skill 的公众号模式处理我提供的原始 HTML。结合必要截图检查全部正文、隐藏面板和图表，先说明需要展开、保留或降级的内容，再生成明确的转换 plan，调用转换器输出 wechat-ready.html。核对遗漏和视觉差异，先本地交付，不发布。</p><button type="button" data-copy="prompt-wechat">复制任务</button><p class="detail-note">交付：转换后的 HTML 与差异说明。最终仍需在公众号编辑器检查保存和手机效果。</p></div></details>
+        <details id="task-images"><summary>02 · 长文章 → 小红书图集<span>任务示例</span></summary><div class="detail-body"><p class="task-text" id="prompt-images">请使用 html-to-wechat Skill 的图集模式分析我提供的文章，保留数据来源与时间，先给出卡片结构、每张文案和统一风格的生图提示词。确认生图工具与费用范围后再生成图片，核验后输出图集和预览链接；不要自动上传或发布。</p><button type="button" data-copy="prompt-images">复制任务</button><p class="detail-note">交付：分镜、文案与图集结果。生图依赖宿主工具，素材托管另行选择。</p></div></details>
+        <details id="task-script"><summary>03 · HTML 长文 → 口播稿<span>任务示例</span></summary><div class="detail-body"><p class="task-text" id="prompt-script">请使用 html-to-wechat Skill 的口播模式处理我提供的 HTML。先提取并核对各章节、表格和图表，再改写成适合朗读的 Markdown 口播稿。标注原文日期与预测，不编造事实；交付字数、估计时长和删减说明，供网页预览下载。</p><button type="button" data-copy="prompt-script">复制任务</button><p class="detail-note">交付：Markdown 成稿；打开口播页粘贴，或使用 Skill 生成的预览链接。</p></div></details>
+        <details id="task-feishu"><summary>04 · HTML → 飞书文档<span>任务示例</span></summary><div class="detail-body"><p class="task-text" id="prompt-feishu">请使用 html-to-wechat Skill 的飞书模式处理我提供的 HTML。优先保留可编辑的原生文档块，先评估复杂布局和图表；如果建议 HTML 内容块，请说明取舍并等我选择。先本地导出 XML 和资源包、核对完整性，不登录新账号、不创建云端文档。</p><button type="button" data-copy="prompt-feishu">复制任务</button><p class="detail-note">交付：XML 与同目录资源包；创建云端文档前明确账号、目的地与授权。</p></div></details>
+      </div>
+      <details id="feishu-cli"><summary>飞书与其他可选依赖<span>按需准备</span></summary><div class="detail-body"><p>公众号基础转换和飞书本地 XML 导出无需浏览器、飞书 CLI 或登录。需要截图、生图或飞书云端创建时，再由 Agent 按任务准备对应能力；安装不会自动上传或发布内容。</p></div></details>
+      <details><summary>开发者与手动安装<span>详细文档</span></summary><div class="detail-body"><p>构建、依赖与 CLI 用法见仓库 <a href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/agent-install.md" target="_blank" rel="noopener">Agent 安装指引 ↗</a> 和 <a href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/skill-installation.md" target="_blank" rel="noopener">手动安装文档 ↗</a>。</p></div></details>
+    </section>
+    <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
     <footer class="landing-foot">
       <p>开源项目 · <a href="https://github.com/ai-freer/html-to-wechat" target="_blank" rel="noopener">ai-freer/html-to-wechat</a></p>
     </footer>

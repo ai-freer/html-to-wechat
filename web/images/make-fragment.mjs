@@ -11,6 +11,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { normalizePayload, encodePayload } from './payload.mjs';
 
 const [, , payloadPath, baseUrlArg] = process.argv;
 
@@ -21,9 +22,7 @@ if (!payloadPath) {
 }
 
 const baseUrl = baseUrlArg || 'https://ai-freer.github.io/html-to-wechat/images/';
-const json = JSON.parse(await readFile(resolve(payloadPath), 'utf8'));
-const base64 = Buffer.from(JSON.stringify(json), 'utf8').toString('base64')
-  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
+const json = normalizePayload(JSON.parse(await readFile(resolve(payloadPath), 'utf8')));
+const base64 = encodePayload(json);
 console.log(`${baseUrl}#app=${base64}`);
 console.error(`[mode-2] fragment 长度: ${base64.length} chars (payload: ${json.images?.length || 0} 图)`);

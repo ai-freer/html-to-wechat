@@ -1,0 +1,6 @@
+{
+  "boundaryAnnotations": {
+    ".note": {"type":"callout", "emoji":"💡", "backgroundColor":"light-yellow"},
+    ".diagram": {"type":"whiteboard-mermaid"}
+  }
+}
