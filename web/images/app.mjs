@@ -212,8 +212,8 @@ async function handleRegen(item, idx) {
   const rawAlt = item.querySelector('img')?.alt || `第 ${idx + 1} 张`;
   const alt = rawAlt.replace(/^\d{1,3}\s*\/\s*/, '');
   const message = prompt
-    ? `重做第 ${item.dataset.idx} 张「${alt}」。原始 prompt：\n\n${prompt}\n\n请直接调用 gpt-image-2 生成新图（保持原图比例、同组风格和文字内容），然后 update fragment payload。`
-    : `重做第 ${item.dataset.idx} 张「${alt}」。这张图没有原始 prompt，请基于上下文重新构思 + 用 gpt-image-2 出图。`;
+    ? `重做第 ${item.dataset.idx} 张「${alt}」。原始 prompt：\n\n${prompt}\n\n请使用当前宿主或用户指定的生图工具，保持原图比例、同组风格和文字内容；局部问题优先修改原图，核对结果后更新 fragment payload。`
+    : `重做第 ${item.dataset.idx} 张「${alt}」。这张图没有原始 prompt，请基于上下文使用当前宿主或用户指定的生图工具，保持原图比例、同组风格和文字内容；核对结果后更新 fragment payload。`;
   try {
     await navigator.clipboard.writeText(message);
     flashToast(`已复制 prompt → 粘到 agent 终端让它重做第 ${item.dataset.idx} 张`);
