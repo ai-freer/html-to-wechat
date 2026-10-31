@@ -67,7 +67,7 @@ PUPPETEER_EXECUTABLE_PATH="<现有 Chrome 可执行文件>" \
 2. **安装及命令调用**：干净目录 npm ci；从另一工作目录实际运行转换器、提取器、payload 工具、原生 XML 导出和截图，验证结果。
 3. **宿主发现与业务效果**：目标 Codex/另一宿主能发现、选中和使用 Skill；生成内容准确，平台实际接受。
 
-产物闭合与安装调用已验证；随后 Codex 项目级自动发现和独立口播包自然语言触发也通过真实长文试跑。总包多目标端到端未通过：正确选中后反复读接口，尚未进入转换。详见 [Codex 验证记录](codex-skill-validation-2026-10-31.md)。未改全局宿主发现目录，Hub、其他客户端与云端业务验收仍另行执行。
+产物闭合与安装调用已验证；随后 Codex 项目级自动发现和独立口播包自然语言触发也通过真实长文试跑。总包多目标调用经路由调整后已完成两轮本地冷启动转换。详见 [验证与待完成事项](validation.md)。未改全局宿主发现目录，Hub、其他客户端与云端业务验收仍另行执行。
 
 
 ## Codex 项目级自动发现（2026-10-31 实测）
@@ -105,4 +105,4 @@ node "$h2w_root/scripts/local-pair.mjs" --input report.html \
   --out output/pair
 ```
 
-`h2w_root` 为实际安装的总包根目录；`output/pair` 必须不存在。基础本地导出无需可选浏览器或飞书 CLI。`run.json` 的 converted 只表示转换成功，仍须核对正文、表格与视觉。需要截图、SVG 画板或 HTML 内容块时按需进入独立模式。排查记录见 [多目标路由复测](multi-target-routing-2026-10-31.md)。
+`h2w_root` 为实际安装的总包根目录；`output/pair` 必须不存在。基础本地导出无需可选浏览器或飞书 CLI。`run.json` 的 converted 只表示转换成功，仍须核对正文、表格与视觉。需要截图、SVG 画板或 HTML 内容块时按需进入独立模式。排查记录见 [验证与待完成事项](validation.md)。

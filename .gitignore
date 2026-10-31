@@ -59,5 +59,12 @@ samples/*
 !samples/README.md
 !samples/.gitkeep
 
-# Version-pinned, MIT-licensed public upstream examples and recipes.
-!samples/svg-motion-upstream/
+# Local research and dated working records
+samples/svg-motion-upstream/
+samples/probe/wechat-compat/state-target-test.html
+docs/codex-skill-validation-2026-10-31.md
+docs/cold-start-validation-2026-10-31.md
+docs/homepage-preview-2026-10-31.md
+docs/local-e2e-2026-10-31.md
+docs/multi-target-routing-2026-10-31.md
+docs/skill-roadmap-audit-2026-10-31.md

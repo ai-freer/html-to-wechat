@@ -370,7 +370,7 @@ v0.3：
 6. **fetch 输出不含样式属性 ≠ 创建丢失（撤销原坑 B）**：原以为 `background-color` 丢了——实际**视觉渲染完全正确**，只是 `docs +fetch` 输出的 XML 不回显样式属性。是 fetch 协议的事，不是创建丢失。**这条不是坑，作为提醒**：v0.4 用 fetch + str_replace 做精修时，不能用 fetch 输出当唯一真实来源，样式靠创建时写入
 7. **img 默认尺寸放大失真（坑 C）**：原 XML `<img href="..."/>` 无 width/height，飞书默认放大到容器宽度。**16x16 favicon 拉到 700+ 像素严重模糊**。**必须**：从 HTML 源 attr / CSS 计算值取尺寸；HTML 没标尺寸时由 §6.2 视觉理解给一个合理值（默认 800x600 兜底）
 8. **Code 块 caption 异常自吃换行**（已**撤销**担忧）：探针时见 `caption="&#xA;"`，担心污染显示——视觉质检看到代码块显示正常（"Code block" 标签 + 行号 + 代码内容），caption 换行被 CLI 自动处理。**不是坑**
-9. **文档 URL 是 tenant subdomain**：`https://example.feishu.cn/docx/...`，不是统一 `feishu.cn/docx/...`。**始终用 create 响应里的 `data.document.url` 字段**，不要自己拼 URL
+9. **文档 URL 是 tenant subdomain**：`https://{tenant}.feishu.cn/docx/...`，不是统一 `feishu.cn/docx/...`。**始终用 create 响应里的 `data.document.url` 字段**，不要自己拼 URL
 10. **行内样式嵌套顺序硬约束**：`<a> → <b> → <em> → <del> → <u> → <code> → <span>` 外→内。HTML 源里顺序错乱必须重排；否则 DocxXML 解析失败或样式丢失
 11. **首次扫码授权后**：用户的 token 在 keychain，跨机器/重装系统会丢——文档要写清"换机器要重新扫码"
 12. **国际版 Lark vs 国内飞书**：base URL 不同（`open.feishu.cn` vs `open.larksuite.com`），CLI 的 `--brand feishu|lark` 控制。多账号场景要明确

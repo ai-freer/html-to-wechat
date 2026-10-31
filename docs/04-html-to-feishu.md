@@ -86,4 +86,4 @@ node skill/modes/04-feishu/scripts/index.mjs --input report.html \
 
 ## 验收边界
 
-本轮没有登录、创建、上传、发布或同步 Hub。原生/HTML 路径 dry-run 通过只证明本地转换、资源和 CLI 请求兼容，不证明飞书服务端接受所有嵌套结构，也不证明手机视觉效果。剩余工作统一登记在 [Skill 与 milestone 审计](skill-roadmap-audit-2026-10-31.md)。
+本轮没有登录、创建、上传、发布或同步 Hub。原生/HTML 路径 dry-run 通过只证明本地转换、资源和 CLI 请求兼容，不证明飞书服务端接受所有嵌套结构，也不证明手机视觉效果。剩余工作统一登记在 [验证与待完成事项](validation.md)。

@@ -12,7 +12,7 @@ agent（Claude / Codex 等）生成的 HTML artifact，排版/交互/视觉远�
 
 ## 当前状态（2026-10-31）
 
-`skill/` 是开发源。总包和四个独立模式包可从 GitHub 源码构建安装，依赖已锁定，并已完成隔离目录调用、Codex 项目级发现和同篇长文两轮冷启动验证。暂未发布 npm 包；公众号编辑器保存效果与飞书云端渲染仍待实测。当前结果、剩余 milestone 与工作量见 [本轮审计](docs/skill-roadmap-audit-2026-10-31.md)。
+`skill/` 是开发源。总包和四个独立模式包可从 GitHub 源码构建安装，依赖已锁定，并已完成隔离目录调用、Codex 项目级发现和同篇长文两轮冷启动验证。暂未发布 npm 包；公众号编辑器保存效果与飞书云端渲染仍待实测。当前结果、剩余 milestone 与工作量见 [验证与待完成事项](docs/validation.md)。
 
 ## 使用路径与安装
 
@@ -26,7 +26,7 @@ Agent 请从 [安装入口](docs/agent-install.md) 开始，负责实际执行�
 
 - [两条业务路径及首页定位](docs/business-flow.md)
 - [Skill 独立安装与依赖闭合](docs/skill-installation.md)
-- [干净目录与真实长文验证](docs/local-e2e-2026-10-31.md)
+- [验证与待完成事项](docs/validation.md)
 
 ## 四种投递形态
 
