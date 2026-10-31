@@ -44,6 +44,7 @@ export function transform(rawHtml, planArg = {}) {
 
   // 2. 解析为 DOM
   const parser = new DOMParser();
+  const sourceDoc = parser.parseFromString(rawHtml, 'text/html');
   const doc = parser.parseFromString(inlinedHtml, 'text/html');
 
   const counters = {
@@ -62,6 +63,8 @@ export function transform(rawHtml, planArg = {}) {
     flexToTable: 0,
     tablesMerged: 0,
     tablesSized: 0,
+    roundedTables: 0,
+    roundedSingleCells: 0,
     directivesApplied: 0,
     directivesMissed: 0,
     // CSS 修复层（v0.2 引入）
@@ -162,6 +165,7 @@ export function transform(rawHtml, planArg = {}) {
     }
     if (extracted) {
       const wrap = doc.createElement('body');
+      wrap.setAttribute('style', doc.body.getAttribute('style') || '');
       wrap.appendChild(extracted.cloneNode(true));
       doc.body.replaceWith(wrap);
       counters.extractedFrom = extracted.tagName.toLowerCase();
@@ -240,9 +244,12 @@ export function transform(rawHtml, planArg = {}) {
     sizeAllTables(doc, plan.tableColumnSizing, counters);
   }
 
+  repairRoundedTables(doc, counters);
+
   // 10. 删除所有元素的 id 属性（plan.removeIds）
   if (plan.removeIds) {
     doc.querySelectorAll('[id]').forEach(el => {
+      if (el.closest('svg')) return;
       counters.ids++;
       el.removeAttribute('id');
     });
@@ -253,16 +260,24 @@ export function transform(rawHtml, planArg = {}) {
   doc.querySelectorAll('svg image').forEach(() => counters.svgImages++);
 
   // 12. 提取 body 内容
-  const bodyHtml = doc.body ? doc.body.innerHTML : doc.documentElement.innerHTML;
+  const bodyStyle = doc.body?.getAttribute('style');
+  const bodyHtml = doc.body ? (bodyStyle ? `<div style="${bodyStyle.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${doc.body.innerHTML}</div>` : doc.body.innerHTML) : doc.documentElement.innerHTML;
   const cleanedBody = bodyHtml.trim();
 
   // 13. 纯文本 fallback（用于 text/plain MIME）
-  const textVersion = doc.body
-    ? doc.body.textContent.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
-    : '';
+  const textDoc = doc.body?.cloneNode(true);
+  textDoc?.querySelectorAll('br').forEach(el => el.replaceWith('\n'));
+  textDoc?.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, tr, blockquote, pre').forEach(el => el.append('\n'));
+  textDoc?.querySelectorAll('td, th').forEach(el => el.append('\t'));
+  const textVersion = textDoc ? textDoc.textContent.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : '';
 
   // 14. 警告（按级别排序：ok 在前，warn 在后；隐藏 0 计数）
+  const svgFidelity = inspectSvgFidelity(sourceDoc, doc);
   const warnings = buildWarnings(counters);
+  if (svgFidelity.lost.length) warnings.push({level: 'warn', text: `SVG 转换后减少：${svgFidelity.lost.join('、')}；正文提取也可能造成此变化`});
+  if (svgFidelity.changedAnimations) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.changedAnimations} 个动画元素或关键属性发生变化，请检查`});
+  if (svgFidelity.lostRefs.length) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.lostRefs.length} 个内部引用不再出现，请检查`});
+  if (svgFidelity.brokenRefs.length) warnings.push({level: 'warn', text: `SVG 有 ${svgFidelity.brokenRefs.length} 个内部引用未找到目标，请检查`});
 
   return {
     html: cleanedBody,
@@ -271,6 +286,7 @@ export function transform(rawHtml, planArg = {}) {
       bytes: typeof Blob !== 'undefined' ? new Blob([cleanedBody]).size : cleanedBody.length,
       chars: cleanedBody.length,
       counters,
+      svgFidelity,
     },
     warnings,
   };
@@ -585,6 +601,122 @@ function mergeUniformTables(doc, cfg, counters) {
     kids[0].replaceWith(merged);
     counters.tablesMerged += sigs.length;
   });
+}
+
+// Only rewrite simple single-row rounded frames, based on the R04 probe.
+function repairRoundedTables(doc, counters) {
+  doc.querySelectorAll('table').forEach(table => {
+    if (table.closest('svg') || table.querySelector('table, caption') || table.hasAttribute('bgcolor')) return;
+    const rows = [...table.querySelectorAll('tr')].filter(row => row.closest('table') === table);
+    if (rows.length !== 1) return;
+    const cells = [...rows[0].children];
+    if (cells.length < 1 || cells.some(c => c.tagName.toLowerCase() !== 'td' || c.hasAttribute('colspan') || c.hasAttribute('rowspan'))) return;
+    const style = table.style;
+    const radius = style.getPropertyValue('border-radius').trim();
+    const border = style.getPropertyValue('border').trim();
+    const collapse = style.getPropertyValue('border-collapse').trim().toLowerCase();
+    if (!/^\d*\.?\d+px$/i.test(radius) || parseFloat(radius) <= 0 || !/^\d*\.?\d+px\s+solid\s+[^;]+$/i.test(border)) return;
+    if (collapse && collapse !== 'collapse') return;
+    if (table.querySelector('thead,tfoot') || (table.getAttribute('border') && !/^[01]$/.test(table.getAttribute('border')))) return;
+    if (/(?:^|;)\s*border-(?:top|right|bottom|left|spacing|image)[\w-]*\s*:/i.test(table.getAttribute('style') || '')) return;
+    if (cells.some(cell => cell.hasAttribute('bgcolor') || cell.hasAttribute('border') || Array.from(cell.style).some(p => /^(border|background)/.test(p)))) return;
+    const background = style.getPropertyValue('background-color') || style.getPropertyValue('background');
+    if (background && (/gradient\(|url\(|var\(/i.test(background) || !/^((#[0-9a-f]{3,8})|[a-z]+|rgba?\([^)]*\))$/i.test(background.trim()))) return;
+    if (cells.length === 1) {
+      // A single plain cell has no column structure to preserve. WeChat draws a
+      // square table edge even if the td has rounded corners; use the B04 section.
+      const cell = cells[0];
+      if (cell.attributes.length || rows[0].attributes.length || table.querySelector('colgroup,col') ||
+          [...table.querySelectorAll('tbody')].some(body => body.attributes.length) ||
+          [...table.attributes].some(a => !['style', 'width', 'border', 'cellpadding', 'cellspacing'].includes(a.name.toLowerCase()))) return;
+      const widthAttr = table.getAttribute('width');
+      const styleWidth = style.getPropertyValue('width');
+      if ((widthAttr && widthAttr !== '100%') || (!widthAttr && styleWidth !== '100%') || (styleWidth && styleWidth !== '100%')) return;
+      if (table.hasAttribute('cellspacing') && table.getAttribute('cellspacing') !== '0') return;
+      if (style.getPropertyPriority('border') || style.getPropertyPriority('border-radius')) return;
+      const padding = table.getAttribute('cellpadding');
+      if (padding != null && !/^\d+(?:\.\d+)?$/.test(padding)) return;
+      const section = doc.createElement('section');
+      const sectionStyle = [
+        background ? `background-color:${background}` : '',
+        `border:${border}`, `border-radius:${radius}`,
+        `padding:${padding == null ? '1' : padding}px`,
+        table.getAttribute('width') === '100%' ? 'width:100%;box-sizing:border-box' : ''
+      ].filter(Boolean).join(';');
+      // Avoid discarding authored layout/typography and non-trivial sizing.
+      if (Array.from(style).some(p => !/^(?:background(?:-color)?|border(?:-(?:top|right|bottom|left)(?:-width|-style|-color)?|-(?:top|bottom)-(?:left|right)-radius|-radius|-collapse|-spacing|-image(?:-.+)?)?|width|table-layout)$/.test(p))) return;
+      if (style.getPropertyValue('width') && style.getPropertyValue('width') !== '100%') return;
+      section.setAttribute('style', sectionStyle);
+      while (cell.firstChild) section.appendChild(cell.firstChild);
+      table.replaceWith(section);
+      counters.roundedTables++;
+      counters.roundedSingleCells++;
+      return;
+    }
+    table.removeAttribute('border');
+    style.removeProperty('border');
+    style.removeProperty('border-radius');
+    style.removeProperty('background');
+    style.removeProperty('background-color');
+    style.setProperty('border-collapse', 'separate');
+    style.setProperty('border-spacing', '0');
+    cells.forEach((cell, i) => {
+      // Preserve the explicit R04 declarations; CSSOM expands shorthands differently in Chrome.
+      const declarations = [cell.getAttribute('style') || ''];
+      if (background) declarations.push(`background-color:${background}`);
+      declarations.push(`border:${border}`);
+      if (i > 0) declarations.push('border-left:0');
+      if (i < cells.length - 1) declarations.push('border-right:0');
+      if (cells.length === 1) declarations.push(`border-radius:${radius}`);
+      else if (i === 0) declarations.push(`border-radius:${radius} 0 0 ${radius}`);
+      else if (i === cells.length - 1) declarations.push(`border-radius:0 ${radius} ${radius} 0`);
+      cell.setAttribute('style', declarations.filter(Boolean).map(v => v.replace(/;+\s*$/, '')).join(';') + ';');
+    });
+    counters.roundedTables++;
+  });
+}
+
+// A structural comparison, not a guarantee of rendering or WeChat persistence.
+function inspectSvgFidelity(before, after) {
+  const tags = ['svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan', 'image', 'defs', 'marker', 'clippath', 'mask', 'use', 'animate', 'animatetransform', 'animatemotion', 'set', 'mpath'];
+  const animTags = new Set(['animate', 'animatetransform', 'animatemotion', 'set', 'mpath']);
+  const critical = new Set(['attributename','attributetype','begin','dur','end','repeatcount','values','from','to','by','keytimes','keysplines','calcmode','fill','restart','type','additive','accumulate','href','xlink:href']);
+  function snapshot(doc) {
+    const nodes = [...doc.querySelectorAll('svg, svg *')];
+    const counts = Object.fromEntries(tags.map(tag => [tag, 0]));
+    const signatures = new Map();
+    const ids = new Set();
+    const refs = [];
+    for (const el of nodes) {
+      const tag = el.localName.toLowerCase();
+      if (tag in counts) counts[tag]++;
+      if (el.id) ids.add(el.id);
+      if (animTags.has(tag)) {
+        const attrs = [...el.attributes].filter(a => critical.has(a.name.toLowerCase())).map(a => [a.name.toLowerCase(), a.value.trim()]).sort((a,b) => a[0].localeCompare(b[0]));
+        const key = JSON.stringify([tag, attrs]);
+        signatures.set(key, (signatures.get(key) || 0) + 1);
+      }
+      for (const attr of [...el.attributes]) {
+        const value = attr.value;
+        for (const match of value.matchAll(/url\(\s*['"]?#([^\s)'";]+)['"]?\s*\)/g)) refs.push(match[1]);
+        if (/^(?:xlink:)?href$/i.test(attr.name) && /^#[^\s]+$/.test(value)) refs.push(value.slice(1));
+        if (/^(begin|end)$/i.test(attr.name)) {
+          for (const part of value.split(';')) {
+            const m = part.trim().match(/^([\w:-]+)\.(?:begin|end|click|repeat)(?:\(|\b)/i);
+            if (m) refs.push(m[1]);
+          }
+        }
+      }
+    }
+    return { counts, signatures, ids, refs };
+  }
+  const a = snapshot(before), b = snapshot(after);
+  const lost = tags.filter(t => a.counts[t] > b.counts[t]).map(t => `${t} ${a.counts[t] - b.counts[t]} 个`);
+  let changedAnimations = 0;
+  for (const [key, count] of a.signatures) changedAnimations += Math.max(0, count - (b.signatures.get(key) || 0));
+  const brokenRefs = [...new Set(b.refs.filter(id => !b.ids.has(id)))];
+  const lostRefs = [...new Set(a.refs.filter(id => !b.refs.includes(id)))];
+  return { source: a.counts, output: b.counts, lost, changedAnimations, lostRefs, brokenRefs };
 }
 
 function sizeAllTables(doc, cfg, counters) {
@@ -1121,6 +1253,8 @@ function buildWarnings(counters) {
   if (counters.tablesMerged > 0) {
     oks.push(`${counters.tablesMerged} 行合并到 1 张表（拖列宽改全部）`);
   }
+  if (counters.roundedSingleCells > 0) oks.push(`${counters.roundedSingleCells} 个单格圆角表格转为容器（请预览）`);
+  if (counters.roundedTables > counters.roundedSingleCells) oks.push(`${counters.roundedTables - counters.roundedSingleCells} 个简单圆角表格转单元格边框（请预览）`);
   if (counters.tablesSized > 0) {
     oks.push(`已为 ${counters.tablesSized} 张表估算列宽`);
   }

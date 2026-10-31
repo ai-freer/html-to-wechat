@@ -12,7 +12,7 @@
 // 注意：import 路径必须带 ?v= cache buster；否则浏览器 ES module map
 // 把 './transform.mjs' 作为 URL key 缓存，永远拿不到新版本。
 // index.html 的 app.js?v=XX 和此处的版本号必须同步更新。
-import { transform, DEFAULT_PLAN } from './transform.mjs?v=21';
+import { transform, DEFAULT_PLAN } from './transform.mjs?v=24';
 
 const $ = (id) => document.getElementById(id);
 const editor = $('editor');
@@ -67,8 +67,8 @@ function preRender(rawHtml, timeoutMs = 2500) {
       parent.postMessage({ __ptag: ${JSON.stringify(id)}, error: String(e) }, '*');
     }
   }
-  if (document.readyState === 'complete') setTimeout(snap, 250);
-  else window.addEventListener('load', function(){ setTimeout(snap, 250); });
+  if (document.readyState === 'complete') setTimeout(snap, 1500);
+  else window.addEventListener('load', function(){ setTimeout(snap, 1500); });
 })();
 <\/script>`;
 
@@ -185,6 +185,8 @@ function updateInputStats() {
 }
 
 async function run() {
+  const seq = ++runSeq;
+  btnCopy.disabled = true;
   updateInputStats();
   if (editorView === 'render') renderRawPreview();
   const raw = editor.value;
@@ -199,7 +201,6 @@ async function run() {
     return;
   }
 
-  const seq = ++runSeq;
   const hasScript = /<script[\s>]/i.test(raw);
   if (hasScript) setStatus('正在执行脚本以补全动态内容…');
 
@@ -226,8 +227,8 @@ async function run() {
   renderPreview(processedHtml);
 
   const finalWarnings = executed
-    ? [{ level: 'ok', text: '已执行脚本捕获动态内容' }, ...result.warnings]
-    : result.warnings;
+    ? [{ level: 'ok', text: '已执行脚本并截取当前内容，延迟内容请检查' }, ...result.warnings]
+    : hasScript ? [{ level: 'warn', text: '动态内容截取超时，请检查预览' }, ...result.warnings] : result.warnings;
   renderWarnings(finalWarnings);
 
   const s = result.stats;
@@ -240,6 +241,8 @@ async function run() {
 
 // debounced run on edit
 editor.addEventListener('input', () => {
+  ++runSeq;
+  btnCopy.disabled = true;
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(run, 250);
 });

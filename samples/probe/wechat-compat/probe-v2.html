@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>公众号兼容性探针 V2</title></head><body><article>
+<h1>公众号兼容性探针 V2（勿发布）</h1><p>单独测试各效果，请记录保存重开和 iOS 预览。动效加载后立即开始，如已停止请刷新预览。</p>
+<h2>B01 背景色</h2><section style="background-color:#d6f3df;padding:12px">此段应为浅绿色背景</section>
+<h2>B02 边框</h2><section style="border:2px solid #c65040;padding:12px">此段应有红色边框</section>
+<h2>B03 圆角</h2><section style="background-color:#e4edff;border-radius:18px;padding:12px">浅蓝背景四角应圆润</section>
+<h2>B04 分解属性</h2><section style="background-color:#d6f3df;border-width:2px;border-style:solid;border-color:#c65040;border-radius:18px;padding:12px">浅绿背景、红边框和圆角</section>
+<h2>B05 表格背景边框</h2><table width="100%" border="1" cellspacing="0" cellpadding="12" style="background-color:#d6f3df;border:2px solid #c65040;border-radius:18px"><tr><td>浅绿背景、边框和圆角</td></tr></table>
+<h2>A01 无引用箭头</h2><svg xmlns="http://www.w3.org/2000/svg" width="320" height="60" viewBox="0 0 320 60"><path d="M20 30H280" stroke="#c65a26" stroke-width="4"/><path d="M280 20 L300 30 L280 40 Z" fill="#c65a26"/></svg><p>橙线右端应有三角箭头。</p>
+<h2>A02 自动透明度循环</h2><svg xmlns="http://www.w3.org/2000/svg" width="320" height="70" viewBox="0 0 320 70"><circle cx="60" cy="35" r="24" fill="#e76f51"><animate attributeName="opacity" values="1;0.1;1" dur="3s" repeatCount="indefinite"/></circle></svg><p>红圆应反复淡出淡入。</p>
+<h2>A03 自动平移循环</h2><svg xmlns="http://www.w3.org/2000/svg" width="320" height="70" viewBox="0 0 320 70"><circle cx="30" cy="35" r="20" fill="#e76f51"><animateTransform attributeName="transform" type="translate" values="0 0;250 0;0 0" dur="3s" repeatCount="indefinite"/></circle></svg><p>红圆应左右往返。</p>
+<h2>A04 点击触发平移</h2><svg xmlns="http://www.w3.org/2000/svg" width="320" height="70" viewBox="0 0 320 70"><circle cx="35" cy="35" r="25" fill="#e76f51"><animateTransform attributeName="transform" type="translate" from="0 0" to="230 0" dur="1s" begin="click" fill="freeze"/></circle></svg><p>点击红圆应向右移动。</p>
+<h2>A05 点击变色对照</h2><svg xmlns="http://www.w3.org/2000/svg" width="320" height="60" viewBox="0 0 320 60"><rect x="10" y="5" width="280" height="50" fill="#4c83b6"><set attributeName="fill" to="#209b70" begin="click" dur="0.01s" fill="freeze"/></rect></svg><p>点击蓝色区域应变绿，作为上一轮通过项的对照。</p>
+<h2>A06 延时透明度</h2><svg xmlns="http://www.w3.org/2000/svg" width="320" height="70" viewBox="0 0 320 70"><circle cx="60" cy="35" r="24" fill="#e76f51" opacity="0.15"><animate attributeName="opacity" values="0.15;1;0.15" begin="0s" dur="4s" repeatCount="indefinite"/></circle></svg><p>红圆应反复由淡变深。</p>
+</article></body></html>
