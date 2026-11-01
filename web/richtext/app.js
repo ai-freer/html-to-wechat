@@ -12,7 +12,7 @@
 // 注意：import 路径必须带 ?v= cache buster；否则浏览器 ES module map
 // 把 './transform.mjs' 作为 URL key 缓存，永远拿不到新版本。
 // index.html 的 app.js?v=XX 和此处的版本号必须同步更新。
-import { transform, DEFAULT_PLAN } from './transform.mjs?v=27';
+import { transform, DEFAULT_PLAN } from './transform.mjs?v=28';
 
 const $ = (id) => document.getElementById(id);
 const editor = $('editor');
@@ -420,43 +420,41 @@ renderPreview('');
 
 // ---------- sample ----------
 const SAMPLE_HTML = `<!doctype html>
-<html>
-<head>
-<style>
-  body { font-family: sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; color: #222; }
-  h1 { font-size: 28px; color: #d97706; border-bottom: 3px solid #d97706; padding-bottom: 8px; }
-  h2 { font-size: 20px; margin-top: 32px; color: #1c1917; }
-  p { line-height: 1.8; }
-  blockquote { border-left: 4px solid #d97706; background: #fffbeb; padding: 12px 16px; margin: 16px 0; color: #78716c; }
-  code { background: #f5f5f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
-  .card { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 16px; margin: 16px 0; }
-  ul li { margin: 6px 0; }
-  .tag { display: inline-block; padding: 2px 8px; background: #fef3c7; color: #92400e; border-radius: 999px; font-size: 12px; margin-right: 4px; }
-</style>
-<script>console.log("这段会被删掉");</script>
-</head>
-<body>
-  <h1>示例文章：HTML 转公众号</h1>
-  <p>这是一段示例文字，用来演示 <code>html-to-wechat</code> 的转换效果。</p>
-  <p>原始 HTML 包含 <code>&lt;style&gt;</code> 和 <code>&lt;script&gt;</code>，转换后样式会被内联到每个元素的 <code>style</code> 属性上，script 会被删除。</p>
-
-  <h2>它支持什么</h2>
-  <ul>
-    <li>所有 inline 样式（颜色、字体、边距、边框、圆角）</li>
-    <li>表格、列表、引用块</li>
-    <li>简单的卡片式布局</li>
-  </ul>
-
-  <blockquote>
-    引用块也是可以的。公众号正文宽度大约 375-414 像素，桌面端的宽内容要注意。
-  </blockquote>
-
-  <div class="card">
-    <p><strong>卡片样式</strong>：靠 inline style 模拟。Flex/Grid 在公众号里不稳定，纯靠 padding/margin 做盒模型最保险。</p>
-    <p><span class="tag">提示</span><span class="tag">CSS 内联</span></p>
-  </div>
-
-  <h2>下一步</h2>
-  <p>点底部「复制为富文本」按钮，去公众号后台编辑器 <code>Cmd+V</code> 粘贴即可。</p>
-</body>
-</html>`;
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+  body { font-family: sans-serif; color: #25343a; max-width: 640px; margin: 0 auto; padding: 24px; }
+  p { line-height: 1.85; margin: 14px 0; }
+  h1 { font-size: 30px; line-height: 1.3; color: #173e39; margin: 12px 0; }
+  h2 { font-size: 21px; color: #173e39; margin: 32px 0 12px; }
+  .eyebrow { color: #25836a; font-size: 12px; letter-spacing: 2px; font-weight: bold; }
+  .lead { color: #526c68; font-size: 16px; }
+  .card { background-color: #edf6f1; border: 1px solid #c7e2d3; border-radius: 16px; padding: 18px; margin: 20px 0; }
+  .tag { display: inline-block; background-color: #d8eee2; color: #23664f; border-radius: 20px; padding: 3px 10px; font-size: 12px; margin-right: 5px; }
+  blockquote { border-left: 4px solid #42a47d; background-color: #f3f8f5; padding: 12px 16px; margin: 20px 0; color: #47665b; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #d3e4da; padding: 10px; text-align: left; }
+  th { background-color: #e4f2e9; color: #245a45; }
+  .note { font-size: 13px; color: #71847d; }
+</style></head><body><article>
+  <p class="eyebrow">FIELD NOTES · 01</p>
+  <h1>让一篇文章，<br>从阅读走向体验</h1>
+  <p class="lead">一份示例，展示正文、数据和 SVG 互动如何在公众号富文本中相遇。</p>
+  <p><span class="tag">内容排版</span><span class="tag">数据表格</span><span class="tag">SVG 互动</span></p>
+  <div class="card"><strong>先看重点</strong><p>好的内容不只是一屏文字：它可以用清晰的层级讲故事，用图形解释过程，也可以邀请读者点一下，探索预设的内容。</p></div>
+  <h2>01 / 从信息到理解</h2>
+  <p>想象你正在介绍一套内容工作流。与其把每个步骤堆成一长段，不如先给读者一张路线图，再展开细节。</p>
+  <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 600 120" style="display:block;max-width:600px"><rect x="0" y="12" width="160" height="92" rx="14" fill="#e5f3eb"/><text x="80" y="50" text-anchor="middle" fill="#276a50" font-size="15">01</text><text x="80" y="78" text-anchor="middle" fill="#173e39" font-size="20">整理内容</text><path d="M175 58 H208 M208 50 L220 58 L208 66 Z" stroke="#69a98b" stroke-width="3" fill="#69a98b"/><rect x="220" y="12" width="160" height="92" rx="14" fill="#d5ede0"/><text x="300" y="50" text-anchor="middle" fill="#276a50" font-size="15">02</text><text x="300" y="78" text-anchor="middle" fill="#173e39" font-size="20">设计表达</text><path d="M395 58 H428 M428 50 L440 58 L428 66 Z" stroke="#69a98b" stroke-width="3" fill="#69a98b"/><rect x="440" y="12" width="160" height="92" rx="14" fill="#276e53"/><text x="520" y="50" text-anchor="middle" fill="#bce6cf" font-size="15">03</text><text x="520" y="78" text-anchor="middle" fill="#fff" font-size="20">分享体验</text></svg>
+  <p class="note">示意图：用 SVG 绘制的内容路径。</p>
+  <h2>02 / 把信息放在合适的位置</h2>
+  <p>同一个主题可以使用不同的表达形式。下面是示例内容，不代表实际统计数据。</p>
+  <table><thead><tr><th>表达形式</th><th>适合呈现</th><th>读者收获</th></tr></thead><tbody><tr><td>正文与引用</td><td>背景、观点</td><td>理解来龙去脉</td></tr><tr><td>表格与图解</td><td>对比、流程</td><td>快速看清关系</td></tr><tr><td>SVG 互动</td><td>预设演示</td><td>亲手探索过程</td></tr></tbody></table>
+  <blockquote>先让信息容易理解，再让形式为内容服务。</blockquote>
+  <h2>03 / 试试这个互动终端</h2>
+  <p>先点击输入框，再点击「运行」，观察预设文字逐步出现。这是 SVG 模拟演示，不会输入或提交真实信息。</p>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" width="100%" style="display:block;max-width:600px"><rect width="680" height="380" rx="18" fill="#122332"/><text x="30" y="40" fill="#9de5c4" font-size="20">交互终端 · 模拟输入</text><rect x="30" y="65" width="620" height="65" rx="10" fill="#314758"/><text x="45" y="107" fill="#91a5b2" font-size="18">点击这里输入预设指令</text>
+<g opacity="0"><set attributeName="opacity" to="1" begin="click" dur="0.01s" fill="freeze"/><rect x="31" y="66" width="618" height="63" rx="9" fill="#314758"/><text x="50" y="107" fill="#fff" font-size="22">生</text><g opacity="0"><set attributeName="opacity" to="1" begin="click+0.3s" dur="0.01s" fill="freeze"/><text x="72" y="107" fill="#fff" font-size="22">成</text><g opacity="0"><set attributeName="opacity" to="1" begin="click+0.6s" dur="0.01s" fill="freeze"/><text x="94" y="107" fill="#fff" font-size="22">排</text><g opacity="0"><set attributeName="opacity" to="1" begin="click+0.9s" dur="0.01s" fill="freeze"/><text x="116" y="107" fill="#fff" font-size="22">版</text><rect x="30" y="65" width="620" height="65" fill="#000" fill-opacity="0" pointer-events="all"/></g></g></g></g>
+<rect x="30" y="150" width="150" height="48" rx="9" fill="#5acb9f"/><text x="105" y="181" text-anchor="middle" fill="#14392b" font-size="19">运行 →</text><rect x="30" y="218" width="620" height="135" rx="10" fill="#1f3747"/>
+<g opacity="0"><set attributeName="opacity" to="1" begin="click" dur="0.01s" fill="freeze"/><text x="50" y="252" fill="#b3cbd3" font-size="19">› 正在分析内容</text><g opacity="0"><set attributeName="opacity" to="1" begin="click+0.6s" dur="0.01s" fill="freeze"/><text x="50" y="291" fill="#b3cbd3" font-size="19">› 正在生成版式</text><g opacity="0"><set attributeName="opacity" to="1" begin="click+1.2s" dur="0.01s" fill="freeze"/><text x="50" y="330" fill="#79e6ad" font-size="19">✓ 已完成</text><rect x="30" y="150" width="150" height="48" fill="#000" fill-opacity="0" pointer-events="all"/></g></g></g></svg>
+  <p class="note">互动效果可能因公众号编辑器和微信版本而异；粘贴后请保存草稿并在手机上预览。</p>
+  <h2>把想法带到公众号</h2>
+  <p>点击「复制为富文本」，粘贴到公众号编辑器，再检查排版与互动效果。让你的内容既有信息，也有值得停留的瞬间。</p>
+</article></body></html>`;
