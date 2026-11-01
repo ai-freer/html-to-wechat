@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 100" width="100%" style="max-width:600px;display:block"><g><animate attributeName="opacity" values="1;.2;1" dur="0.8s" begin="click" fill="freeze" restart="always"/><rect x="20" y="15" width="560" height="70" fill="#4288bd"/><rect x="20" y="15" width="560" height="70" fill="#000" fill-opacity="0" pointer-events="all"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300" style="max-width:100%;height:auto;display:block" aria-label="给动作，一点回声，点击闪动 · 可反复体验">
+<!-- Original project visual adaptation. Trigger and timing retained from D01/D02/D06; new artwork awaits WeChat revalidation. -->
+<rect width="600" height="300" rx="20" fill="#f3efe5"/>
+<path d="M32 64 H568" stroke="#d7d1c3"/>
+<g font-family="system-ui,-apple-system,sans-serif">
+<text x="32" y="41" font-size="13" letter-spacing="2" fill="#806c50">MOTION NOTES / 02</text>
+<text x="568" y="41" text-anchor="end" font-size="12" fill="#806c50">TOUCH &amp; RESPONSE</text>
+<text x="32" y="112" font-size="30" font-weight="700" fill="#282c2b">给动作，一点回声</text>
+<text x="32" y="148" font-size="17" fill="#666c67">短暂的明暗变化，回应每一次操作</text>
+<text x="32" y="181" font-size="14" fill="#8a7253">点击闪动 · 可反复体验</text>
+<circle cx="477" cy="148" r="42" fill="#e7c76e"/>
+<path d="M477 128 L462 151 H474 L467 175 L490 147 H478 Z" fill="#775a2c" stroke="#775a2c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<g><animate attributeName="opacity" values="1;.2;1" dur="0.8s" begin="click" fill="freeze" restart="always"/><rect x="32" y="210" width="536" height="60" rx="14" fill="#345d87"/><rect x="32" y="210" width="536" height="60" rx="14" fill="#000" fill-opacity="0" pointer-events="all"/></g>
+<g pointer-events="none" fill="#fff"><text x="56" y="248" font-size="19" font-weight="600">试试轻触反馈</text><path d="M518 240 H542 M533 231 L542 240 L533 249" fill="none" stroke="#fff" stroke-width="2"/></g>
+</g></svg>

@@ -6,7 +6,9 @@
 
 在线工具：https://ai-freer.github.io/html-to-wechat/
 
-## SVG 动效示范
+## SVG 公众号实现规范与动效示范
+
+优先阅读 [SVG 转公众号实现规范与验收依据](docs/svg-wechat-guidelines.md)：按已实测写法制作，检查转换保真，以草稿保存重开和手机预览作为可用性门槛。
 
 [浏览独立 SVG 动效示范库](examples/svg-motion/index.html)：按需预览和复用自动流程、单步互动、逐字及入场效果；[说明](examples/svg-motion/README.md)区分公众号实测和 HTML Artifact 适用范围，并保留上游来源与许可。
 

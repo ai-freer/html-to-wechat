@@ -3,7 +3,9 @@
 > 目标：把一份 HTML Artifact 转换成可直接粘贴到公众号后台编辑器、且样式不丢的富文本。
 > 采用统一范式 **1C（决策）+ 1A（执行）**：1C 用 LLM 决策处理方案，1A 是纯函数按方案执行。两种入口共享同一个 1A 引擎。
 >
-> **跨项目范式对应**：1C/1A 是项目级 **X-C/X-A** 范式在 mode 1 的命名实例。X-C/X-A 总论见 `skill/SKILL.md` 与 `ROADMAP.md §「关键决策」`。本 mode 的 skill 包在 `skill/modes/01-richtext/`，X-A 主体 `transform.mjs` 与 web 浏览器版 `web/richtext/transform.mjs` byte-identical 同源。
+> **跨项目范式对应**：1C/1A 是项目级 **X-C/X-A** 范式在 mode 1 的命名实例。X-C/X-A 总论见 `skill/SKILL.md` 与 `ROADMAP.md §「关键决策」`。本 mode 的 skill 包在 `skill/modes/01-richtext/`，Skill 与网页各有转换实现，运行环境及部分代码存在差异；修改共同能力时需分别检查。
+
+SVG 文章的制作、转换保真和公众号验收遵循 [SVG 转公众号实现规范](svg-wechat-guidelines.md)，可复用素材与逐项验证状态见 [SVG 动效示范库](../examples/svg-motion/README.md)。
 
 ## 1. 输入与输出
 

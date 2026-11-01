@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 100" width="100%" style="max-width:600px;display:block"><rect x="20" y="15" width="560" height="70" fill="#4288bd"><set attributeName="fill" to="#24a375" begin="click+0.8s" dur="0.01s" fill="freeze"/></rect></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300" style="max-width:100%;height:auto;display:block" aria-label="为结果，留一点时间，等待 0.8 秒 · 然后变绿">
+<!-- Original project visual adaptation. Trigger and timing retained from D01/D02/D06; new artwork awaits WeChat revalidation. -->
+<rect width="600" height="300" rx="20" fill="#f3efe5"/>
+<path d="M32 64 H568" stroke="#d7d1c3"/>
+<g font-family="system-ui,-apple-system,sans-serif">
+<text x="32" y="41" font-size="13" letter-spacing="2" fill="#806c50">MOTION NOTES / 03</text>
+<text x="568" y="41" text-anchor="end" font-size="12" fill="#806c50">TOUCH &amp; RESPONSE</text>
+<text x="32" y="112" font-size="30" font-weight="700" fill="#282c2b">为结果，留一点时间</text>
+<text x="32" y="148" font-size="17" fill="#666c67">将等待压缩成一个轻巧的节奏</text>
+<text x="32" y="181" font-size="14" fill="#8a7253">等待 0.8 秒 · 然后变绿</text>
+<circle cx="477" cy="148" r="42" fill="#e7c76e"/>
+<path d="M477 135 V151 L487 157" fill="none" stroke="#775a2c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="32" y="210" width="536" height="60" rx="14" fill="#345d87"><set attributeName="fill" to="#247458" begin="click+0.8s" dur="0.01s" fill="freeze"/></rect>
+<g pointer-events="none" fill="#fff"><text x="56" y="248" font-size="19" font-weight="600">启动延迟确认</text><path d="M518 240 H542 M533 231 L542 240 L533 249" fill="none" stroke="#fff" stroke-width="2"/></g>
+</g></svg>
