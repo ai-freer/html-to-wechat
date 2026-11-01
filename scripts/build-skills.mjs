@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile, writeFile, mkdir, copyFile, lstat, readdir, rename, rm, mkdtemp } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, lstat, readdir, rename, rm, mkdtemp, cp } from 'node:fs/promises';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fileList, sha256, verifyPackage } from './package-utils.mjs';
@@ -77,6 +77,7 @@ try {
         await mkdir(join(dest,'references'),{recursive:true});
         await writeFile(join(dest,'references/cloud-workflow.md'),adapt(await readFile(join(source,'references/cloud-workflow.md'),'utf8'),mode,suite));
       }
+      if (mode === '02-images') await cp(join(source, 'preview'), join(dest, 'preview'), {recursive:true});
       runtimeDirs.push(relative(root,scripts).split('\\').join('/'));
     }
     if (suite) await writeFile(join(root,'SKILL.md'),adapt(await readFile(join(repo,'skill/SKILL.md'),'utf8'),null,false));

@@ -16,15 +16,14 @@ metadata:
 3. Codex/ChatGPT 用宿主内置生图工具 GPT-Image 2；其他宿主使用用户明确指定且当前可用的生图能力。不要从旧 Skill 自动导入 API key、第三方服务或模型参数，也不假设 `anthropic-skills:gpt-image` 存在。工具参数以当前工具 schema 为准。
 4. 宿主支持参考图时，可用已批准的封面或样张作为后续卡片的风格参考，明确其只约束风格，保留每张卡的内容和构图；不得重画已有批准资产。逐卡保存必须出现的准确文字，逐字核对标题、正文、数字、单位和图表关系，检查清晰度、尺寸及整组风格，并实际展示生成结果。发现局部错误时，优先用原图局部修改，明确变更和保留范围，再复核整张；必要时重生。不能靠删关键内容救图；无法核准的内容明确标注，不视为通过。
 5. 写 `captionText`、`captionTags`，制作 payload。本地验证使用已授权的本地图源；公网图片托管属于单独的上传/发布动作，须有对应授权。URL fragment 是编码，不是加密，不能装私有内容后公开分享。
-6. `make-fragment.mjs` 校验 payload 并输出链接。网页支持拖排后保存顺序、复制文案/提示词、ZIP 下载；重生按钮只复制请求，不会自动调用生图。远程图片须能被浏览器 fetch（含 CORS）；任一图下载失败则不生成伪成功的不完整 ZIP。
+6. 将成品图片和 payload.json 保存到本地成果目录，payload 的 src 填相对于 JSON 的本地文件路径。运行 `preview-local.mjs`，保持服务运行并向用户提供本地 URL，在宿主支持时打开页面，检查图片、排序、文案及 ZIP。网页支持拖排后保存顺序、复制文案/提示词、ZIP 下载；重生按钮只复制请求，不会自动调用生图。远程图片须能被浏览器 fetch（含 CORS）；任一图下载失败则不生成伪成功的不完整 ZIP。
 
 ```bash
 node skill/modes/02-images/scripts/render-snapshot.mjs report.html /tmp/source.png
-node skill/modes/02-images/scripts/make-fragment.mjs payload.json
-# 本地验证可显式传第二参数：http://127.0.0.1:<port>/web/images/
+node skill/modes/02-images/scripts/preview-local.mjs output/session/payload.json
 ```
 
-payload：`{title, captionTitle?, captionText, captionTags: string[], images: [{src,alt,prompt?}]}`。alt 不带序号；src 支持 HTTP(S)，小型 PNG/JPEG/GIF/WebP data URL 仅用于测试，不把大图塞入分享 URL。CLI 不负责截图、生图、上传和发帖的自动编排。
+payload：`{title, captionTitle?, captionText, captionTags: string[], images: [{src,alt,prompt?}]}`。alt 不带序号；本地预览的 src 是本地图片路径；远程分享另用 make-fragment.mjs，支持 HTTP(S) 或小型测试 data URL。CLI 不负责截图、生图、上传和发帖的自动编排。
 
 ## 当前边界
 

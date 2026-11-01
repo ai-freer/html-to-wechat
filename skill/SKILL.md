@@ -13,7 +13,7 @@ description: "将同一份 HTML 交付为公众号富文本、小红书图集、
 | 目标 | 对应模式（相对总包根） | 本地交付 |
 |---|---|---|
 | 公众号 | `modes/01-richtext/SKILL.md` | 富文本 HTML、纯文本、警告 |
-| 图集 | `modes/02-images/SKILL.md` | 分镜/文案，授权生图后的图片与 payload |
+| 图集 | `modes/02-images/SKILL.md` | 分镜/文案，授权生图后的图片、payload 与本地预览 |
 | 口播 | `modes/03-script/SKILL.md` | 提取稿 → Agent 改写稿 → 预览链接 |
 | 飞书 | `modes/04-feishu/SKILL.md` | 默认原生 XML 与资源包；HTML 内容块须明确选择 |
 

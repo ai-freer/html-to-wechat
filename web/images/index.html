@@ -45,35 +45,35 @@
       <div class="gallery" role="list">
         <a class="gallery-item" data-idx="01" href="./demo/01-cover.png" role="listitem">
           <span class="gallery-num">01 / 封面</span>
-          <img src="./demo/01-cover.png" alt="封面：上下文管理九层塔" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/01-cover.webp" alt="封面：上下文管理九层塔" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="02" href="./demo/02-thesis.png" role="listitem">
           <span class="gallery-num">02 / 核心论点</span>
-          <img src="./demo/02-thesis.png" alt="核心论点：大上下文窗口 ≠ 上下文管理" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/02-thesis.webp" alt="核心论点：大上下文窗口 ≠ 上下文管理" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="03" href="./demo/03-problems.png" role="listitem">
           <span class="gallery-num">03 / 五个问题</span>
-          <img src="./demo/03-problems.png" alt="三层架构不够用，会发生什么" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/03-problems.webp" alt="三层架构不够用，会发生什么" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="04" href="./demo/04-overview.png" role="listitem">
           <span class="gallery-num">04 / 九层总览</span>
-          <img src="./demo/04-overview.png" alt="九层塔总览" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/04-overview.webp" alt="九层塔总览" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="05" href="./demo/05-l6-warning.png" role="listitem">
           <span class="gallery-num">05 / L6 会话生存层</span>
-          <img src="./demo/05-l6-warning.png" alt="L6 会话生存层 Lossless Context Engine" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/05-l6-warning.webp" alt="L6 会话生存层 Lossless Context Engine" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="06" href="./demo/06-loop.png" role="listitem">
           <span class="gallery-num">06 / 数据流闭环</span>
-          <img src="./demo/06-loop.png" alt="九层不是流水线，是闭环" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/06-loop.webp" alt="九层不是流水线，是闭环" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="07" href="./demo/07-phases.png" role="listitem">
           <span class="gallery-num">07 / 三阶段路径</span>
-          <img src="./demo/07-phases.png" alt="不必一次搭满，分三阶段" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/07-phases.webp" alt="不必一次搭满，分三阶段" loading="lazy" width="1024" height="1536" />
         </a>
         <a class="gallery-item" data-idx="08" href="./demo/08-closing.png" role="listitem">
           <span class="gallery-num">08 / 收尾</span>
-          <img src="./demo/08-closing.png" alt="好的 Agent 不是记得更多，而是知道何时遗忘" loading="lazy" width="1024" height="1536" />
+          <img src="./demo/08-closing.webp" alt="好的 Agent 不是记得更多，而是知道何时遗忘" loading="lazy" width="1024" height="1536" />
         </a>
       </div>
       <p class="gallery-hint">← 横向滑动查看全部 8 张 · 点击单图放大 →</p>
@@ -156,7 +156,7 @@
           if (!el || e.target.closest('.regen-btn')) return;
           e.preventDefault();
           const img = el.querySelector('img');
-          lbImg.src = img.src;
+          lbImg.src = el.href;
           lbImg.alt = img.alt;
           lb.classList.add('is-open');
           document.body.style.overflow = 'hidden';
@@ -176,6 +176,6 @@
       });
     })();
   </script>
-  <script type="module" src="./app.mjs?v=2"></script>
+  <script type="module" src="./app.mjs?v=3"></script>
 </body>
 </html>

@@ -298,7 +298,7 @@ async function downloadZip(payload) {
     const safeAlt = alt.replace(/[^\w一-龥-]/g, '_').slice(0, 40);
     const fname = `${idx}-${safeAlt}.png`;
     try {
-      const response = await fetch(img.src);
+      const response = await fetch(item.href);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
       if (!/^image\/(png|jpeg|gif|webp)(?:;|$)/i.test(blob.type)) throw new Error('响应不是支持的图片');

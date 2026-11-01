@@ -17,7 +17,7 @@
 3. 生成并检查样张。工具支持参考图时，可用批准的样张约束后续图片的风格，明确参考图的作用，避免把其内容误带入新卡片。
 4. 逐张核对文字、数字、单位、图表关系、可读性、实际尺寸及整组风格，并展示结果。局部错误优先编辑原图，说明要修改与保留的部分，再复核整图；必要时重生。不要删除关键内容来掩盖乱码。无法核准时明确说明。
 5. 编写配套文案和标签，制作 payload。图片托管、公开分享和平台发布须取得对应授权。fragment 只是编码，不是加密，分享前检查其中的文案、提示词和图片地址。
-6. 生成预览链接并检查图片加载、排序与下载。远程图片须能被浏览器 fetch，包括 CORS；任一图片下载失败时 ZIP 不应被当作完整交付。
+6. 将成品图片与 payload 保存在本地成果目录，用安装包的 `preview-local.mjs` 启动仅本机可访问的预览，交付 URL 并检查图片加载、排序与下载。远程图片须能被浏览器 fetch，包括 CORS；任一图片下载失败时 ZIP 不应被当作完整交付。
 
 文字密度根据内容和手机阅读效果决定，不把历史样例的单卡字数当作保证。准确文字应明确列出，逐字验收；如果画面放不下，调整卡片数量或布局，保留必要信息。
 
@@ -25,13 +25,13 @@
 
 ```bash
 node skill/modes/02-images/scripts/render-snapshot.mjs report.html /tmp/source.png
-node skill/modes/02-images/scripts/make-fragment.mjs payload.json
-# 本地预览可指定第二参数：http://127.0.0.1:<port>/web/images/
+node skill/modes/02-images/scripts/preview-local.mjs output/session/payload.json
+# payload 中的 src 为相对 payload.json 的本地图片路径；保持服务运行。
 ```
 
 payload 结构为 `{title, captionTitle?, captionText, captionTags: string[], images: [{src, alt, prompt?}]}`。`alt` 不带序号；`src` 支持 HTTP(S)，小型 PNG/JPEG/GIF/WebP data URL 仅用于测试。完整图片不应塞进分享链接。示例见 [payload-example.json](../skill/modes/02-images/scripts/payload-example.json)。
 
-网页有示例展示、空白 app 预览和 fragment 图集三种状态；生成链接默认指向项目的 GitHub Pages 图集页。公网可读不等于允许跨域下载，应实际验证。模型、工具和宿主能力差异可能影响参考图、尺寸控制和局部编辑，按实际结果报告。
+网页有示例展示、空白 app 预览和 fragment 图集三种状态；本地服务只提供清单指定的图片；ZIP 使用安装包内的 JSZip，无需联网。另有 make-fragment.mjs 供经授权的远程图源使用，默认指向 GitHub Pages。公网可读不等于允许跨域下载，应实际验证。模型、工具和宿主能力差异可能影响参考图、尺寸控制和局部编辑，按实际结果报告。
 
 ## 当前验证边界
 
