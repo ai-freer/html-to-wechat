@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2100 750 700" width="750" height="700" font-family="'PingFang SC','Noto Sans CJK SC',sans-serif" aria-label="点击生长连线"><!--Adapted from JamieJustTang/wechat-animating, MIT; see ../LICENSE.upstream--><rect x="0.0" y="2100.0" width="750.0" height="700.0" fill="#efe8d8" /><g data-cue="p4-n1">
+  <animateTransform type="translate" values="0 0;0 -10;0 0" begin="0s" dur="3.6s" repeatCount="indefinite" attributeName="transform" /><g><circle cx="180" cy="2290" r="18.0" fill="#d4532a" /><path d="M180 2290L238.1 2302.3M180 2290L198.4 2346.5M180 2290L140.3 2334.1M180 2290L121.9 2277.7M180 2290L161.6 2233.5M180 2290L219.7 2245.9" stroke="#d4532a" stroke-width="25.20" fill="none" stroke-linecap="round" pathLength="100" /></g></g>
+<g data-cue="p4-n2">
+  <animateTransform type="translate" values="0 0;0 -8;0 0" begin="0s" dur="4s" repeatCount="indefinite" attributeName="transform" /><g><circle cx="400" cy="2230" r="16.0" fill="#d4532a" /><path d="M400 2230L451.6 2241.0M400 2230L416.3 2280.2M400 2230L364.7 2269.2M400 2230L348.4 2219.0M400 2230L383.7 2179.8M400 2230L435.3 2190.8" stroke="#d4532a" stroke-width="22.40" fill="none" stroke-linecap="round" pathLength="100" /></g></g>
+<g data-cue="p4-n3">
+  <animateTransform type="translate" values="0 0;0 -12;0 0" begin="0s" dur="4.4s" repeatCount="indefinite" attributeName="transform" /><g><circle cx="620" cy="2330" r="20.0" fill="#d4532a" /><path d="M620 2330L684.6 2343.7M620 2330L640.4 2392.8M620 2330L575.8 2379.0M620 2330L555.4 2316.3M620 2330L599.6 2267.2M620 2330L664.2 2281.0" stroke="#d4532a" stroke-width="28.00" fill="none" stroke-linecap="round" pathLength="100" /></g></g>
+<g data-cue="p4-n4">
+  <animateTransform type="translate" values="0 0;0 -9;0 0" begin="0s" dur="3.2s" repeatCount="indefinite" attributeName="transform" /><g><circle cx="300" cy="2470" r="14.0" fill="#d4532a" /><path d="M300 2470L345.2 2479.6M300 2470L314.3 2513.9M300 2470L269.1 2504.3M300 2470L254.8 2460.4M300 2470L285.7 2426.1M300 2470L330.9 2435.7" stroke="#d4532a" stroke-width="19.60" fill="none" stroke-linecap="round" pathLength="100" /></g></g>
+<text x="74" y="2580" fill="#857f73" font-size="22" font-weight="400" font-family="Menlo,'Courier New',monospace"><tspan leaf="">[ 点一下，看它们在看谁 ]</tspan></text>
+
+<g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+    <animate attributeName="visibility" calcMode="discrete" values="hidden;visible;visible" keyTimes="0;0;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+    <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0;0.19;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+<g data-cue="p4-l1"><path d="M180 2290Q290 2420 400 2230" fill="none" stroke="#d4532a" stroke-width="6" stroke-linecap="round" pathLength="100" /></g><g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+    <animate attributeName="visibility" calcMode="discrete" values="hidden;visible;visible" keyTimes="0;0.0229;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+    <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0.0229;0.2129;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+<g data-cue="p4-l2"><path d="M400 2230Q510 2300 620 2330" fill="none" stroke="#d4532a" stroke-width="6" stroke-linecap="round" pathLength="100" /></g><g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+    <animate attributeName="visibility" calcMode="discrete" values="hidden;visible;visible" keyTimes="0;0.0457;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+    <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0.0457;0.2357;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+<g data-cue="p4-l3"><path d="M620 2330Q460 2510 300 2470" fill="none" stroke="#d4532a" stroke-width="6" stroke-linecap="round" pathLength="100" /></g><g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+    <animate attributeName="visibility" calcMode="discrete" values="hidden;visible;visible" keyTimes="0;0.0686;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+    <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0.0686;0.2586;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+<g data-cue="p4-l4"><path d="M300 2470Q240 2380 180 2290" fill="none" stroke="#d4532a" stroke-width="6" stroke-linecap="round" pathLength="100" /></g><g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+    <animate attributeName="visibility" calcMode="discrete" values="hidden;visible;visible" keyTimes="0;0.0914;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+    <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0.0914;0.2814;1" begin="click" dur="5.25s" fill="freeze" restart="always" />
+<g data-cue="p4-l5"><path d="M620 2330Q560 2210 400 2230" fill="none" stroke="#d4532a" stroke-width="4" stroke-linecap="round" opacity="0.6" pathLength="100" /></g><rect x="0" y="2100" width="750" height="700" fill="#000" fill-opacity="0" visibility="visible" pointer-events="all" />
+</g>
+</g>
+</g>
+</g>
+</g>
+
+</svg>

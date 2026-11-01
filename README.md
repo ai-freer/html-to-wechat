@@ -6,6 +6,10 @@
 
 在线工具：https://ai-freer.github.io/html-to-wechat/
 
+## SVG 动效示范
+
+[浏览独立 SVG 动效示范库](examples/svg-motion/index.html)：按需预览和复用自动流程、单步互动、逐字及入场效果；[说明](examples/svg-motion/README.md)区分公众号实测和 HTML Artifact 适用范围，并保留上游来源与许可。
+
 ## 起因
 
 agent（Claude / Codex 等）生成的 HTML artifact，排版/交互/视觉远强于裸 Markdown。但公众号编辑器对 HTML 有严格白名单，直接粘贴会丢样式；小红书要"上图下文"图集格式；AI 视频软件要纯文字口播稿；飞书云文档需要原生 Block 结构才能协同编辑。这个项目把"HTML 是源"的工作流跑通，针对不同发布形态分别做一套转换管线。

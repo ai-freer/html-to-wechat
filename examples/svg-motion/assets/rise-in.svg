@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 350 650 90" width="650" height="90" font-family="'PingFang SC','Noto Sans CJK SC',sans-serif" aria-label="淡入并上移"><!--Adapted from JamieJustTang/wechat-animating, MIT; see ../LICENSE.upstream--><rect x="40.0" y="350.0" width="650.0" height="90.0" fill="#efe8d8" /><g data-cue="p1-sub">
+  <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.0987;0.1614;1" begin="0s" dur="22.3s" repeatCount="indefinite" />
+  <animateTransform type="translate" values="0 12;0 12;0 0;0 0" keyTimes="0;0.0987;0.1614;1" begin="0s" dur="22.3s" repeatCount="indefinite" attributeName="transform" /><text x="74" y="404" fill="#d4532a" font-size="24" font-weight="400"><tspan leaf="">一份关于长卷 SVG 的技术小报</tspan></text></g>
+</svg>

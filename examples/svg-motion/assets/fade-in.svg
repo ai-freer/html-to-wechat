@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 250 650 110" width="650" height="110" font-family="'PingFang SC','Noto Sans CJK SC',sans-serif" aria-label="定时淡入"><!--Adapted from JamieJustTang/wechat-animating, MIT; see ../LICENSE.upstream--><rect x="40.0" y="250.0" width="650.0" height="110.0" fill="#efe8d8" /><g data-cue="p1-title">
+  <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0;0.0897;1" begin="0s" dur="22.3s" repeatCount="indefinite" /><text x="74" y="320" fill="#1c1b18" font-size="44" font-weight="700" font-family="'Songti SC','Noto Serif CJK SC',serif"><tspan leaf="">它是怎么动起来的</tspan></text></g>
+</svg>
