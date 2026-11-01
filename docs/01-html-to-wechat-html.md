@@ -284,6 +284,16 @@ Step 4 (1C-post): agent 用 puppeteer 渲染 OUTPUT.html 截图 → 对比原截
 Step 5:          agent 把 OUTPUT.html 编 fragment URL，给用户跳网页一键复制
 ```
 
+## SVG 动效：公众号与 HTML Artifact 的选择
+
+2026-11-01，用户确认 [自动流程与单步互动探针](../samples/probe/wechat-compat/probe-auto-single.html) 的 F01、D01、D02、D06 在公众号粘贴后、保存重开后及 iOS 微信扫码预览均正常；具体步骤和结果见 [测试记录](../samples/probe/wechat-compat/auto-single-test.md)。
+
+- **公众号多步演示**：F01 自动循环展示预设流程，以模拟鼠标移动和点击光圈提示步骤；这不是可操作的业务流程。
+- **公众号单步互动**：D01 自身点击变色、D02 点击闪动、D06 延迟变色的具体写法已通过上述测试。多状态焦点原型保存后在 Mac 上 B 闪回首页，iOS 上 A/B 均无法进入；暂不用于公众号。跨元素事件引用及片段链接方案也曾在草稿重开后失败，不能据本地预览认定可用。
+- **HTML Artifact**：可按目标运行环境使用 SVG 动画及内联点击效果；真实多步表单、分支和弹窗可用 HTML/CSS/JavaScript 实现，并在目标容器与设备测试。
+
+以上结果仅覆盖对应探针、当次公众号环境和 iOS 微信，不代表所有 SVG、Android 或改造后的效果都兼容。新组合仍应测试粘贴、保存重开和目标手机预览；按需控制循环数量与复杂度，并在目标设备观察流畅度和功耗。
+
 ## 6. 公众号 HTML/CSS 白名单（关键约束）
 
 参考：[微信公众号 HTML/CSS 支持情况解析](https://www.axtonliu.ai/newsletters/ai-2/posts/wechat-article-html-css-support)
