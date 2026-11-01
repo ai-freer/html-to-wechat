@@ -34,3 +34,17 @@ const reload=mount(w.location.href);
 assert.equal(reload.window.document.querySelector('.gallery img').alt,'内页');
 dom.window.close();reload.window.close();
 console.log('images app drag → fragment → reload checks passed');
+
+const demo = mount('http://localhost/images/');
+assert.ok(demo.window.document.querySelector('.tb-zip'));
+assert.ok(demo.window.document.querySelector('.caption-copy'));
+assert.equal(demo.window.document.querySelectorAll('.regen-btn').length, 8);
+const demoNodes = demo.window.document.querySelectorAll('.gallery-item');
+demoNodes[0].dispatchEvent(new demo.window.Event('dragstart'));
+demoNodes[1].dispatchEvent(new demo.window.MouseEvent('dragover',{clientX:100}));
+demoNodes[0].dispatchEvent(new demo.window.Event('dragend'));
+const demoSaved = JSON.parse(Buffer.from(demo.window.location.hash.slice(5),'base64url').toString());
+assert.match(demoSaved.images[0].src, /02-thesis\.png$/);
+assert.match(demoSaved.images[1].src, /01-cover\.png$/);
+demo.window.close();
+console.log('default gallery tools and original image preservation after sorting passed');
