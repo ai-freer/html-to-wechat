@@ -26,6 +26,11 @@ try {
    }
   }
   assert.ok(manifest.runtimeDirs.every(d=>files.includes(d+'/package-lock.json')));
+  if (name === 'html-to-wechat' || name === 'html-to-wechat-richtext') {
+   const prefix = name === 'html-to-wechat' ? 'modes/01-richtext/' : '';
+   assert.ok(files.includes(prefix+'references/svg-wechat.md'));
+   assert.match(await readFile(join(root,prefix+'SKILL.md'),'utf8'), /references\/svg-wechat\.md/);
+  }
   if (name === 'html-to-wechat' || name === 'html-to-feishu') {
    const prefix = name === 'html-to-wechat' ? 'modes/04-feishu/' : '';
    assert.ok(files.includes(prefix+'references/cloud-workflow.md'));

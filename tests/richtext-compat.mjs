@@ -90,3 +90,12 @@ assert.match(layoutResult.text, /300亿/);
 const proseLayout = transform('<div style="display:flex;width:20%;height:28px">这是一段超过二十个字符的正文，包含数字2026，不应强制不换行。</div>', noExtract);
 assert.doesNotMatch(proseLayout.html, /white-space:\s*nowrap/i);
 console.log('PASS: positioned text rejoins flow; short percentage-bar labels stay on one line; normal prose unchanged');
+
+for (const file of ['auto-flow.svg', 'click-color.svg', 'click-flash.svg', 'click-delay.svg']) {
+ const input = (await readFile(new URL('../examples/svg-motion/assets/' + file, import.meta.url), 'utf8')).replace(/<\?xml[^>]*\?>/, '');
+ const result = transform('<article>' + input + '</article>', noExtract);
+ assert.deepEqual(result.stats.svgFidelity.lost, [], file);
+ assert.equal(result.stats.svgFidelity.changedAnimations, 0, file);
+ assert.deepEqual(result.stats.svgFidelity.brokenRefs, [], file);
+}
+console.log('PASS: published SVG examples retain animation structure and references');

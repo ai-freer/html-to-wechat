@@ -73,6 +73,10 @@ try {
       }
       await copyFile(join(repo,'skill/locks',mode+'.json'),join(scripts,'package-lock.json'));
       await writeFile(join(dest,'SKILL.md'),adapt(await readFile(join(source,'SKILL.md'),'utf8'),mode,suite));
+      if (mode === '01-richtext') {
+        await mkdir(join(dest,'references'),{recursive:true});
+        await copyFile(join(source,'references/svg-wechat.md'),join(dest,'references/svg-wechat.md'));
+      }
       if (mode === '04-feishu') {
         await mkdir(join(dest,'references'),{recursive:true});
         await writeFile(join(dest,'references/cloud-workflow.md'),adapt(await readFile(join(source,'references/cloud-workflow.md'),'utf8'),mode,suite));
