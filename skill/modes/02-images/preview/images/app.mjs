@@ -2,7 +2,7 @@
 //
 // 触发条件：
 //   - URL hash `#app=<base64-utf8-json>` 含完整图集 payload（agent 投递）
-//   - 或 query `?app=true` 仅打开 app 态壳子（无 payload，沿用静态 demo 图集做交互演示）
+//   - 无 payload 时展示示例图集，并启用相同的预览、排序与下载工具
 //
 // payload schema：
 //   {
@@ -27,8 +27,8 @@ const hash = window.location.hash || '';
 const fragMatch = /^#app=([A-Za-z0-9+/=_-]+)$/.exec(hash);
 const isAppMode = hash.startsWith('#app=') || url.searchParams.get('app') === 'true';
 
-if (isAppMode) {
-  document.body.dataset.mode = 'app';
+{
+  document.body.dataset.mode = isAppMode ? 'app' : 'demo';
 
   let payload = null;
   if (hash.startsWith('#app=') && !fragMatch) {
@@ -59,7 +59,7 @@ function initAppMode(payload) {
   currentPayload = payload;
   // 1) 替换 hero 文案为 app-mode 提示
   const lede = document.querySelector('.subpage-hero .lede');
-  if (lede) {
+  if (lede && (payload || isAppMode)) {
     lede.innerHTML = payload
       ? `app 态 · agent 已投递 <b>${payload.images?.length || 0}</b> 张图。可拖拽排序、单图重生（复制 prompt 粘给 agent）、一键打包 zip。`
       : `app 态预览（无 fragment payload）。拖排序 / zip 下载用 demo 图演示，单图重生需要真实 fragment 才有 prompt。`;
@@ -88,6 +88,7 @@ function initAppMode(payload) {
     document.querySelector('.gallery-hint').textContent = `共 ${payload.images.length} 张 · 可拖排 · 点击单图放大`;
     document.querySelector('.caption-sample h3').textContent = payload.captionTitle || payload.title || '配套文案';
   }
+  if (!payload) document.querySelector('.gallery-hint').textContent = '示例图集 · 可拖拽排序 · 点击单图放大；重做请求不含原始提示词';
   // Page anchors must not replace the fragment carrying the delivered content.
   document.querySelectorAll('a[href="#gallery"], a[href="#how"]').forEach(a => {
     a.addEventListener('click', e => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView(); });
@@ -199,7 +200,7 @@ function renumber() {
 
 function persistOrder() {
   const images = [...document.querySelectorAll('.gallery-item')].map(item => ({
-    src: item.querySelector('img').src, alt: item.querySelector('img').alt, prompt: item.dataset.prompt || '',
+    src: item.href, alt: item.querySelector('img').alt, prompt: item.dataset.prompt || '',
   }));
   currentPayload = { ...(currentPayload || { title: document.querySelector('h1').textContent, captionText: document.querySelector('.caption-body')?.textContent || '', captionTags: (document.querySelector('.caption-tags')?.textContent || '').split(/\s+/).filter(Boolean) }), images };
   const next = new URL(location.href);
