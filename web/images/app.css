@@ -134,3 +134,12 @@ body[data-mode="app"] .subpage-hero .lede b {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* Keep the gallery controls outside the artwork. */
+.gallery-item {
+  padding-top: 36px;
+}
+.gallery-item img {
+  aspect-ratio: auto;
+  object-fit: contain;
+}
