@@ -9,8 +9,9 @@
 ```text
 /plugin marketplace add ai-freer/html-to-wechat
 /plugin install html-to-wechat@ai-freer
-/reload-plugins
 ```
+
+安装后新开一个会话（或在插件面板切换启用状态）让技能生效；`/reload-plugins` 是 CodeBuddy Code CLI 命令，WorkBuddy 桌面端未注册。
 
 本地开发时可把第一条换成仓库的绝对路径。安装、版本化缓存与依赖边界见仓库 `docs/workbuddy-plugin-install.md`。
 

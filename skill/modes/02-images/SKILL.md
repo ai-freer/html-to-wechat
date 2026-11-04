@@ -2,7 +2,7 @@
 name: html-to-wechat-images
 description: "Agent 看 HTML 和截图后拆卡、生图、核字，输出图集文案及预览链接。此包提供 payload 工具与网页交付，不内置生图接口；Codex/ChatGPT 使用宿主内置 GPT-Image 2，不自动采用其他 Agent 的第三方配置。"
 metadata:
-  version: "0.2.2"
+  version: "0.2.3"
 ---
 
 # HTML → AI 图集
@@ -28,6 +28,14 @@ node skill/modes/02-images/scripts/preview-local.mjs output/session/payload.json
 ```
 
 payload：`{title, captionTitle?, captionText, captionTags: string[], images: [{src,alt,prompt?}]}`。alt 不带序号；本地预览的 src 是本地图片路径；远程分享另用 make-fragment.mjs，支持 HTTP(S) 或小型测试 data URL。CLI 不负责截图、生图、上传和发帖的自动编排。
+
+## 逐卡提示词
+
+按页面作用写清读者先看什么、再理解什么，用标题与主图的位置、层级和留白表达，不用空泛的风格词替代设计决定。将必须上图的文字逐条引用，按需标明位置、出现次数及是否允许额外文字；不编造数据。数值图写清数值与长度、面积或位置的映射，核对单位和顺序；生成图的比例可能只是近似，精确比例或可编辑排版按需要交给合适的图表或排版工具处理。
+
+使用多张参考图时逐张说明风格、构图或对象等用途及冲突时的优先依据。编辑时写明目标图、修改位置和必须保留的要素；局部修补与重新构图的保留范围应相符，不承诺非目标区域像素不变。
+
+若当前宿主已发现并可读取 `gpt-image-prompt-crafter` Skill，可在多参考图、复杂文字或局部编辑时按需用它辅助整理提示词。它是可选增强，不接管图集规划或选择生图工具；未发现时按本 Skill 继续，不自动安装、联网获取或切换服务。
 
 ## 交付前复看
 

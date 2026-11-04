@@ -65,8 +65,9 @@ codex plugin add html-to-wechat@html-to-wechat
 ```text
 /plugin marketplace add ai-freer/html-to-wechat
 /plugin install html-to-wechat@ai-freer
-/reload-plugins
 ```
+
+安装后在 WorkBuddy 桌面端新开会话（或在插件面板切换一次启用状态）让技能生效；`/reload-plugins` 只在 CodeBuddy Code CLI 中有效。
 
 只有改插件结构、还没推送时才用 `/plugin marketplace add /绝对路径/html-to-wechat`（依赖本机路径，不跟踪云端提交）。`github` 型市场会在会话启动时按间隔自动同步并升级已启用插件，但第三方市场默认 `autoUpdate: false`，需显式开启；更新也可手动执行 `/plugin marketplace update ai-freer` 与 `/plugin update html-to-wechat@ai-freer`。**发布新版本必须递增版本号**，否则版本化缓存不会替换。市场插件会被复制到版本化缓存而非原地加载，依赖准备、自动更新配置与验收边界见 [WorkBuddy 插件安装与验证](docs/workbuddy-plugin-install.md)。
 

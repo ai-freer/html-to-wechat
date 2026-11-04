@@ -1,7 +1,7 @@
 {
   "name": "@html-to-wechat/mode-04-feishu",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "description": "HTML → 飞书原生 DocxXML / 显式 HTML 内容块，CLI v2 本地资源与 dry-run",
   "bin": {

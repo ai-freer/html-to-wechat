@@ -1,12 +1,12 @@
 {
   "name": "@html-to-wechat/mode-02-images",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@html-to-wechat/mode-02-images",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "optionalDependencies": {
         "puppeteer": "^24.43.1"
       }
