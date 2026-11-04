@@ -2,6 +2,8 @@
 
 > 仓库名 / URL 路径保持小写 `html-to-wechat`；展示标题用 `HTML-to-WeChat`。
 
+Codex 用户也可通过仓库插件市场安装：见 [Codex 插件安装与验证](docs/codex-plugin-install.md)。该入口需相应提交公开后方可供他人使用。
+
 把 **Agent 生成的 HTML Artifact 文章**投递到微信公众号、小红书、AI 视频生成软件、飞书云文档的工具集。
 
 在线工具：https://ai-freer.github.io/html-to-wechat/
