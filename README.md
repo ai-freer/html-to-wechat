@@ -34,6 +34,23 @@ Agent 请从 [安装入口](docs/agent-install.md) 开始，负责实际执行�
 - [Skill 独立安装与依赖闭合](docs/skill-installation.md)
 - [验证与待完成事项](docs/validation.md)
 
+### 作为 Claude 插件安装
+
+**Claude 应用（Chat、Cowork、桌面端）**：打开 Customize > Plugins > Add > Add marketplace，输入 `ai-freer/html-to-wechat`，再添加 **html-to-wechat**。插件保存在账号上，只需安装一次。
+
+**Claude Code**：
+
+```text
+/plugin marketplace add ai-freer/html-to-wechat
+/plugin install html-to-wechat@ai-freer
+```
+
+**更新**：在 Customize 中选择 Check for updates；Claude Code 运行 `/plugin marketplace update ai-freer`，再运行 `claude plugin update html-to-wechat@ai-freer`。
+
+**环境要求**：Node.js 20.19+ 且能访问 npm，依赖在首次使用时安装。飞书云端功能另需 lark-cli 和账号登录。
+
+其他客户端：可从源码构建 Codex、WorkBuddy / CodeBuddy、DeepSeek Harness 本地插件产物；安装与验证边界见 [插件适配说明](plugins/README.md)。
+
 ## 四种投递形态
 
 | 模式 | 目标平台 | 不装 Skill 能用吗 | 实现状态 | 设计文档 |
@@ -130,3 +147,7 @@ GitHub Pages 从 `main` 分支 `/web` 子目录发布。HTTPS 自动开启，Cli
 6. **阶段 2b** Mode 03 skill 化 + 跨模式 `skill/SKILL.md` 总入口
 7. **阶段 6** Landing 重制（4-mode 2x2 网格）
 8. **收尾审计**（本轮）— 补 Mode 02 skill 包、Mode 03 X-C 接口、docs/02 重写、docs/01/03/04 X-A/X-C 范式段、README 准确化
+
+## 许可证
+
+本项目采用 [MIT 许可证](LICENSE)。`examples/svg-motion/` 中的上游示例和图集预览内置的 JSZip 保留各自的许可证。

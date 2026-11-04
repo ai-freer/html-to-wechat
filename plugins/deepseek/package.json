@@ -1,0 +1,9 @@
+{
+  "name": "@local/html-to-wechat",
+  "version": "0.2.0-dev",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.js" },
+  "files": ["index.js", "cordis.patch.yml", "skills"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

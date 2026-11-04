@@ -1,0 +1,3 @@
+- insert:
+    - id: html-to-wechat
+      name: '@local/html-to-wechat'
