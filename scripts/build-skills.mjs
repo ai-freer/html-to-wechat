@@ -28,6 +28,7 @@ try {
     await mkdir(join(root,'scripts'),{recursive:true}); await mkdir(join(root,'lib'),{recursive:true}); await mkdir(join(root,'references'),{recursive:true});
     await writeFile(join(root,'scripts/setup.mjs'),setup);
     await copyFile(join(repo,'lib/render-snapshot.mjs'),join(root,'lib/render-snapshot.mjs'));
+    await copyFile(join(repo,'lib/visibility.mjs'),join(root,'lib/visibility.mjs'));
     try { await copyFile(join(repo,'LICENSE'),join(root,'LICENSE')); } catch(e) { if(e.code !== 'ENOENT') throw e; }
     await writeFile(join(root,'references/package-guide.md'),guide);
     if (selected.includes('04-feishu')) await writeFile(join(root,'references/feishu-guide.md'),feishu.replaceAll('skill/modes/04-feishu/scripts/', suite ? 'modes/04-feishu/scripts/' : 'scripts/'));
@@ -66,9 +67,9 @@ try {
           pkg.scripts={...pkg.scripts,check:'node --check '+(mode==='02-images'?'make-fragment.mjs':'index.mjs')};
           data=Buffer.from(JSON.stringify(pkg,null,2)+'\n');
         }
-        if (file==='render-snapshot.mjs') {
-          const lib=relative(scripts,join(root,'lib/render-snapshot.mjs')).split('\\').join('/');
-          data=Buffer.from(data.toString().replaceAll('../../../../lib/render-snapshot.mjs',lib));
+        if (file==='render-snapshot.mjs' || file==='visibility.mjs') {
+          const lib=relative(scripts,join(root,'lib',file)).split('\\').join('/');
+          data=Buffer.from(data.toString().replaceAll(`../../../../lib/${file}`,lib));
         }
         await writeFile(join(scripts,file),data);
       }
