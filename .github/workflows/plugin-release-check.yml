@@ -1,4 +1,4 @@
-name: Check Claude plugin release
+name: Check plugin releases
 
 on:
   push:

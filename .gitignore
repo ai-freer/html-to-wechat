@@ -69,7 +69,7 @@ docs/local-e2e-2026-10-31.md
 docs/multi-target-routing-2026-10-31.md
 docs/skill-roadmap-audit-2026-10-31.md
 
-# Committed Claude plugin release: the marketplace installs from this folder,
-# so it needs the skill tree and lockfiles that are ignored elsewhere.
-!plugins/release/claude/skills/
-!plugins/release/claude/skills/**/package-lock.json
+# Committed plugin releases: the marketplaces install from these folders,
+# so they need the skill trees and lockfiles that are ignored elsewhere.
+!plugins/release/*/skills/
+!plugins/release/*/skills/**/package-lock.json

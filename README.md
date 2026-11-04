@@ -2,8 +2,6 @@
 
 > 仓库名 / URL 路径保持小写 `html-to-wechat`；展示标题用 `HTML-to-WeChat`。
 
-Codex 用户也可通过仓库插件市场安装：见 [Codex 插件安装与验证](docs/codex-plugin-install.md)。该入口需相应提交公开后方可供他人使用。
-
 把 **Agent 生成的 HTML Artifact 文章**投递到微信公众号、小红书、AI 视频生成软件、飞书云文档的工具集。
 
 在线工具：https://ai-freer.github.io/html-to-wechat/
@@ -51,7 +49,16 @@ Agent 请从 [安装入口](docs/agent-install.md) 开始，负责实际执行�
 
 **环境要求**：Node.js 20.19+ 且能访问 npm，依赖在首次使用时安装。飞书云端功能另需 lark-cli 和账号登录。
 
-其他客户端：可从源码构建 Codex、WorkBuddy / CodeBuddy、DeepSeek Harness 本地插件产物；安装与验证边界见 [插件适配说明](plugins/README.md)。
+### 作为 Codex 插件安装
+
+```bash
+codex plugin marketplace add ai-freer/html-to-wechat
+codex plugin add html-to-wechat@html-to-wechat
+```
+
+依赖准备和验证方式见 [Codex 插件安装与验证](docs/codex-plugin-install.md)。
+
+其他客户端：可从源码构建 WorkBuddy / CodeBuddy、DeepSeek Harness 本地插件产物；安装与验证边界见 [插件适配说明](plugins/README.md)。
 
 ## 四种投递形态
 

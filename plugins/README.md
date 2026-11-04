@@ -15,14 +15,21 @@ node plugins/test.mjs
 
 每个包只有一个直接可发现的 Skill `skills/html-to-wechat`；该入口按需读取包内 `modes/` 的四个工作流。不要再将四个模式分别作为插件技能重复安装。总包与原来的独立包是不同安装选择，已有版本共存时需检查名称和宿主优先级。
 
-## Claude 插件发布
+## Claude 与 Codex 插件发布
 
-Claude 插件通过仓库根目录的 `.claude-plugin/marketplace.json` 分发，安装内容是已提交的 `plugins/release/claude/`。其余 `plugins/dist/` 产物仍不纳入 Git。
+两个插件都从仓库内已提交的构建产物安装：
+
+| 客户端 | 插件市场 | 安装内容 | 安装 ID |
+|---|---|---|---|
+| Claude | `.claude-plugin/marketplace.json` | `plugins/release/claude/` | `html-to-wechat@ai-freer` |
+| Codex | `.agents/plugins/marketplace.json` | `plugins/release/codex/` | `html-to-wechat@html-to-wechat` |
+
+其余 `plugins/dist/` 产物仍不纳入 Git。
 
 发布步骤：
 
-1. 修改 `plugins/claude/.claude-plugin/plugin.json` 的 `version`。版本不变时，已安装用户收不到更新。
-2. 运行 `node plugins/release.mjs` 刷新发布目录，并一起提交。
+1. 同时修改 `plugins/claude/.claude-plugin/plugin.json` 和 `plugins/codex/plugin.json` 的 `version`。版本不变时，已安装用户可能收不到更新。
+2. 运行 `node plugins/release.mjs` 刷新两个发布目录，并一起提交。
 3. CI 运行 `node plugins/release.mjs --check`，发布目录与 `skill/` 不一致时失败。
 
 `SKILL.md` 的版本写在 `metadata.version`，不用顶层 `version`，以符合 Agent Skills 规范。

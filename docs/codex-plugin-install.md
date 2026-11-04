@@ -19,10 +19,11 @@ codex plugin add html-to-wechat@html-to-wechat
 
 ## 维护发布包
 
-`plugins/codex/plugin.json` 是 Codex 清单源；`plugins/release/codex/` 是提交到仓库供市场安装的完整构建产物。`skill/` 和共享转换实现仍是能力的开发源。构建到不存在的目录后比对产物：
+`plugins/codex/plugin.json` 是 Codex 清单源；`plugins/release/codex/` 是提交到仓库供市场安装的完整构建产物。`skill/` 和共享转换实现仍是能力的开发源。刷新或检查产物：
 
 ```bash
-node plugins/build-codex.mjs --out /tmp/h2w-codex-check-new
+node plugins/release.mjs
+node plugins/release.mjs --check
 ```
 
 维护者在更新源代码后应重新生成并审阅 `plugins/release/codex/`；不将 `node_modules`、凭据、真实输入或私有样本放入发布包。请在干净环境分别验证安装、Skill 发现和四条本地执行路径。市场添加成功不等于依赖或业务验收通过。
