@@ -10,6 +10,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { transform } from './html-to-script.mjs';
+import { triage } from './visibility.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 if (argv.help || (!argv.input && !argv.stdin)) {
@@ -20,6 +21,7 @@ if (argv.help || (!argv.input && !argv.stdin)) {
 Options:
   --input <path>   HTML file to convert
   --stdin          Read HTML from stdin
+  --visibility-plan <path>  JSON {"reveal":[selectors],"remove":[selectors]} for hidden content a script may open
   --plan <path>    Optional plan.json (overrides DEFAULT_PLAN: extractMain / bannedTags / keepImages / turndownOptions)
   --output <path>  Write markdown to file (also written to stdout)
   --dry-run        Conversion only; no file write
@@ -36,7 +38,9 @@ try {
   let plan = {};
   if (argv.plan) plan = JSON.parse(await readFile(resolve(argv.plan), 'utf8'));
 
-  const { md, stats, warnings } = transform(html, plan);
+  const visibility = await triage(html, argv['visibility-plan']);
+  const { md, stats, warnings } = transform(visibility.html, plan);
+  warnings.unshift(...visibility.warnings);
   if (!md) {
     console.error('[mode-3] empty output. warnings:', warnings.join(' / '));
     process.exit(1);

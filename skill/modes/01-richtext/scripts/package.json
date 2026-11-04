@@ -8,6 +8,7 @@
     "html-to-wechat-richtext": "./index.mjs"
   },
   "dependencies": {
+    "cheerio": "1.0.0-rc.12",
     "juice": "^10.0.0",
     "jsdom": "^25.0.1"
   },

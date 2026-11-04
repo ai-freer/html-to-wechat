@@ -15,6 +15,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { transform } from './transform.mjs';
 import { measureImageWidths } from './render-snapshot.mjs';
+import { triage } from './visibility.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -30,6 +31,7 @@ Options:
   --output <path>       Write converted HTML to file (also written to stdout)
   --output-text <path>  Write plain text version to file (for "text/plain" clipboard fallback)
   --no-measure          Skip optional browser image-width measurement
+  --visibility-plan <path>  JSON {"reveal":[selectors],"remove":[selectors]} for hidden content a script may open
   --dry-run             Conversion only; do NOT write any output file (stats to stderr)
   --help                Show this help
 
@@ -78,7 +80,11 @@ try {
   }
 
   // === 3. 转换（纯函数）===
-  const result = transform(rawHtml, plan, { renderedWidths });
+  const visibility = await triage(rawHtml, argv['visibility-plan']);
+  // 测宽按原文 <img> 顺序对应；移除隐藏图片后不能再对位。
+  if (visibility.report.removedImages) renderedWidths = [];
+  const result = transform(visibility.html, plan, { renderedWidths });
+  if (result.warnings) result.warnings.unshift(...visibility.warnings.map(text => ({ level: 'warn', text })));
 
   if (result.error) {
     console.error('[mode-1] transform error:', result.error);
