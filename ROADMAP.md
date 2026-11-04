@@ -2,7 +2,17 @@
 
 > 本文是项目从「3 模式规划 + 1 模式可用」推到「4 模式全可用 + Skill 包发布 + Landing 同步」的执行计划。按 PDCA 节奏推进，每阶段一个子循环。
 
-## 2026-10-31 Codex 宿主发现与真实调用（最新）
+## 2026-11-04 DeepSeek Harness 插件与本机 Hub（最新）
+
+详见 [DeepSeek Harness 插件安装与验证](docs/deepseek-plugin-install.md)。
+
+- [x] DSH 插件经 GitHub 分发：Pages 市场索引 0.2.2（`b8a9cbd`），CI 与部署成功；隔离 profile 从 GitHub 安装、加载与四模式本地路径通过。
+- [x] 优先级结论：本地 skills 由 agent preset 挂载在 preset 层，覆盖插件所在的全局层，rank 无法让插件压过同名本地技能。
+- [x] 本机 Hub 从 0.2.0-dev 发布到 0.2.2，Hub 软链与 Kimi、Claude Desktop 运行副本同步；本机 DSH 改用 Hub，不再安装插件。
+- [ ] 下次实际改动时顺手：`plugins/deepseek/index.js` 的 rank 改回 600，并修正其注释（现写着可压过独立 skill，与上条结论不符）。
+- [ ] 本机 Claude Code、WorkBuddy 的插件缓存仍是 0.2.0，WorkBuddy 原生插件会遮蔽 Hub 链接；需各自执行插件更新。
+
+## 2026-10-31 Codex 宿主发现与真实调用
 
 详见 [验证与待完成事项](docs/validation.md)。仅本地，无部署或 Hub 同步。
 
