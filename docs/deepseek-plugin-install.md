@@ -67,20 +67,14 @@ node skills/html-to-wechat/scripts/setup.mjs --with-browser
 
 ## 与本地同名 Skill 的关系
 
-技能优先级由 provider 声明的 rank 决定，**数值越小越优先**：
+技能目录先按"层"合并，**层优先于 rank**：DSH 的 Web 形态把本地 `skill-filesystem`（项目、用户目录）挂在 **agent preset 层**，插件作为宿主 bundle 注册在 **全局层**。合并时 preset 层覆盖全局层，因此任何本地同名技能都会盖住插件，改 rank 也改变不了这一点。插件 `index.js` 里的 `rank` 只在**全局层内部**与其他宿主级 skill provider 比较。
 
-```
-项目 .dsh/skills 100 → 项目 .agents/skills 200 → 运行时注册 250
-→ 本插件 260 → 自定义目录 300 → 用户 ~/.dsh/skills 400
-→ 用户 ~/.agents/skills 500 → 打包默认 600
-```
+推论：
 
-插件取 `260`，含义是：
-
-- **项目内的同名技能仍然覆盖插件**（100/200），想用自己改过的版本就把副本放进项目的 `.dsh/skills` 或 `.agents/skills`。
-- 会话内临时注册的技能（250）优先于插件，便于单次覆盖。
-- 插件优先于自定义目录和用户目录里的副本，所以已经装过独立 `html-to-wechat` skill 的用户，装插件后自动以插件版为准，不需要先删旧副本。
-- 插件的 `rank` 写在 `index.js`，不是可配置项；调整它属于行为变更，需要发版。
+- 机器上已有 `~/.agents/skills/html-to-wechat`、`~/.dsh/skills/html-to-wechat`，或项目内的 `.dsh/skills`、`.agents/skills` 副本时，生效的总是本地那份。
+- 要让插件版生效，移除这些副本，或移到不被扫描的目录，例如 `~/.agents/skills-backup/`。
+- 两者可以共存但不建议：同名时本地赢，容易误以为插件没装好。
+- 插件技能名的优先级不是可配置项；改名（例如 `html-to-wechat-plugin`）会让两者并存，但模型会在目录里看到两个相近技能。
 
 ## 验收清单
 
