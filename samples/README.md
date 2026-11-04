@@ -14,14 +14,7 @@
 
 `samples/` 下的所有 `*.html` `*.png` `*.md` `*.json` 和子目录默认被 `.gitignore` 屏蔽。这些是开发驱动测试的真实输入文档：
 
-| 内部 sample | 主测试场景 |
-|---|---|
-| `bench-standalone.html` 车载 AI 评测 | mode 1/4 多 article 压力测试 |
-| `full-report-standalone.html` 车展报告 (2.3 MB) | mode 3 多 article 报告必须 `{"extractMain":false}` 兜底 |
-| `context-tower-9layers/` 上下文管理九层塔 (8 张 AI 图 + caption + prompts + plan) | mode 2 真实图集 demo |
-| `saic-prd-ai-travel-guide-standalone.html` 手机端 AI 出行攻略 PRD | mode 4 飞书（多 article + 多 SVG）|
-| `saic-prd-trip-planning-flow-standalone.html` 行程规划内部流程说明 (5.6 MB) | mode 4 飞书 + v0.5d 体积上限压测候选 |
-| `v0.2c-*` | mode 4 v0.2c 本地/base64 图片管线测试 |
+它们覆盖多 article 压力测试、报告类页面的正文提取兜底、图集 demo、多 SVG 文档、大体积页面和图片管线等场景。这里不列具体文件名。
 
 ## 怎么放新样本
 

@@ -156,12 +156,7 @@ GitHub Pages 从 `main` 分支 `/web` 子目录发布。HTTPS 自动开启，Cli
 
 `samples/` 默认 **.gitignore**（内部驱动测试用，可能含 PRD / 未发布内容）。仅 `samples/probe/`（合成 DocxXML/HTML 测试 fixture）和 `samples/bench-plan-*.json`（plan schema demo）公开追踪作为测试基础设施，详见 [`samples/README.md`](samples/README.md)。
 
-5 个内部驱动 sample：
-- `bench-standalone.html` 车载 AI 评测（mode 1/4 多 article 压测）
-- `full-report-standalone.html` 车展报告 2.3 MB（mode 3 多 article 兜底）
-- `context-tower-9layers/` 上下文管理九层塔（mode 2 真实图集 demo）
-- `saic-prd-ai-travel-guide-standalone.html` 出行攻略 PRD（mode 4 飞书）
-- `saic-prd-trip-planning-flow-standalone.html` 行程流程 PRD 5.6 MB（mode 4 飞书 + v0.5d 体积压测）
+开发时用本地真实文档做压力测试，覆盖多 article、多 SVG、大体积页面和图集等场景，这些文档不随仓库发布。
 
 外部用户跑 skill 用自己的 HTML 即可，本仓库不需要也不应提供真实内容样本。
 
