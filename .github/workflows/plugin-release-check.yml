@@ -17,4 +17,7 @@ jobs:
         with:
           node-version: 22
       - run: node plugins/release.mjs --check
+      # The DeepSeek market index is generated at deploy time; validate the shape
+      # here so a broken package or locale fails before Pages ships it.
+      - run: node scripts/build-market-index.mjs --check
       - run: node plugins/test.mjs

@@ -1,0 +1,19 @@
+{
+  "name": "@html-to-wechat/mode-04-feishu",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "HTML → 飞书原生 DocxXML / 显式 HTML 内容块，CLI v2 本地资源与 dry-run",
+  "bin": {
+    "html-to-feishu": "./index.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.43.1"
+  },
+  "scripts": {
+    "check": "node --check index.mjs"
+  }
+}

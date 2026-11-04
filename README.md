@@ -60,17 +60,26 @@ codex plugin add html-to-wechat@html-to-wechat
 
 ### 作为 WorkBuddy / CodeBuddy 插件安装
 
-仓库根的 `.codebuddy-plugin/marketplace.json` 是这两个客户端识别的市场清单。本地开发目录可以直接作为市场源添加：
+仓库根的 `.codebuddy-plugin/marketplace.json` 是这两个客户端识别的市场清单。标准安装走 GitHub 市场源（仓库已公开推送）：
 
 ```text
-/plugin marketplace add /绝对路径/html-to-wechat
+/plugin marketplace add ai-freer/html-to-wechat
 /plugin install html-to-wechat@ai-freer
 /reload-plugins
 ```
 
-仓库推送到 GitHub 后，其他人可用 `/plugin marketplace add ai-freer/html-to-wechat`；更新用 `/plugin marketplace update ai-freer` 与 `/plugin update html-to-wechat@ai-freer`。市场插件会被复制到版本化缓存而非原地加载，依赖准备和验收边界见 [WorkBuddy 插件安装与验证](docs/workbuddy-plugin-install.md)。
+只有改插件结构、还没推送时才用 `/plugin marketplace add /绝对路径/html-to-wechat`（依赖本机路径，不跟踪云端提交）。`github` 型市场会在会话启动时按间隔自动同步并升级已启用插件，但第三方市场默认 `autoUpdate: false`，需显式开启；更新也可手动执行 `/plugin marketplace update ai-freer` 与 `/plugin update html-to-wechat@ai-freer`。**发布新版本必须递增版本号**，否则版本化缓存不会替换。市场插件会被复制到版本化缓存而非原地加载，依赖准备、自动更新配置与验收边界见 [WorkBuddy 插件安装与验证](docs/workbuddy-plugin-install.md)。
 
-其他客户端：DeepSeek Harness 仍需从源码构建本地插件产物；安装与验证边界见 [插件适配说明](plugins/README.md)。
+### 作为 DeepSeek Harness 插件安装
+
+插件以 GitHub 仓库分发，不发布 npm。在 **Plugins → Discover → Add index source** 填入 `https://ai-freer.github.io/html-to-wechat/plugins/market.json`，安装 **HTML 多平台交付**；也可以按 commit 用命令行安装：
+
+```bash
+dsh plugin --profile <profile> add \
+  "git+https://github.com/ai-freer/html-to-wechat.git#<commit>&path:/plugins/release/deepseek"
+```
+
+版本兼容、依赖、更新与验收边界见 [DeepSeek Harness 插件安装与验证](docs/deepseek-plugin-install.md)。
 
 ## 四种投递形态
 

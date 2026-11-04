@@ -1,0 +1,4 @@
+- insert:
+    - id: html-to-wechat
+      name: '@ai-freer/html-to-wechat'
+      config: {}

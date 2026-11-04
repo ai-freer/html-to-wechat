@@ -22,10 +22,16 @@ try {
     let root = join(out, target);
     if (target === 'deepseek') {
       const packed = JSON.parse(run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', temp], root).stdout)[0];
-      for (const file of ['index.js', 'cordis.patch.yml', 'skills/html-to-wechat/.skill-package.json', 'skills/html-to-wechat/modes/04-feishu/scripts/package-lock.json']) assert.ok(packed.files.some(entry => entry.path === file), `npm package missing ${file}`);
+      const packedPaths = packed.files.map(entry => entry.path);
+      for (const file of ['index.js', 'cordis.patch.yml', 'icon.png', 'locale/en.json', 'locale/zh.json', 'skills/html-to-wechat/.skill-package.json', 'skills/html-to-wechat/modes/04-feishu/scripts/package-lock.json']) assert.ok(packedPaths.includes(file), `npm package missing ${file}`);
+      assert.ok(!packedPaths.some(file => file.startsWith('node_modules/')), 'npm package must not bundle node_modules');
       const unpack = join(temp, 'dsh-unpacked'); await mkdir(unpack);
       run('tar', ['-xzf', join(temp, packed.filename), '-C', unpack]);
       root = join(unpack, 'package');
+      // The DeepSeek package declares the skill runtime dependencies itself, so a
+      // profile install needs no per-mode setup step. Prove resolution from the
+      // package root instead of running scripts/setup.mjs below.
+      run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], root);
     }
     const suite = join(root, 'skills/html-to-wechat');
     await verifyPackage(suite);
@@ -33,19 +39,42 @@ try {
     assert.deepEqual((await fileList(suite)).filter(file => file.endsWith('/SKILL.md')), [], 'suite must expose one skill entry');
     const manifestPath = target === 'codex' ? 'plugin.json' : target === 'claude' ? '.claude-plugin/plugin.json' : target === 'workbuddy' ? '.workbuddy-plugin/plugin.json' : 'package.json';
     const manifest = JSON.parse(await readFile(join(root, manifestPath), 'utf8'));
-    assert.equal(manifest.name, target === 'deepseek' ? '@local/html-to-wechat' : 'html-to-wechat');
+    assert.equal(manifest.name, target === 'deepseek' ? '@ai-freer/html-to-wechat' : 'html-to-wechat');
     if (target === 'deepseek') {
+      // Every field the DSH bundle/manifest and market-index specs require.
+      assert.equal(manifest.dsh.manifestVersion, 1);
       assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml');
-      assert.match(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), /@local\/html-to-wechat/);
+      assert.match(manifest.engines.dsh, /^>=0\.2\./);
+      assert.equal(manifest.exports['./icon'], './icon.png');
+      assert.equal(manifest.exports['./locale/*.json'], './locale/*.json');
+      assert.equal(manifest.icon, './icon.png');
+      assert.equal(manifest.private, undefined, 'a publishable package must not stay private');
+      for (const dependency of ['cheerio', 'jsdom', 'juice', 'turndown']) assert.ok(manifest.dependencies?.[dependency], `missing runtime dependency ${dependency}`);
+      for (const file of ['index.js', 'cordis.patch.yml', 'icon.png', 'locale/en.json', 'locale/zh.json']) await access(join(root, file));
+      assert.match(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), /@ai-freer\/html-to-wechat/);
+      const icon = await readFile(join(root, 'icon.png'));
+      assert.ok(icon.length > 0 && icon.length <= 256 * 1024, 'icon must be a non-empty image no larger than 256 KiB');
+      assert.equal(icon.subarray(1, 4).toString('latin1'), 'PNG', 'icon must be a PNG');
+      for (const language of ['en', 'zh']) {
+        const meta = JSON.parse(await readFile(join(root, 'locale', `${language}.json`), 'utf8')).meta;
+        assert.ok(meta.title && meta.description, `locale/${language}.json needs meta.title and meta.description`);
+      }
       const plugin = await import(pathToFileURL(join(root, 'index.js')).href);
-      let provider; plugin.apply({ skills: { registerProvider: factory => { provider = factory({}); } } });
-      const [item] = await provider.list();
+      assert.deepEqual(plugin.inject, ['skills']);
+      let registered, effects = 0;
+      plugin.apply({ effect: callback => { effects += 1; callback(); }, skills: { registerProvider: factory => { registered = factory({}); return () => {}; } } });
+      assert.equal(effects, 1, 'the provider registration must be owned by ctx.effect');
+      const [item] = await registered.list();
       assert.equal(item.name, 'html-to-wechat');
+      assert.equal(item.provider, 'html-to-wechat');
+      assert.equal(item.rank, 600);
+      assert.equal(item.source, 'plugin');
       assert.equal(await realpath(item.resourceBase.path), await realpath(suite));
-      assert.match((await provider.get(item)).content, /modes\/04-feishu\/MODE\.md/);
-      assert.equal(await provider.get({ ...item, locator: '/bad' }), undefined);
+      const definition = await registered.get(item);
+      assert.equal(definition.name, item.name);
+      assert.match(definition.content, /modes\/04-feishu\/MODE\.md/);
     }
-    run(process.execPath, [join(suite, 'scripts/setup.mjs')]);
+    if (target !== 'deepseek') run(process.execPath, [join(suite, 'scripts/setup.mjs')]);
     const rich = join(temp, target + '-rich.html'), script = join(temp, target + '-script.md'), xml = join(temp, target + '.xml');
     run(process.execPath, [join(suite, 'modes/01-richtext/scripts/index.mjs'), '--input', html, '--output', rich, '--no-measure']);
     run(process.execPath, [join(suite, 'modes/03-script/scripts/index.mjs'), '--input', html, '--output', script]);

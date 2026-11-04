@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Refresh or check the committed plugins that the marketplaces install.
-//   node plugins/release.mjs           rebuild plugins/release/{claude,codex,workbuddy}
+//   node plugins/release.mjs           rebuild plugins/release/{claude,codex,workbuddy,deepseek}
 //   node plugins/release.mjs --check   fail if they differ from a fresh build
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { fileList } from '../scripts/package-utils.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const targets = ['claude', 'codex', 'workbuddy'];
+const targets = ['claude', 'codex', 'workbuddy', 'deepseek'];
 const args = process.argv.slice(2);
 const check = args[0] === '--check';
 if (args.length > 1 || (args.length === 1 && !check)) {
@@ -24,7 +24,7 @@ try {
   const build = spawnSync(process.execPath, [join(repo, 'plugins/build.mjs'), '--out', out], { encoding: 'utf8' });
   if (build.status !== 0) throw new Error(build.stderr || build.stdout);
   const version = JSON.parse(await readFile(join(out, 'claude/skills/html-to-wechat/.skill-package.json'), 'utf8')).version;
-  for (const [target, manifest] of [['claude', '.claude-plugin/plugin.json'], ['codex', 'plugin.json'], ['workbuddy', '.workbuddy-plugin/plugin.json']]) {
+  for (const [target, manifest] of [['claude', '.claude-plugin/plugin.json'], ['codex', 'plugin.json'], ['workbuddy', '.workbuddy-plugin/plugin.json'], ['deepseek', 'package.json']]) {
     const found = JSON.parse(await readFile(join(out, target, manifest), 'utf8')).version;
     if (found !== version) throw new Error(`${target} manifest version ${found} differs from skill package ${version}`);
   }

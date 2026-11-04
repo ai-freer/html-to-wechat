@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'plugins/release/deepseek/**'
+      - 'scripts/build-market-index.mjs'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -25,6 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The market index pins this commit, so it is generated here instead of
+      # being committed; see scripts/build-market-index.mjs.
+      - run: node scripts/build-market-index.mjs --out web/plugins/market.json --commit "${{ github.sha }}" --timestamp "$(git log -1 --format=%ct)"
+      - run: cp plugins/release/deepseek/icon.png web/plugins/icon.png
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
