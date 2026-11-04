@@ -1,7 +1,7 @@
 {
   "name": "@html-to-wechat/mode-03-script",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "HTML → Markdown 提取稿与统计；成品口语化由 Agent 完成",
   "bin": {

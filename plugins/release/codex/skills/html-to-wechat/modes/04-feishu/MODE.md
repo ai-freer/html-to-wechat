@@ -2,7 +2,7 @@
 name: html-to-feishu
 description: "将 HTML 转为飞书原生 DocxXML，保留协作正文；也可显式导出 HTML 内容块。先本地导出/CLI dry-run，授权后创建，再回读与视觉核对。使用当前 lark-doc 能力和 CLI v2，非旧版 mode/markdown 定位接口。"
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   requires:
     bins: []
     skills: []

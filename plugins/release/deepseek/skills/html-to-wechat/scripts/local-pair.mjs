@@ -2,7 +2,7 @@
 // Local-only orchestration for the existing WeChat / native Feishu converters.
 import { readFile, mkdir, writeFile, open, stat } from 'node:fs/promises';
 import { dirname, resolve, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -47,7 +47,10 @@ try {
         candidates.get(key).affectedHeadings++;
       }
     }
-    console.log(JSON.stringify({input,sha256:sha(raw),bytes:Buffer.byteLength(raw),headings:doc.querySelectorAll('h1,h2,h3,h4,h5,h6').length,chapters:[...doc.querySelectorAll('h1,h2')].map(n=>n.textContent.trim()),tables:doc.querySelectorAll('table').length,images:doc.querySelectorAll('img').length,svg:doc.querySelectorAll('svg').length,externalStylesheets:doc.querySelectorAll('link[rel="stylesheet"][href]').length,hiddenCandidates:[...candidates.values()],note:'Candidates require content judgment; no remote CSS is loaded. A heading may have multiple hidden ancestors. This is not a screenshot or a plan.'},null,2));
+    const {triage}=await import(pathToFileURL(join(root,'modes/01-richtext/scripts/visibility.mjs')).href);
+    const {report}=await triage(raw);
+    const visibility={collapsed:report.collapsed,hidden:report.hidden,uncertain:report.uncertain};
+    console.log(JSON.stringify({input,visibility,sha256:sha(raw),bytes:Buffer.byteLength(raw),headings:doc.querySelectorAll('h1,h2,h3,h4,h5,h6').length,chapters:[...doc.querySelectorAll('h1,h2')].map(n=>n.textContent.trim()),tables:doc.querySelectorAll('table').length,images:doc.querySelectorAll('img').length,svg:doc.querySelectorAll('svg').length,externalStylesheets:doc.querySelectorAll('link[rel="stylesheet"][href]').length,hiddenCandidates:[...candidates.values()],note:'Candidates require content judgment; no remote CSS is loaded. A heading may have multiple hidden ancestors. This is not a screenshot or a plan.'},null,2));
     dom.window.close(); process.exit(0);
   }
   for(const key of ['--wechat-plan','--feishu-plan','--out'])if(!flags.has(key))throw Error(`Missing ${key}`);

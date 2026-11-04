@@ -2,7 +2,7 @@
 name: html-to-wechat
 description: "将同一份 HTML 交付为公众号富文本、小红书图集、口播稿或飞书文档。尤其用于一次请求多个目标：共享输入检查，逐模式执行和核对；单目标直接使用对应模式。"
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
 ---
 
 # HTML 多平台交付

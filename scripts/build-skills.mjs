@@ -88,7 +88,7 @@ try {
     }
     if (suite) await writeFile(join(root,'SKILL.md'),adapt(await readFile(join(repo,'skill/SKILL.md'),'utf8'),null,false));
     const files={}; for (const file of await fileList(root)) files[file]=sha256(await readFile(join(root,file)));
-    await writeFile(join(root,'.skill-package.json'),JSON.stringify({schema:1,name:packageName,version:'0.2.0',mode:suite?'suite':modes[index],runtimeDirs,files},null,2)+'\n');
+    await writeFile(join(root,'.skill-package.json'),JSON.stringify({schema:1,name:packageName,version:'0.2.1',mode:suite?'suite':modes[index],runtimeDirs,files},null,2)+'\n');
     await verifyPackage(root);
     console.log(`[build] verified ${packageName}: ${Object.keys(files).length} files`);
   }

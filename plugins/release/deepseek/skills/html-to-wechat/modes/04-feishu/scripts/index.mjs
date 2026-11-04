@@ -20,6 +20,7 @@ import { prepareHtmlBlock } from './html-block.mjs';
 import { normalizeNativeXml } from './native-xml.mjs';
 import { measureImageWidths } from './render-snapshot.mjs';
 import { splitDocxXML, chunkedCreateDoc } from './chunk-doc.mjs';
+import { triage } from './visibility.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 
@@ -31,6 +32,7 @@ if (argv.help || (!argv.input && !argv.stdin)) {
 Options:
   --input <path>       HTML file to convert
   --stdin              Read HTML from stdin
+  --visibility-plan <path>  JSON {"reveal":[selectors],"remove":[selectors]} for hidden content a script may open
   --dry-run            Prepare resources + CLI dry-run; no cloud writes
   --export-only        Export local XML/resources, no CLI call (requires --output-xml)
   --target <mode>      native (default) | html-block (explicit alternative)
@@ -67,17 +69,18 @@ try {
     result = await prepareHtmlBlock(html, { title: plan.title,
       resourceDir, resourceRef: `./${resourceName}/artifact.html`, heightMode: argv['height-mode'] || 'auto' });
   } else {
+    const visibility = await triage(html, argv['visibility-plan']);
     let renderedWidths = [];
-    if (inputPath && !argv['no-measure'] && /<img[\s>]/i.test(html)) {
+    if (inputPath && !argv['no-measure'] && !visibility.report.removedImages && /<img[\s>]/i.test(html)) {
       try { renderedWidths = await measureImageWidths(inputPath); }
       catch (e) { console.error(`[mode-4] image measurement skipped: ${e.message}`); }
     }
-    const converted = transform(html, plan, { renderedWidths });
+    const converted = transform(visibility.html, plan, { renderedWidths });
     if (!converted.docxxml) throw new Error('empty conversion output');
     const media = await prepareMedia(converted.docxxml, converted.mediaTasks, { resourceDir, cwd, inputDir, inputPath });
     const normalized = normalizeNativeXml(media.docxxml);
     result = { ...converted, docxxml: normalized.docxxml, files: media.files,
-      warnings: [...converted.warnings, ...normalized.warnings] };
+      warnings: [...visibility.warnings, ...converted.warnings, ...normalized.warnings] };
   }
   if (outputPath) { await writeFile(outputPath, result.docxxml); console.error(`[mode-4] exported XML and ${result.files.length} local resource(s)`); }
   for (const warning of result.warnings || []) console.error(`[mode-4] warning: ${warning}`);
