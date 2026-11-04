@@ -1,0 +1,20 @@
+{
+  "name": "@html-to-wechat/mode-03-script",
+  "private": true,
+  "version": "0.2.0-dev",
+  "type": "module",
+  "description": "HTML → Markdown 提取稿与统计；成品口语化由 Agent 完成",
+  "bin": {
+    "html-to-script": "./index.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "turndown": "^7.2.0"
+  },
+  "scripts": {
+    "check": "node --check index.mjs"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.43.1"
+  }
+}

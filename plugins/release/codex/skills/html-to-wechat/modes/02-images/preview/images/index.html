@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HTML → 图文号 / 小红书图集 · HTML-to-WeChat</title>
+  <meta name="description" content="把长 HTML 文章用 Agent + 顶级生图模型自动转成统一风格的 8-10 张图集 + 配套文案，直接发小红书 / 公众号图文号。" />
+  <link rel="stylesheet" href="../landing.css?v=5" />
+  <link rel="stylesheet" href="./app.css?v=2" />
+</head>
+<body>
+  <main class="subpage">
+    <header class="landing-head">
+      <a class="logo" href="../" aria-label="返回首页">
+        <span class="logo-mark">⌬</span>
+        <span class="logo-text">HTML-to-WeChat</span>
+      </a>
+      <nav class="landing-nav">
+        <a href="../">← 首页</a>
+      </nav>
+    </header>
+
+    <!-- HERO -->
+    <section class="subpage-hero">
+      <h1>HTML → 图文号 / 小红书图集</h1>
+      <p class="lede">
+        把一篇长 HTML 文章交给 Agent，自动产出 8-10 张统一风格的卡片图 + 配套文案，直接发小红书 / 公众号图文号。所有图由顶级文生图模型（GPT Image 2 等）生成，不是模板拼接。
+      </p>
+      <div class="cta-row">
+        <a class="cta cta-primary" href="#gallery">看示例图集</a>
+        <a class="cta cta-secondary" href="#how">了解工作流</a>
+        <a class="cta cta-secondary" href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/02-html-to-images.md" target="_blank" rel="noopener">设计文档 ↗</a>
+      </div>
+    </section>
+
+    <!-- EXAMPLE GALLERY -->
+    <section class="section" id="gallery">
+      <div class="section-head">
+        <h2>示例图集：上下文管理九层塔</h2>
+        <p class="section-sub">
+          以一篇 22k 字技术深度长文为输入，由 Agent 拆解、编写提示词并生成的 8 张示例卡片。
+        </p>
+      </div>
+
+      <div class="gallery" role="list">
+        <a class="gallery-item" data-idx="01" href="./demo/01-cover.png" role="listitem">
+          <span class="gallery-num">01 / 封面</span>
+          <img src="./demo/01-cover.webp" alt="上下文管理九层塔：让经验成为系统的能力" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="02" href="./demo/02-thesis.png" role="listitem">
+          <span class="gallery-num">02 / 九层全景</span>
+          <img src="./demo/02-thesis.webp" alt="建筑剖面展示九层职责，分为基础、运行时和进化三组" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="03" href="./demo/03-problems.png" role="listitem">
+          <span class="gallery-num">03 / 基础层</span>
+          <img src="./demo/03-problems.webp" alt="开始工作前，身份、规则与文件记忆各确定什么" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="04" href="./demo/04-overview.png" role="listitem">
+          <span class="gallery-num">04 / 运行时层</span>
+          <img src="./demo/04-overview.webp" alt="周报先写结论：按需查找、主动带入与长会话保持" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="05" href="./demo/05-l6-warning.png" role="listitem">
+          <span class="gallery-num">05 / 进化层</span>
+          <img src="./demo/05-l6-warning.webp" alt="一次工作留下三种改进：整理成记忆、纠错成规则、流程成技能" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="06" href="./demo/06-loop.png" role="listitem">
+          <span class="gallery-num">06 / 跨轮运行</span>
+          <img src="./demo/06-loop.webp" alt="一条周报约定写入文件记忆后，怎样在下一轮被召回或检索" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="07" href="./demo/07-phases.png" role="listitem">
+          <span class="gallery-num">07 / 从哪里开始</span>
+          <img src="./demo/07-phases.webp" alt="从约定存不住、存了找不到、同类错误反复发生判断先补哪一段" loading="lazy" width="1024" height="1536" />
+        </a>
+        <a class="gallery-item" data-idx="08" href="./demo/08-closing.png" role="listitem">
+          <span class="gallery-num">08 / 封底</span>
+          <img src="./demo/08-closing.webp" alt="让经验，成为下一次的起点" loading="lazy" width="1024" height="1536" />
+        </a>
+      </div>
+      <p class="gallery-hint">← 横向滑动查看全部 8 张 · 点击单图放大 →</p>
+
+      <!-- CAPTION SAMPLE -->
+      <div class="caption-sample">
+        <p class="caption-meta">小红书图下文案</p>
+        <h3>一条约定，怎么回到下一轮？</h3>
+        <p class="caption-body">今天说过“周报先写结论”，下次写周报时，Agent 怎么用上这条约定？
+
+九层塔把职责分成三组：基础层确定身份、规则和长期记忆；运行时层负责查找、召回与会话管理；进化层把工作经验整理成记忆、规则和技能。
+
+先看第 2 张认清九层分工，再跟着第 6 张走一遍这条约定。如果准备搭自己的系统，第 7 张可以帮你判断先补哪一段。</p>
+        <p class="caption-tags">#AIAgent #ChatGPT #LLM #ContextEngineering #AI工程化 #PromptEngineering #AI编程 #Agent架构</p>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section" id="how">
+      <div class="section-head">
+        <h2>工作流</h2>
+        <p class="section-sub">Skill 在你的 agent（Claude / Codex 等）里跑，浏览器只负责呈现结果。</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>在 agent 里装 Skill</h3>
+          <p>给你的 Claude / Codex 装上 <code>html-to-wechat</code> Skill 包，让 agent 学会“看一篇 HTML 文章 → 拆图集 → 写提示词 → 使用可用的生图工具”这条流程。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>跑一条命令</h3>
+          <p>把 HTML 文件交给 Agent，明确要求生成图集。agent 在本地完成内容拆解、生图、文案生成，输出到一个 session 目录。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>本页面预览 + 下载</h3>
+          <p>agent 跑完后给你一个本地 URL 自动打开本页面的 app 态：复制单图重生提示词、拖排、一键下载 zip、复制文案。</p>
+        </div>
+      </div>
+
+      <div class="status-banner">
+        <strong>当前能力：</strong>
+        图集由 Agent 调用 Skill 生成，示例图集和文案是用 gpt-image-2 实际生成的样本。本页面负责接收结果、预览、排序与下载；单图重生成等功能会在后续版本上线。
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="landing-foot">
+      <p>
+        开源项目 · <a href="https://github.com/ai-freer/html-to-wechat" target="_blank" rel="noopener">ai-freer/html-to-wechat</a>
+        · <a href="https://github.com/ai-freer/html-to-wechat/blob/main/docs/02-html-to-images.md" target="_blank" rel="noopener">模式 2 设计文档</a>
+      </p>
+    </footer>
+  </main>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="放大查看">
+    <button class="lightbox-close" type="button" aria-label="关闭">×</button>
+    <img alt="" />
+  </div>
+
+  <script>
+    // Lightbox: click gallery item → enlarge in overlay
+    (function () {
+      const lb = document.getElementById('lightbox');
+      const lbImg = lb.querySelector('img');
+      const lbClose = lb.querySelector('.lightbox-close');
+
+      document.querySelector('.gallery').addEventListener('click', function (e) {
+          const el = e.target.closest('.gallery-item');
+          if (!el || e.target.closest('.regen-btn')) return;
+          e.preventDefault();
+          const img = el.querySelector('img');
+          lbImg.src = el.href;
+          lbImg.alt = img.alt;
+          lb.classList.add('is-open');
+          document.body.style.overflow = 'hidden';
+      });
+
+      function close() {
+        lb.classList.remove('is-open');
+        document.body.style.overflow = '';
+        lbImg.src = '';
+      }
+      lb.addEventListener('click', function (e) {
+        if (e.target === lb || e.target === lbImg) close();
+      });
+      lbClose.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lb.classList.contains('is-open')) close();
+      });
+    })();
+  </script>
+  <script src="./jszip.min.js"></script>
+  <script type="module" src="./app.mjs?v=4"></script>
+</body>
+</html>
