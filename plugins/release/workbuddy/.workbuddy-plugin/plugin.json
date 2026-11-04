@@ -1,0 +1,10 @@
+{
+  "name": "html-to-wechat",
+  "version": "0.2.0",
+  "description": "将 HTML 转换为公众号富文本、图集、口播稿或飞书文档。",
+  "author": { "name": "ai-freer", "url": "https://github.com/ai-freer" },
+  "homepage": "https://ai-freer.github.io/html-to-wechat/",
+  "repository": "https://github.com/ai-freer/html-to-wechat",
+  "license": "MIT",
+  "keywords": ["html", "wechat", "feishu", "publishing", "content"]
+}

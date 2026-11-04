@@ -1,0 +1,15 @@
+{
+  "name": "@html-to-wechat/mode-02-images",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "HTML Artifact → AI 图集；宿主生图与 Agent 决策，payload/预览交付工具",
+  "scripts": {
+    "fragment": "node make-fragment.mjs",
+    "snapshot": "node render-snapshot.mjs",
+    "check": "node --check make-fragment.mjs"
+  },
+  "optionalDependencies": {
+    "puppeteer": "^24.43.1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "ai-freer",
+  "description": "HTML 多平台交付插件：公众号、图集、口播稿和飞书文档。",
+  "owner": { "name": "ai-freer", "url": "https://github.com/ai-freer" },
+  "plugins": [
+    {
+      "name": "html-to-wechat",
+      "source": "./plugins/release/workbuddy",
+      "description": "将 HTML 转换为公众号富文本、图集、口播稿或飞书文档。",
+      "version": "0.2.0",
+      "author": { "name": "ai-freer", "url": "https://github.com/ai-freer" },
+      "homepage": "https://ai-freer.github.io/html-to-wechat/",
+      "repository": "https://github.com/ai-freer/html-to-wechat",
+      "license": "MIT",
+      "category": "productivity",
+      "keywords": ["html", "wechat", "feishu", "publishing", "content"]
+    }
+  ]
+}

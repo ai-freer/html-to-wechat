@@ -58,7 +58,19 @@ codex plugin add html-to-wechat@html-to-wechat
 
 依赖准备和验证方式见 [Codex 插件安装与验证](docs/codex-plugin-install.md)。
 
-其他客户端：可从源码构建 WorkBuddy / CodeBuddy、DeepSeek Harness 本地插件产物；安装与验证边界见 [插件适配说明](plugins/README.md)。
+### 作为 WorkBuddy / CodeBuddy 插件安装
+
+仓库根的 `.codebuddy-plugin/marketplace.json` 是这两个客户端识别的市场清单。本地开发目录可以直接作为市场源添加：
+
+```text
+/plugin marketplace add /绝对路径/html-to-wechat
+/plugin install html-to-wechat@ai-freer
+/reload-plugins
+```
+
+仓库推送到 GitHub 后，其他人可用 `/plugin marketplace add ai-freer/html-to-wechat`；更新用 `/plugin marketplace update ai-freer` 与 `/plugin update html-to-wechat@ai-freer`。市场插件会被复制到版本化缓存而非原地加载，依赖准备和验收边界见 [WorkBuddy 插件安装与验证](docs/workbuddy-plugin-install.md)。
+
+其他客户端：DeepSeek Harness 仍需从源码构建本地插件产物；安装与验证边界见 [插件适配说明](plugins/README.md)。
 
 ## 四种投递形态
 
