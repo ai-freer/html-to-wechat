@@ -1,13 +1,43 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "html-to-wechat",
-  "version": "0.2.0-dev",
+  "version": "0.2.0",
   "description": "将 HTML 转换为公众号富文本、图集、口播稿或飞书文档。",
+  "author": {
+    "name": "ai-freer",
+    "url": "https://github.com/ai-freer"
+  },
+  "homepage": "https://ai-freer.github.io/html-to-wechat/",
+  "repository": "https://github.com/ai-freer/html-to-wechat",
+  "license": "MIT",
+  "keywords": [
+    "html",
+    "wechat",
+    "feishu",
+    "publishing",
+    "content"
+  ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "HTML-to-WeChat",
-        "shortDescription": "将 HTML 转换为公众号富文本、图集、口播稿或飞书文档。"
+        "shortDescription": "将 HTML 转换为公众号富文本、图集、口播稿或飞书文档。",
+        "longDescription": "把 HTML 文章交付为公众号富文本、图集、口播稿或飞书文档。转换在本地运行；生图、上传和云端写入需要你单独授权。",
+        "developerName": "ai-freer",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://ai-freer.github.io/html-to-wechat/",
+        "defaultPrompt": [
+          "把这篇 HTML 转成公众号富文本",
+          "把这篇 HTML 提取成口播稿",
+          "把这篇 HTML 导出为飞书文档"
+        ],
+        "brandColor": "#182038",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
       }
     }
   }

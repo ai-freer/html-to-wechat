@@ -2,7 +2,7 @@
 name: html-to-wechat-script
 description: "从 HTML 提取结构化 Markdown，交给 Agent 改写为口播稿；提供预览、统计、逐句换行和 md/txt 下载。CLI 提取不是成品改写。"
 metadata:
-  version: "0.2.0-dev"
+  version: "0.2.0"
 ---
 
 # HTML → 口播稿

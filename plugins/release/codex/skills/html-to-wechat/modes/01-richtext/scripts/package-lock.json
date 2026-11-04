@@ -1,12 +1,12 @@
 {
   "name": "@html-to-wechat/mode-01-richtext",
-  "version": "0.2.0-dev",
+  "version": "0.2.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@html-to-wechat/mode-01-richtext",
-      "version": "0.2.0-dev",
+      "version": "0.2.0",
       "dependencies": {
         "jsdom": "^25.0.1",
         "juice": "^10.0.0"

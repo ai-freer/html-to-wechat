@@ -46,6 +46,7 @@ try {
       result=result.replace('开发源是本仓库 `skill/`。当前为本地开发包；未构建独立安装产物，未发布到 Skill Hub。不要把有 SKILL.md 当作宿主已安装或可一键独立安装。','此为自包含安装产物；依赖和外部工具约定见 references/package-guide.md。');
       result=result.replace(/^开发源是本仓库 `skill\/`。.*$/m, '此为自包含安装产物；先运行 `node scripts/setup.mjs`，外部工具约定见 references/package-guide.md。');
       result=result.replace('当前为本地开发包','当前为安装包');
+      if (suite) result=result.replace(/(modes\/[0-9a-z-]+\/)SKILL\.md/g,'$1MODE.md').replaceAll('主 SKILL.md','主 MODE.md');
       if (suite) result=result.replace(/从本包根执行；按需[^\n]+/, '从本包根执行。先运行 `node scripts/setup.mjs`；共享截图 lib 已包含在本包内，各 mode 的引用在构建时闭合。');
       result=result.replace('当前安装、跨宿主发现、真实生图和飞书云端验证仍未完成。', '安装产物可按 package-guide 执行；跨宿主发现、真实生图和飞书云端验证分别验收。');
       return result;
@@ -72,7 +73,7 @@ try {
         await writeFile(join(scripts,file),data);
       }
       await copyFile(join(repo,'skill/locks',mode+'.json'),join(scripts,'package-lock.json'));
-      await writeFile(join(dest,'SKILL.md'),adapt(await readFile(join(source,'SKILL.md'),'utf8'),mode,suite));
+      await writeFile(join(dest,suite?'MODE.md':'SKILL.md'),adapt(await readFile(join(source,'SKILL.md'),'utf8'),mode,suite));
       if (mode === '01-richtext') {
         await mkdir(join(dest,'references'),{recursive:true});
         await copyFile(join(source,'references/svg-wechat.md'),join(dest,'references/svg-wechat.md'));
@@ -86,7 +87,7 @@ try {
     }
     if (suite) await writeFile(join(root,'SKILL.md'),adapt(await readFile(join(repo,'skill/SKILL.md'),'utf8'),null,false));
     const files={}; for (const file of await fileList(root)) files[file]=sha256(await readFile(join(root,file)));
-    await writeFile(join(root,'.skill-package.json'),JSON.stringify({schema:1,name:packageName,version:'0.2.0-dev',mode:suite?'suite':modes[index],runtimeDirs,files},null,2)+'\n');
+    await writeFile(join(root,'.skill-package.json'),JSON.stringify({schema:1,name:packageName,version:'0.2.0',mode:suite?'suite':modes[index],runtimeDirs,files},null,2)+'\n');
     await verifyPackage(root);
     console.log(`[build] verified ${packageName}: ${Object.keys(files).length} files`);
   }

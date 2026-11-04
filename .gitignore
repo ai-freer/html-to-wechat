@@ -73,3 +73,6 @@ docs/skill-roadmap-audit-2026-10-31.md
 # so they need the skill trees and lockfiles that are ignored elsewhere.
 !plugins/release/*/skills/
 !plugins/release/*/skills/**/package-lock.json
+# Sync-conflict copies such as "app 2.css" must never ship in a release.
+plugins/release/**/* [0-9]
+plugins/release/**/* [0-9].*

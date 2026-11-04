@@ -16,7 +16,7 @@ try {
   if (build.status !== 0) throw new Error(build.stderr || build.stdout || 'Skill build failed');
   const plugin = join(tmp, 'plugin'); await mkdir(join(plugin, 'skills'), {recursive:true});
   await cp(join(tmp, 'packages/html-to-wechat'), join(plugin, 'skills/html-to-wechat'), {recursive:true});
-  await cp(join(repo, 'plugins/codex/plugin.json'), join(plugin, 'plugin.json'));
+  await cp(join(repo, 'plugins/codex'), plugin, {recursive:true});
   await rename(plugin, out);
   console.log(`[codex plugin] built ${out}`);
 } catch(e) { console.error('[codex plugin]',e.message); process.exitCode=1; }

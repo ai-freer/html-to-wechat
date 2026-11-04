@@ -1,12 +1,12 @@
 {
   "name": "@html-to-wechat/mode-03-script",
-  "version": "0.2.0-dev",
+  "version": "0.2.0",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@html-to-wechat/mode-03-script",
-      "version": "0.2.0-dev",
+      "version": "0.2.0",
       "dependencies": {
         "cheerio": "^1.0.0",
         "turndown": "^7.2.0"

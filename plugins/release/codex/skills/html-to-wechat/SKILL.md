@@ -2,7 +2,7 @@
 name: html-to-wechat
 description: "将同一份 HTML 交付为公众号富文本、小红书图集、口播稿或飞书文档。尤其用于一次请求多个目标：共享输入检查，逐模式执行和核对；单目标直接使用对应模式。"
 metadata:
-  version: "0.2.0-dev"
+  version: "0.2.0"
 ---
 
 # HTML 多平台交付
@@ -13,10 +13,10 @@ metadata:
 
 | 目标 | 对应模式（相对总包根） | 本地交付 |
 |---|---|---|
-| 公众号 | `modes/01-richtext/SKILL.md` | 富文本 HTML、纯文本、警告 |
-| 图集 | `modes/02-images/SKILL.md` | 分镜/文案，授权生图后的图片、payload 与本地预览 |
-| 口播 | `modes/03-script/SKILL.md` | 提取稿 → Agent 改写稿 → 预览链接 |
-| 飞书 | `modes/04-feishu/SKILL.md` | 默认原生 XML 与资源包；HTML 内容块须明确选择 |
+| 公众号 | `modes/01-richtext/MODE.md` | 富文本 HTML、纯文本、警告 |
+| 图集 | `modes/02-images/MODE.md` | 分镜/文案，授权生图后的图片、payload 与本地预览 |
+| 口播 | `modes/03-script/MODE.md` | 提取稿 → Agent 改写稿 → 预览链接 |
+| 飞书 | `modes/04-feishu/MODE.md` | 默认原生 XML 与资源包；HTML 内容块须明确选择 |
 
 - **单目标**：读取对应模式即可，不必加载其他模式。
 - **公众号＋飞书本地导出**：只读 `references/multi-target.md`，优先使用总包的 `scripts/local-pair.mjs`；这条路径的常用 plan 和验收已在该说明中，不必再展开两个模式全文。高级图形/云端请求才补读相应模式。

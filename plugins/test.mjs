@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { verifyPackage } from '../scripts/package-utils.mjs';
+import { fileList, verifyPackage } from '../scripts/package-utils.mjs';
 
 const repo = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const temp = await mkdtemp(join(tmpdir(), 'h2w-plugin-test-'));
@@ -29,7 +29,8 @@ try {
     }
     const suite = join(root, 'skills/html-to-wechat');
     await verifyPackage(suite);
-    for (const mode of ['01-richtext', '02-images', '03-script', '04-feishu']) await access(join(suite, 'modes', mode, 'SKILL.md'));
+    for (const mode of ['01-richtext', '02-images', '03-script', '04-feishu']) await access(join(suite, 'modes', mode, 'MODE.md'));
+    assert.deepEqual((await fileList(suite)).filter(file => file.endsWith('/SKILL.md')), [], 'suite must expose one skill entry');
     const manifestPath = target === 'codex' ? 'plugin.json' : target === 'claude' ? '.claude-plugin/plugin.json' : target === 'workbuddy' ? '.workbuddy-plugin/plugin.json' : 'package.json';
     const manifest = JSON.parse(await readFile(join(root, manifestPath), 'utf8'));
     assert.equal(manifest.name, target === 'deepseek' ? '@local/html-to-wechat' : 'html-to-wechat');
@@ -41,7 +42,7 @@ try {
       const [item] = await provider.list();
       assert.equal(item.name, 'html-to-wechat');
       assert.equal(await realpath(item.resourceBase.path), await realpath(suite));
-      assert.match((await provider.get(item)).content, /modes\/04-feishu\/SKILL\.md/);
+      assert.match((await provider.get(item)).content, /modes\/04-feishu\/MODE\.md/);
       assert.equal(await provider.get({ ...item, locator: '/bad' }), undefined);
     }
     run(process.execPath, [join(suite, 'scripts/setup.mjs')]);
@@ -56,6 +57,23 @@ try {
     for (const file of [rich, script, xml]) assert.match(await readFile(file, 'utf8'), /插件验证/);
     console.log(`${target}: manifest, packaged suite and four local paths passed`);
   }
+  // WorkBuddy reads .codebuddy-plugin/marketplace.json only; keep the entry and the
+  // committed release package in sync so /plugin install never points at a stale path.
+  const marketplace = JSON.parse(await readFile(join(repo, '.codebuddy-plugin/marketplace.json'), 'utf8'));
+  const entry = marketplace.plugins.find(plugin => plugin.name === 'html-to-wechat');
+  assert.ok(entry, 'WorkBuddy marketplace is missing html-to-wechat');
+  assert.equal(typeof entry.source, 'string');
+  assert.match(entry.source, /^\.\//, 'marketplace source must be relative to the repository root');
+  const wbRoot = join(repo, entry.source);
+  const wbManifest = JSON.parse(await readFile(join(wbRoot, '.workbuddy-plugin/plugin.json'), 'utf8'));
+  assert.equal(wbManifest.name, entry.name);
+  assert.equal(wbManifest.version, entry.version, 'marketplace version must match .workbuddy-plugin/plugin.json');
+  const wbSuite = join(wbRoot, 'skills/html-to-wechat');
+  await access(join(wbSuite, 'SKILL.md'));
+  await verifyPackage(wbSuite);
+  const wbPackage = JSON.parse(await readFile(join(wbSuite, '.skill-package.json'), 'utf8'));
+  assert.equal(entry.version, wbPackage.version, 'marketplace version must match the packaged skill version');
+  console.log('WorkBuddy marketplace entry matches the committed release package');
   const claude = spawnSync('claude', ['plugin', 'validate', join(out, 'claude')], { encoding: 'utf8', timeout: 30000 });
   if (!claude.error) { assert.equal(claude.status, 0, claude.stdout + claude.stderr); console.log('Claude CLI manifest validation passed'); }
   else console.log('Claude CLI unavailable; manifest validation skipped');

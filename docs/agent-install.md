@@ -4,7 +4,7 @@
 
 ## 版本与来源
 
-当前版本为 0.2.0-dev，通过 GitHub 源码安装，暂未发布 npm 包，没有 `npx html-to-wechat` 安装命令。只有检出的版本包含本文件、`scripts/build-skills.mjs` 和 `scripts/install-skills.mjs` 时，才可执行以下流程。
+当前版本为 0.2.0，通过 GitHub 源码安装，暂未发布 npm 包，没有 `npx html-to-wechat` 安装命令。只有检出的版本包含本文件、`scripts/build-skills.mjs` 和 `scripts/install-skills.mjs` 时，才可执行以下流程。
 
 - 仓库来源：`https://github.com/ai-freer/html-to-wechat`。已有用户指定的本地源码时直接使用，保留未提交修改，不重新 clone 覆盖。
 - 否则 clone 到新目录，读取实际检出版本的 README 和本文，记录 commit。用户指定 ref 时使用该 ref，不猜测发布标签或下载地址。

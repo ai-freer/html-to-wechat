@@ -29,12 +29,12 @@ try {
   if (name === 'html-to-wechat' || name === 'html-to-wechat-richtext') {
    const prefix = name === 'html-to-wechat' ? 'modes/01-richtext/' : '';
    assert.ok(files.includes(prefix+'references/svg-wechat.md'));
-   assert.match(await readFile(join(root,prefix+'SKILL.md'),'utf8'), /references\/svg-wechat\.md/);
+   assert.match(await readFile(join(root,prefix+(prefix?'MODE.md':'SKILL.md')),'utf8'), /references\/svg-wechat\.md/);
   }
   if (name === 'html-to-wechat' || name === 'html-to-feishu') {
    const prefix = name === 'html-to-wechat' ? 'modes/04-feishu/' : '';
    assert.ok(files.includes(prefix+'references/cloud-workflow.md'));
-   assert.match(await readFile(join(root,prefix+'SKILL.md'),'utf8'), /bins: \[\]/);
+   assert.match(await readFile(join(root,prefix+(prefix?'MODE.md':'SKILL.md')),'utf8'), /bins: \[\]/);
   }
   if (name === 'html-to-wechat') {
    assert.ok(files.includes('references/multi-target.md'), 'multi-target route must ship with suite');
