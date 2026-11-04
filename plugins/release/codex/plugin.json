@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "html-to-wechat",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "将 HTML 转换为公众号富文本、图集、口播稿或飞书文档。",
   "author": {
     "name": "ai-freer",

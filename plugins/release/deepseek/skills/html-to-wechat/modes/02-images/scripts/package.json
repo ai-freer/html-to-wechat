@@ -1,7 +1,7 @@
 {
   "name": "@html-to-wechat/mode-02-images",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "description": "HTML Artifact → AI 图集；宿主生图与 Agent 决策，payload/预览交付工具",
   "scripts": {

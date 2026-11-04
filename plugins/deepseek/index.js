@@ -6,11 +6,15 @@ import { join, sep } from 'node:path';
 export const name = 'html-to-wechat';
 export const inject = ['skills'];
 
-// 600 is the packaged-provider precedence rank the skill registry ships for
-// bundled skills: it outranks project and user filesystem skills of the same
-// name. It is a literal because a third-party plugin must not install a second
-// copy of @deepseek-ai/dsh-skill, whose constant would carry another registry.
-const RANK = 600;
+// Lower rank wins a duplicate name within one layer. The registry orders:
+// project .dsh/.agents (100/200), runtime registrations (250), this plugin (260),
+// custom dirs (300), user .dsh/.agents (400/500), bundled defaults (600).
+// 260 keeps project-level copies as the override, lets an in-session
+// registration win, and outranks an installed standalone skill so users who
+// already have one still get the plugin. It is a literal because a third-party
+// plugin must not install a second copy of @deepseek-ai/dsh-skill, whose
+// constant would carry another registry instance.
+const RANK = 260;
 
 function splitFrontmatter(raw) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/u.exec(raw);

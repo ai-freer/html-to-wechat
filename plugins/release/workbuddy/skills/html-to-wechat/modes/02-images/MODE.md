@@ -2,7 +2,7 @@
 name: html-to-wechat-images
 description: "Agent 看 HTML 和截图后拆卡、生图、核字，输出图集文案及预览链接。此包提供 payload 工具与网页交付，不内置生图接口；Codex/ChatGPT 使用宿主内置 GPT-Image 2，不自动采用其他 Agent 的第三方配置。"
 metadata:
-  version: "0.2.1"
+  version: "0.2.2"
 ---
 
 # HTML → AI 图集

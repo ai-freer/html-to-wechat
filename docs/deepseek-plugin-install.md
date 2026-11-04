@@ -67,7 +67,20 @@ node skills/html-to-wechat/scripts/setup.mjs --with-browser
 
 ## 与本地同名 Skill 的关系
 
-插件注册的技能名是 `html-to-wechat`，优先级 rank 600，高于项目/用户目录里的同名技能（100–500）。若本机 `~/.agents/skills/html-to-wechat` 或 `~/.dsh/skills/html-to-wechat` 仍有副本，插件版会遮蔽它；建议先移除本地副本，避免"改了文件却不生效"的困惑。
+技能优先级由 provider 声明的 rank 决定，**数值越小越优先**：
+
+```
+项目 .dsh/skills 100 → 项目 .agents/skills 200 → 运行时注册 250
+→ 本插件 260 → 自定义目录 300 → 用户 ~/.dsh/skills 400
+→ 用户 ~/.agents/skills 500 → 打包默认 600
+```
+
+插件取 `260`，含义是：
+
+- **项目内的同名技能仍然覆盖插件**（100/200），想用自己改过的版本就把副本放进项目的 `.dsh/skills` 或 `.agents/skills`。
+- 会话内临时注册的技能（250）优先于插件，便于单次覆盖。
+- 插件优先于自定义目录和用户目录里的副本，所以已经装过独立 `html-to-wechat` skill 的用户，装插件后自动以插件版为准，不需要先删旧副本。
+- 插件的 `rank` 写在 `index.js`，不是可配置项；调整它属于行为变更，需要发版。
 
 ## 验收清单
 

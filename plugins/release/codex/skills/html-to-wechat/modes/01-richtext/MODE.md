@@ -2,7 +2,7 @@
 name: html-to-wechat-richtext
 description: "将 HTML 转为公众号兼容富文本；复杂页面先检查正文和视觉状态，生成显式 plan，再调用现有转换器。输出本地 HTML/纯文本，不发布。"
 metadata:
-  version: "0.2.1"
+  version: "0.2.2"
   requires:
     bins: []
     skills: []

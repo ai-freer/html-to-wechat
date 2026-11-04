@@ -67,7 +67,7 @@ try {
       const [item] = await registered.list();
       assert.equal(item.name, 'html-to-wechat');
       assert.equal(item.provider, 'html-to-wechat');
-      assert.equal(item.rank, 600);
+      assert.equal(item.rank, 260);
       assert.equal(item.source, 'plugin');
       assert.equal(await realpath(item.resourceBase.path), await realpath(suite));
       const definition = await registered.get(item);
